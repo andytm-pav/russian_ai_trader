@@ -1,0 +1,83 @@
+{
+  "news_items": [
+    {
+      "title": "Сбербанк объявил о рекордной прибыли за квартал",
+      "summary": "Сбербанк сообщил о росте чистой прибыли на 35% в сравнении с аналогичным периодом прошлого года",
+      "source": "РБК Финансы",
+      "category": "finance",
+      "timestamp": "2024-01-15T09:30:00",
+      "tickers": ["SBER"],
+      "sentiment": 0.8,
+      "labels": {
+        "action": "BUY",
+        "confidence": 0.85,
+        "impact_level": "high"
+      }
+    },
+    {
+      "title": "Газпром снижает дивидендные выплаты",
+      "summary": "Совет директоров Газпрома рекомендовал снизить дивиденды на 15%",
+      "source": "Интерфакс Финансы",
+      "category": "finance",
+      "timestamp": "2024-01-15T10:15:00",
+      "tickers": ["GAZP"],
+      "sentiment": -0.6,
+      "labels": {
+        "action": "SELL",
+        "confidence": 0.7,
+        "impact_level": "medium"
+      }
+    },
+    {
+      "title": "Лукойл наращивает добычу на новых месторождениях",
+      "summary": "Компания увеличила добычу нефти на 8% на арктических месторождениях",
+      "source": "Мосбиржа Новости",
+      "category": "energy",
+      "timestamp": "2024-01-15T11:00:00",
+      "tickers": ["LKOH"],
+      "sentiment": 0.5,
+      "labels": {
+        "action": "BUY",
+        "confidence": 0.65,
+        "impact_level": "medium"
+      }
+    },
+    {
+      "title": "ВТБ расширяет ипотечные программы",
+      "summary": "Банк снизил ставки по ипотеке для новых клиентов",
+      "source": "Ведомости Финансы",
+      "category": "banking",
+      "timestamp": "2024-01-15T11:30:00",
+      "tickers": ["VTBR"],
+      "sentiment": 0.4,
+      "labels": {
+        "action": "HOLD",
+        "confidence": 0.55,
+        "impact_level": "low"
+      }
+    },
+    {
+      "title": "Яндекс представляет новый сервис доставки",
+      "summary": "Компания запускает экспресс-доставку продуктов в течение 15 минут",
+      "source": "Коммерсантъ Бизнес",
+      "category": "technology",
+      "timestamp": "2024-01-15T12:00:00",
+      "tickers": ["YNDX"],
+      "sentiment": 0.7,
+      "labels": {
+        "action": "BUY",
+        "confidence": 0.75,
+        "impact_level": "medium"
+      }
+    }
+  ],
+  "metadata": {
+    "total_news": 5,
+    "last_update": "2024-01-15T12:00:00",
+    "sources_count": 5,
+    "tickers_covered": ["SBER", "GAZP", "LKOH", "VTBR", "YNDX"],
+    "average_sentiment": 0.36,
+    "labeling_method": "manual",
+    "version": "1.0"
+  }
+}

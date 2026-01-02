@@ -1,0 +1,111 @@
+{
+  "watchlist": [
+    {
+      "ticker": "SBER",
+      "name": "Сбербанк",
+      "sector": "финансы",
+      "lot_size": 10,
+      "min_step": 0.01,
+      "avg_daily_volume": 50000000,
+      "priority": 10
+    },
+    {
+      "ticker": "GAZP",
+      "name": "Газпром",
+      "sector": "нефтегаз",
+      "lot_size": 10,
+      "min_step": 0.01,
+      "avg_daily_volume": 40000000,
+      "priority": 9
+    },
+    {
+      "ticker": "LKOH",
+      "name": "Лукойл",
+      "sector": "нефтегаз",
+      "lot_size": 1,
+      "min_step": 1,
+      "avg_daily_volume": 1000000,
+      "priority": 9
+    },
+    {
+      "ticker": "YNDX",
+      "name": "Яндекс",
+      "sector": "IT",
+      "lot_size": 1,
+      "min_step": 0.02,
+      "avg_daily_volume": 2000000,
+      "priority": 8
+    },
+    {
+      "ticker": "VTBR",
+      "name": "ВТБ",
+      "sector": "финансы",
+      "lot_size": 10000,
+      "min_step": 0.00005,
+      "avg_daily_volume": 1000000000,
+      "priority": 8
+    },
+    {
+      "ticker": "ROSN",
+      "name": "Роснефть",
+      "sector": "нефтегаз",
+      "lot_size": 10,
+      "min_step": 0.01,
+      "avg_daily_volume": 20000000,
+      "priority": 7
+    },
+    {
+      "ticker": "POLY",
+      "name": "Polymetal",
+      "sector": "металлы",
+      "lot_size": 1,
+      "min_step": 0.01,
+      "avg_daily_volume": 2000000,
+      "priority": 6
+    },
+    {
+      "ticker": "GMKN",
+      "name": "Норникель",
+      "sector": "металлы",
+      "lot_size": 1,
+      "min_step": 1,
+      "avg_daily_volume": 300000,
+      "priority": 7
+    },
+    {
+      "ticker": "NVTK",
+      "name": "Новатэк",
+      "sector": "нефтегаз",
+      "lot_size": 1,
+      "min_step": 0.1,
+      "avg_daily_volume": 500000,
+      "priority": 7
+    },
+    {
+      "ticker": "PLZL",
+      "name": "Полюс",
+      "sector": "металлы",
+      "lot_size": 1,
+      "min_step": 1,
+      "avg_daily_volume": 400000,
+      "priority": 6
+    }
+  ],
+  "sector_limits": {
+    "финансы": 40,
+    "нефтегаз": 30,
+    "металлы": 20,
+    "IT": 15,
+    "other": 10
+  },
+  "liquidity_filter": {
+    "min_avg_volume": 1000000,
+    "min_price": 10,
+    "max_spread_percent": 0.5
+  },
+  "trading_params": {
+    "max_position_per_ticker_percent": 25,
+    "min_hold_period_hours": 4,
+    "cooldown_period_hours": 2
+  }
+}

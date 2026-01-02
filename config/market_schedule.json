@@ -1,0 +1,51 @@
+{
+  "trading_calendar": {
+    "regular_days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+    "short_days": [],
+    "pre_holiday_early_close": ["2026-02-20", "2026-05-08", "2026-11-03"]
+  },
+  "sessions": {
+    "main_session": {
+      "start": "06:50",
+      "end": "18:50",
+      "auction_start": "06:50",
+      "auction_end": "07:00",
+      "continuous_start": "07:00",
+      "continuous_end": "18:45",
+      "closing_auction_start": "18:45",
+      "closing_auction_end": "18:50"
+    },
+    "evening_session": {
+      "start": "19:00",
+      "end": "23:50",
+      "enabled": false
+    },
+    "overnight_session": {
+      "start": "00:00",
+      "end": "06:50",
+      "enabled": false
+    }
+  },
+  "holidays_2026": [
+    "2026-01-01", "2026-01-02", "2026-01-07", "2026-02-23",
+    "2026-03-08", "2026-05-01", "2026-05-09", "2026-06-12",
+    "2026-11-04"
+  ],
+  "special_trading_days": [],
+  "market_breaks": {
+    "lunch_break": {
+      "enabled": false,
+      "start": "12:00",
+      "end": "12:30"
+    }
+  },
+  "news_events": {
+    "macro_releases": ["10:00", "13:00", "16:00"],
+    "corporate_earnings": ["07:00", "12:00", "18:00"],
+    "cbr_meetings": ["13:30"]
+  },
+  "system_maintenance": {
+    "daily_reset": "00:00-00:05",
+    "weekly_maintenance": "sunday 02:00-04:00"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "portfolio_name": "AI_Trader_Russian_Market",
+  "strategy_type": "hybrid_news_technical",
+  "risk_profile": "moderate",
+  "rebalancing": {
+    "schedule": "weekly",
+    "day_of_week": "monday",
+    "time": "10:00",
+    "threshold_percent": 5,
+    "max_turnover_percent": 20
+  },
+  "cash_management": {
+    "min_cash_percent": 10,
+    "max_cash_percent": 30,
+    "emergency_reserve_rub": 1000
+  },
+  "position_sizing": {
+    "method": "risk_based",
+    "kelly_fraction": 0.5,
+    "volatility_adjusted": true,
+    "max_capital_at_risk_percent": 15
+  },
+  "diversification": {
+    "min_tickers": 3,
+    "max_tickers": 8,
+    "sector_limit_percent": 40,
+    "correlation_limit": 0.7
+  },
+  "performance_targets": {
+    "annual_return_target_percent": 15,
+    "max_drawdown_percent": 10,
+    "sharpe_ratio_target": 1.5,
+    "win_rate_target_percent": 55
+  },
+  "reporting": {
+    "daily_report_time": "19:00",
+    "weekly_report_day": "friday",
+    "monthly_report_day": "last"
+  }
+}
