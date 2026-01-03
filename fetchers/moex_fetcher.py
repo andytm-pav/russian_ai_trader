@@ -1,5 +1,5 @@
 """
-Получение данных с Московской биржи (MOEX)
+Получение данных с Московской биржи (MOEX) - оптимизированная версия
 """
 
 import json
@@ -29,19 +29,63 @@ class MoexFetcher:
         self.cache_ttl = cache_ttl
         self.cache = {}
 
-        logger.info("Инициализирован MOEX Fetcher")
+        # Rate limiting
+        self.request_timestamps = []
+        self.max_requests_per_minute = 50
+
+        # Статистика
+        self.cache_hits = 0
+        self.cache_misses = 0
+
+        logger.info(f"Инициализирован MOEX Fetcher (лимит: {self.max_requests_per_minute} запр/мин)")
+
+    def _rate_limit(self):
+        """Контроль частоты запросов"""
+        now = time.time()
+
+        # Удаляем старые записи (старше 1 минуты)
+        self.request_timestamps = [ts for ts in self.request_timestamps if now - ts < 60]
+
+        # Если достигли лимита, ждём
+        if len(self.request_timestamps) >= self.max_requests_per_minute:
+            oldest = self.request_timestamps[0]
+            sleep_time = 60 - (now - oldest) + 0.1
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+                now = time.time()
+                self.request_timestamps = [ts for ts in self.request_timestamps if now - ts < 60]
+
+        self.request_timestamps.append(now)
+
+    def _make_request(self, url: str, params: Dict = None, timeout: int = 10) -> Optional[Dict]:
+        """Обёртка для выполнения запросов с rate limiting и обработкой ошибок"""
+        self._rate_limit()
+
+        try:
+            response = self.session.get(url, params=params, timeout=timeout)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Ошибка сети при запросе {url}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Ошибка обработки ответа {url}: {e}")
+            return None
 
     def _get_from_cache(self, key: str) -> Optional[Any]:
         """Получение данных из кэша"""
         if not self.use_cache or key not in self.cache:
+            self.cache_misses += 1
             return None
 
         cached_data, timestamp = self.cache[key]
 
         if time.time() - timestamp > self.cache_ttl:
             del self.cache[key]
+            self.cache_misses += 1
             return None
 
+        self.cache_hits += 1
         return cached_data
 
     def _save_to_cache(self, key: str, data: Any):
@@ -49,8 +93,48 @@ class MoexFetcher:
         if self.use_cache:
             self.cache[key] = (data, time.time())
 
+    def get_prices_batch(self, tickers: List[str]) -> Dict[str, Optional[float]]:
+        """Получение цен для нескольких тикеров одним запросом"""
+        if not tickers:
+            return {}
+
+        results = {}
+        batch_size = 50  # MOEX API поддерживает до 100 тикеров, но для надёжности 50
+
+        for i in range(0, len(tickers), batch_size):
+            batch = tickers[i:i + batch_size]
+
+            url = f"{self.base_url}/engines/stock/markets/shares/boards/TQBR/securities.json"
+            params = {
+                'securities': ','.join(batch),
+                'iss.meta': 'off',
+                'iss.only': 'marketdata',
+                'marketdata.columns': 'SECID,LAST,CHANGE,LASTTOPREVPRICE',
+                'limit': len(batch)
+            }
+
+            data = self._make_request(url, params, timeout=15)
+            if not data or 'marketdata' not in data:
+                continue
+
+            columns = data['marketdata']['columns']
+            for row in data['marketdata']['data']:
+                try:
+                    ticker = row[columns.index('SECID')]
+                    last_price = row[columns.index('LAST')] if 'LAST' in columns else None
+
+                    if last_price and last_price > 0:
+                        results[ticker] = float(last_price)
+                        # Кэшируем отдельную цену
+                        self._save_to_cache(f"price_{ticker}", float(last_price))
+                except (IndexError, ValueError) as e:
+                    logger.debug(f"Ошибка обработки цены для батча: {e}")
+                    continue
+
+        return results
+
     def get_all_securities(self) -> Dict[str, Dict]:
-        """Получение списка всех ликвидных бумаг"""
+        """Получение списка всех ликвидных бумаг - исправленная оптимизированная версия"""
         cache_key = "all_securities"
         cached = self._get_from_cache(cache_key)
 
@@ -59,7 +143,7 @@ class MoexFetcher:
             return cached
 
         try:
-            # Используем эндпоинт для получения списка бумаг с основными параметрами
+            # 1. Получаем список бумаг (securities)
             url = f"{self.base_url}/engines/stock/markets/shares/boards/TQBR/securities.json"
             params = {
                 'iss.meta': 'off',
@@ -68,56 +152,135 @@ class MoexFetcher:
                 'limit': 100
             }
 
-            response = self.session.get(url, params=params, timeout=10)
-            response.raise_for_status()
+            logger.debug(f"Запрос списка бумаг...")
 
+            response = self.session.get(url, params=params, timeout=15)
+            response.raise_for_status()
             data = response.json()
 
-            # Обработка данных - только securities, без marketdata
-            securities = {}
-
             if 'securities' not in data:
-                logger.error("Нет данных по бумагам в ответе")
+                logger.error("Нет ключа 'securities' в ответе")
                 return {}
 
+            # Обрабатываем список бумаг
             columns = data['securities']['columns']
             rows = data['securities']['data']
+            logger.debug(f"Получено {len(rows)} строк с бумагами")
+
+            tickers = []
+            sec_dict = {}
 
             for row in rows:
                 try:
                     ticker = row[columns.index('SECID')]
                     name = row[columns.index('SHORTNAME')]
 
-                    # Получаем предыдущую цену, если есть
-                    prev_price_idx = columns.index('PREVPRICE') if 'PREVPRICE' in columns else -1
-                    prev_price = row[prev_price_idx] if prev_price_idx != -1 and prev_price_idx < len(row) else 0
+                    tickers.append(ticker)
 
-                    # Получаем текущую цену отдельным запросом
-                    current_price = self.get_price(ticker) or 0
+                    # Безопасное получение PREVPRICE
+                    prev_price = 0
+                    if 'PREVPRICE' in columns:
+                        idx = columns.index('PREVPRICE')
+                        if idx < len(row) and row[idx] is not None:
+                            try:
+                                prev_price = float(row[idx])
+                            except (ValueError, TypeError):
+                                prev_price = 0
 
-                    # Простой расчет момента
+                    sec_dict[ticker] = {
+                        'name': name,
+                        'full_name': row[columns.index('SECNAME')] if 'SECNAME' in columns else name,
+                        'lot_size': row[columns.index('LOTSIZE')] if 'LOTSIZE' in columns else 1,
+                        'prev_price': prev_price
+                    }
+                except (IndexError, ValueError) as e:
+                    logger.debug(f"Ошибка обработки строки для {ticker}: {e}")
+                    continue
+
+            # 2. Получаем текущие цены batch-запросом (marketdata)
+            logger.debug(f"Запрашиваем цены для {len(tickers)} тикеров...")
+
+            # Разбиваем на батчи по 50
+            all_prices = {}
+            batch_size = 50
+
+            for i in range(0, len(tickers), batch_size):
+                batch = tickers[i:i + batch_size]
+                logger.debug(f"Батч {i // batch_size + 1}: {len(batch)} тикеров")
+
+                url = f"{self.base_url}/engines/stock/markets/shares/boards/TQBR/securities.json"
+                params = {
+                    'securities': ','.join(batch),
+                    'iss.meta': 'off',
+                    'iss.only': 'marketdata',
+                    'marketdata.columns': 'SECID,LAST',
+                    'limit': len(batch)
+                }
+
+                try:
+                    response = self.session.get(url, params=params, timeout=10)
+                    response.raise_for_status()
+                    batch_data = response.json()
+
+                    if 'marketdata' in batch_data:
+                        md_columns = batch_data['marketdata']['columns']
+                        for md_row in batch_data['marketdata']['data']:
+                            try:
+                                ticker = md_row[md_columns.index('SECID')]
+
+                                # Безопасное получение LAST цены
+                                last_price = 0
+                                if 'LAST' in md_columns:
+                                    idx = md_columns.index('LAST')
+                                    if idx < len(md_row) and md_row[idx] is not None:
+                                        try:
+                                            last_price = float(md_row[idx])
+                                        except (ValueError, TypeError):
+                                            last_price = 0
+
+                                all_prices[ticker] = last_price
+                            except (IndexError, ValueError) as e:
+                                logger.debug(f"Ошибка обработки marketdata для батча: {e}")
+                                continue
+                except Exception as e:
+                    logger.warning(f"Ошибка batch-запроса для {len(batch)} тикеров: {e}")
+                    # Fallback: получаем цены по одному для этого батча
+                    for ticker in batch:
+                        try:
+                            price = self.get_price(ticker)
+                            all_prices[ticker] = price if price else 0
+                        except:
+                            all_prices[ticker] = 0
+
+            # 3. Формируем итоговый результат
+            securities = {}
+            for ticker in tickers:
+                if ticker in sec_dict:
+                    base_data = sec_dict[ticker]
+                    current_price = all_prices.get(ticker, 0.0)
+                    prev_price = base_data['prev_price']
+
+                    # Расчет момента
                     momentum = 0.0
                     if prev_price and prev_price > 0 and current_price > 0:
-                        momentum = (current_price / prev_price - 1) * 100
+                        momentum = ((current_price / prev_price) - 1) * 100
 
                     securities[ticker] = {
-                        'name': name,
+                        'name': base_data['name'],
+                        'full_name': base_data['full_name'],
+                        'lot_size': base_data['lot_size'],
                         'price': current_price,
                         'prev_price': prev_price,
-                        'volume': 0,  # Нужен отдельный запрос для объема
+                        'volume': 0,  # Можно добавить отдельным запросом VALTODAY
                         'change': current_price - prev_price if prev_price else 0,
                         'momentum': momentum,
-                        'liquidity': 0.5,  # По умолчанию средняя ликвидность
+                        'liquidity': 0.5,
                         'spread': 0.01,
                         'market_cap': 0,
                         'update_time': datetime.now().isoformat()
                     }
 
-                except (IndexError, ValueError) as e:
-                    logger.warning(f"Ошибка обработки строки данных: {e}")
-                    continue
-
-            logger.info(f"Загружено {len(securities)} бумаг")
+            logger.info(f"Загружено {len(securities)} бумаг (использованы batch-запросы)")
 
             # Сохранение в кэш
             self._save_to_cache(cache_key, securities)
@@ -129,10 +292,12 @@ class MoexFetcher:
             return {}
         except Exception as e:
             logger.error(f"Ошибка обработки данных бумаг: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return {}
 
     def get_price(self, ticker: str) -> Optional[float]:
-        """Получение текущей цены по тикеру"""
+        """Более простая и надежная версия get_price"""
         cache_key = f"price_{ticker}"
         cached = self._get_from_cache(cache_key)
 
@@ -140,47 +305,38 @@ class MoexFetcher:
             return cached
 
         try:
-            # Получаем данные по конкретному тикеру
+            # Простой запрос к marketdata
             url = f"{self.base_url}/engines/stock/markets/shares/boards/TQBR/securities/{ticker}.json"
-            params = {
-                'iss.meta': 'off'
-            }
+            params = {'iss.meta': 'off'}
 
             response = self.session.get(url, params=params, timeout=5)
             response.raise_for_status()
-
             data = response.json()
 
-            # Ищем последнюю цену
             marketdata = data.get('marketdata', {})
             columns = marketdata.get('columns', [])
             rows = marketdata.get('data', [])
 
             if rows and columns:
-                # Берем первую строку (последние данные)
                 row = rows[0]
-
-                # Ищем колонку с последней ценой
                 price_columns = ['LAST', 'LCURRENTPRICE', 'OPEN', 'CLOSE']
 
                 for price_col in price_columns:
                     if price_col in columns:
                         idx = columns.index(price_col)
-                        price = row[idx] if idx < len(row) else None
+                        if idx < len(row) and row[idx] is not None:
+                            try:
+                                price = float(row[idx])
+                                if price > 0:
+                                    self._save_to_cache(cache_key, price)
+                                    return price
+                            except (ValueError, TypeError):
+                                continue
 
-                        if price and price > 0:
-                            # Сохраняем в кэш
-                            self._save_to_cache(cache_key, float(price))
-                            return float(price)
-
-            logger.warning(f"Не удалось получить цену для {ticker}")
             return None
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Ошибка сети при получении цены {ticker}: {e}")
-            return None
         except Exception as e:
-            logger.error(f"Ошибка обработки цены {ticker}: {e}")
+            logger.error(f"Ошибка получения цены {ticker}: {e}")
             return None
 
     def get_candles(self,
@@ -188,6 +344,12 @@ class MoexFetcher:
                     interval: int = 60,  # минуты
                     count: int = 100) -> Optional[pd.DataFrame]:
         """Получение исторических свечей"""
+        # Валидация интервала
+        valid_intervals = {1: "1", 10: "10", 60: "60", 24: "24", 7: "7", 31: "31", 4: "4"}
+        if interval not in valid_intervals:
+            logger.warning(f"Некорректный интервал {interval}, используется 60")
+            interval = 60
+
         cache_key = f"candles_{ticker}_{interval}_{count}"
         cached = self._get_from_cache(cache_key)
 
@@ -195,21 +357,25 @@ class MoexFetcher:
             return cached
 
         try:
-            # Интервалы: 1, 10, 60 минут
-            interval_str = str(interval)
+            interval_str = valid_intervals[interval]
 
-            url = f"{self.base_url}/engines/stock/markets/shares/boards/TQBR/securities/{ticker}/candles.json"
+            # Используем параметры from и till для точного контроля периода
+            till_date = datetime.now()
+            from_date = till_date - timedelta(days=30 if interval in [24, 7, 31, 4] else 7)
+
+            url = f"{self.base_url}/engines/stock/markets/shares/securities/{ticker}/candles.json"
             params = {
                 'interval': interval_str,
-                'count': count,
+                'from': from_date.strftime('%Y-%m-%d'),
+                'till': till_date.strftime('%Y-%m-%d'),
                 'iss.meta': 'off'
             }
 
-            response = self.session.get(url, params=params, timeout=10)
-            response.raise_for_status()
+            data = self._make_request(url, params, timeout=15)
+            if not data or 'candles' not in data:
+                return None
 
-            data = response.json()
-            candles = data.get('candles', {})
+            candles = data['candles']
             columns = candles.get('columns', [])
             rows = candles.get('data', [])
 
@@ -219,12 +385,19 @@ class MoexFetcher:
             # Создаем DataFrame
             df = pd.DataFrame(rows, columns=columns)
 
-            # Конвертируем даты
+            # Конвертируем даты и устанавливаем индекс
             if 'begin' in df.columns:
                 df['datetime'] = pd.to_datetime(df['begin'])
                 df.set_index('datetime', inplace=True)
 
-            # Переименовываем колонки
+                # Сортируем по дате
+                df.sort_index(inplace=True)
+
+                # Ограничиваем количество строк если их больше запрошенного
+                if len(df) > count:
+                    df = df.iloc[-count:]
+
+            # Стандартизируем названия колонок
             column_mapping = {
                 'open': 'Open',
                 'close': 'Close',
@@ -234,13 +407,14 @@ class MoexFetcher:
                 'value': 'Value'
             }
 
-            df.rename(columns={k.lower(): v for k, v in column_mapping.items()
-                               if k.lower() in df.columns}, inplace=True)
+            for old_col, new_col in column_mapping.items():
+                if old_col in df.columns:
+                    df.rename(columns={old_col: new_col}, inplace=True)
 
             # Сохраняем в кэш
             self._save_to_cache(cache_key, df)
 
-            logger.debug(f"Получено {len(df)} свечей для {ticker} (интервал {interval}мин)")
+            logger.debug(f"Получено {len(df)} свечей для {ticker} (интервал {interval})")
 
             return df
 
@@ -257,11 +431,11 @@ class MoexFetcher:
                 'iss.meta': 'off'
             }
 
-            response = self.session.get(url, params=params, timeout=5)
-            response.raise_for_status()
+            data = self._make_request(url, params, timeout=8)
+            if not data or 'orderbook' not in data:
+                return None
 
-            data = response.json()
-            orderbook = data.get('orderbook', {})
+            orderbook = data['orderbook']
             columns = orderbook.get('columns', [])
             rows = orderbook.get('data', [])
 
@@ -274,26 +448,40 @@ class MoexFetcher:
 
             for row in rows:
                 if len(row) >= 4:
-                    price = row[columns.index('PRICE')]
-                    quantity = row[columns.index('QUANTITY')]
-                    is_bid = row[columns.index('BUYSELL')] == 'B'
+                    try:
+                        price = row[columns.index('PRICE')]
+                        quantity = row[columns.index('QUANTITY')]
+                        is_bid = row[columns.index('BUYSELL')] == 'B'
 
-                    if is_bid:
-                        bids.append({'price': price, 'quantity': quantity})
-                    else:
-                        asks.append({'price': price, 'quantity': quantity})
+                        if is_bid:
+                            bids.append({'price': float(price), 'quantity': int(quantity)})
+                        else:
+                            asks.append({'price': float(price), 'quantity': int(quantity)})
+                    except (IndexError, ValueError) as e:
+                        logger.debug(f"Ошибка обработки строки стакана: {e}")
+                        continue
 
             # Сортируем
-            bids.sort(key=lambda x: x['price'], reverse=True)  # По убыванию цены
-            asks.sort(key=lambda x: x['price'])  # По возрастанию цены
+            bids.sort(key=lambda x: x['price'], reverse=True)
+            asks.sort(key=lambda x: x['price'])
+
+            # Ограничиваем глубину
+            bids = bids[:depth]
+            asks = asks[:depth]
+
+            # Рассчитываем спред если есть данные
+            spread = 0
+            if bids and asks:
+                spread = asks[0]['price'] - bids[0]['price']
 
             result = {
-                'bids': bids[:depth],
-                'asks': asks[:depth],
-                'spread': asks[0]['price'] - bids[0]['price'] if bids and asks else 0,
-                'total_bid_volume': sum(b['quantity'] for b in bids[:depth]),
-                'total_ask_volume': sum(a['quantity'] for a in asks[:depth]),
-                'timestamp': datetime.now().isoformat()
+                'bids': bids,
+                'asks': asks,
+                'spread': spread,
+                'total_bid_volume': sum(b['quantity'] for b in bids),
+                'total_ask_volume': sum(a['quantity'] for a in asks),
+                'timestamp': datetime.now().isoformat(),
+                'ticker': ticker
             }
 
             return result
@@ -303,47 +491,44 @@ class MoexFetcher:
             return None
 
     def get_market_indices(self) -> Dict[str, float]:
-        """Получение основных рыночных индексов"""
+        """Оптимизированная версия с batch-запросом"""
         cache_key = "market_indices"
         cached = self._get_from_cache(cache_key)
 
         if cached is not None:
             return cached
 
-        try:
-            indices = {}
+        index_tickers = ['IMOEX', 'RTSI', 'MOEXBMI', 'MOEXFN', 'MOEXOG', 'MOEXTL']
 
-            # Основные индексы MOEX
-            index_tickers = ['IMOEX', 'RTSI', 'MOEXBMI', 'MOEXFN', 'MOEXOG', 'MOEXTL']
-
+        # Используем batch-запрос вместо отдельных
+        prices = {}
+        if hasattr(self, 'get_prices_batch'):
+            prices = self.get_prices_batch(index_tickers)
+        else:
+            # Fallback: по одному
             for ticker in index_tickers:
                 price = self.get_price(ticker)
                 if price:
-                    indices[ticker] = price
+                    prices[ticker] = price
 
-            # Добавляем расчетные метрики
-            if indices:
-                indices['market_mood'] = self._calculate_market_mood(indices)
-                indices['update_time'] = datetime.now().isoformat()
+        # Добавляем метрики
+        if prices:
+            prices['market_mood'] = self._calculate_market_mood(prices)
+            prices['update_time'] = datetime.now().isoformat()
+            self._save_to_cache(cache_key, prices)
 
-            # Сохраняем в кэш
-            self._save_to_cache(cache_key, indices)
-
-            return indices
-
-        except Exception as e:
-            logger.error(f"Ошибка получения индексов: {e}")
-            return {}
+        return prices
 
     def _calculate_market_mood(self, indices: Dict[str, float]) -> float:
         """Расчет общего настроения рынка"""
         try:
-            # Простая эвристика на основе индексов
-            if 'IMOEX' in indices and 'RTSI' in indices:
-                # Сравнение текущих значений с предыдущими (в реальности нужно хранить историю)
-                return 0.0  # По умолчанию нейтральное
+            if not indices:
+                return 0.0
 
-            return 0.0
+            # Простая эвристика: считаем процент положительных изменений
+            # В реальном приложении нужно сравнивать с предыдущими значениями
+            return 0.0  # По умолчанию нейтральное
+
         except:
             return 0.0
 
@@ -354,11 +539,11 @@ class MoexFetcher:
             url = f"{self.base_url}/securities/{ticker}.json"
             params = {'iss.meta': 'off'}
 
-            response = self.session.get(url, params=params, timeout=5)
-            response.raise_for_status()
+            data = self._make_request(url, params, timeout=8)
+            if not data or 'securities' not in data:
+                return None
 
-            data = response.json()
-            securities = data.get('securities', {})
+            securities = data['securities']
             columns = securities.get('columns', [])
             rows = securities.get('data', [])
 
@@ -378,13 +563,14 @@ class MoexFetcher:
                 'ISSUECAPITALIZATION': 'market_cap',
                 'CURRENCYID': 'currency',
                 'LOTSIZE': 'lot_size',
-                'MINSTEP': 'min_step'
+                'MINSTEP': 'min_step',
+                'PREVPRICE': 'prev_price'
             }
 
             for col_ru, col_en in fields_mapping.items():
                 if col_ru in columns:
                     idx = columns.index(col_ru)
-                    if idx < len(row):
+                    if idx < len(row) and row[idx] is not None:
                         info[col_en] = row[idx]
 
             # Добавляем текущую цену
@@ -393,12 +579,13 @@ class MoexFetcher:
                 info['current_price'] = price
 
             # Добавляем свечи за день
-            candles = self.get_candles(ticker, interval=60, count=24)
+            candles = self.get_candles(ticker, interval=24, count=5)
             if candles is not None and not candles.empty:
                 info['daily_high'] = candles['High'].max()
                 info['daily_low'] = candles['Low'].min()
-                info['daily_volume'] = candles['Volume'].sum()
-                info['daily_change'] = ((candles['Close'].iloc[-1] / candles['Close'].iloc[0]) - 1) * 100
+                info['daily_volume'] = candles['Volume'].sum() if 'Volume' in candles.columns else 0
+                if len(candles) > 1:
+                    info['daily_change'] = ((candles['Close'].iloc[-1] / candles['Close'].iloc[0]) - 1) * 100
 
             info['last_updated'] = datetime.now().isoformat()
 
@@ -411,21 +598,23 @@ class MoexFetcher:
     def get_market_status(self) -> Dict:
         """Получение статуса рынка"""
         try:
-            # Простая проверка - пытаемся получить данные
-            test_ticker = "SBER"
-            price = self.get_price(test_ticker)
+            # Проверяем доступность API через простой запрос
+            url = f"{self.base_url}/engines.json"
+            params = {'iss.meta': 'off', 'limit': 1}
+
+            data = self._make_request(url, params, timeout=5)
 
             status = {
-                'is_available': price is not None,
+                'is_available': data is not None,
                 'last_check': datetime.now().isoformat(),
-                'test_ticker': test_ticker,
-                'test_price': price
+                'api_version': 'ISS API v1',
+                'cache_stats': self.get_cache_stats()
             }
 
-            if price is None:
+            if data is None:
                 logger.warning("Рынок недоступен или закрыт")
             else:
-                logger.debug(f"Рынок доступен, цена SBER: {price}")
+                logger.debug("Рынок доступен")
 
             return status
 
@@ -433,7 +622,21 @@ class MoexFetcher:
             logger.error(f"Ошибка проверки статуса рынка: {e}")
             return {'is_available': False, 'error': str(e)}
 
+    def get_cache_stats(self) -> Dict:
+        """Получение статистики кэша"""
+        total = self.cache_hits + self.cache_misses
+        hit_rate = self.cache_hits / total if total > 0 else 0
+
+        return {
+            'size': len(self.cache),
+            'hits': self.cache_hits,
+            'misses': self.cache_misses,
+            'hit_rate': hit_rate,
+            'ttl': self.cache_ttl
+        }
+
     def clear_cache(self):
         """Очистка кэша"""
+        old_size = len(self.cache)
         self.cache.clear()
-        logger.info("Кэш MOEX очищен")
+        logger.info(f"Кэш MOEX очищен (было {old_size} записей)")

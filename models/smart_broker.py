@@ -53,6 +53,10 @@ class SmartPortfolioBroker:
 
     def _initialize_components(self):
         """Инициализация всех компонентов"""
+        # Устанавливаем начальные настройки для компонентов
+        self.portfolio.initial_capital = self.settings.get("initial_capital_rub", 10000)
+        self.portfolio.max_positions = self.settings.get("max_positions", 5)
+
         # Запуск непрерывного сбора новостей
         if self.settings.get("enable_news_core", True):
             self.news_core.start_continuous_fetching()
@@ -597,6 +601,36 @@ class SmartPortfolioBroker:
 
         except Exception as e:
             logger.error(f"Ошибка анализа сентимента: {e}")
+
+    def update_settings(self, new_settings: Dict):
+        """Обновление настроек брокера"""
+        try:
+            # Обновляем основные настройки
+            self.settings.update(new_settings)
+
+            # Специфичные обновления компонентов
+            if 'initial_capital_rub' in new_settings:
+                self.portfolio.initial_capital = new_settings['initial_capital_rub']
+
+            if 'max_positions' in new_settings:
+                self.portfolio.max_positions = new_settings['max_positions']
+
+            # Обновление Risk Manager
+            if 'risk_per_trade_percent' in new_settings:
+                if hasattr(self.risk_manager, 'config'):
+                    self.risk_manager.config['risk_per_trade_percent'] = new_settings['risk_per_trade_percent']
+
+            # Обновление параметров стоп-лоссов
+            stop_loss_updates = ['stop_loss_percent', 'take_profit_percent', 'max_position_weight_percent']
+            for param in stop_loss_updates:
+                if param in new_settings:
+                    if hasattr(self.risk_manager, 'config') and param in self.risk_manager.config:
+                        self.risk_manager.config[param] = new_settings[param]
+
+            logger.info(f"Настройки брокера обновлены: {new_settings}")
+
+        except Exception as e:
+            logger.error(f"Ошибка обновления настроек брокера: {e}")
 
     def get_portfolio_summary(self) -> Dict:
         """Получение сводки портфеля"""

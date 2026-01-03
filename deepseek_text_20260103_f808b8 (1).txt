@@ -1,0 +1,52 @@
+
+## 📁 Структура проекта
+
+russian_ai_trader/
+├── main.py # Главный запускаемый файл
+├── requirements.txt # Зависимости Python
+├── README.md # Эта документация
+├── setup.py # Скрипт установки
+├── Dockerfile # Конфигурация Docker
+│
+├── config/ # Конфигурационные файлы
+│ ├── settings.json # Основные настройки
+│ ├── broker.json # Настройки брокера
+│ ├── rss_sources.json # RSS источники новостей
+│ ├── tickers.json # Список тикеров
+│ ├── market_schedule.json # Расписание торгов
+│ └── portfolio_config.json # Конфигурация портфеля
+│
+├── core/ # Основные ядра системы
+│ ├── core_news_trader.py # Новостное ядро
+│ ├── core_technical_trader.py # Техническое ядро
+│ ├── risk_manager.py # Менеджер рисков
+│ └── trading_hours_scheduler.py # Планировщик сессий
+│
+├── models/ # Модели машинного обучения
+│ ├── smart_broker.py # Главный брокер
+│ ├── trader_model.py # Нейросетевая модель
+│ └── trainer.py # Обучение моделей
+│
+├── fetchers/ # Получение данных
+│ ├── moex_fetcher.py # Данные с MOEX
+│ ├── news_fetcher.py # Новости
+│ └── rss_fetcher.py # RSS ленты
+│
+├── utils/ # Вспомогательные модули
+│ ├── portfolio_manager.py # Управление портфелем
+│ ├── logger.py # Система логирования
+│ └── broker_api.py # API брокеров
+│
+├── data/ # Данные и состояние
+│ ├── portfolio_state.json # Состояние портфеля
+│ └── labeled_news.json # Размеченные новости
+│
+├── web/ # Веб-интерфейс
+│ ├── app.py # Dash сервер
+│ ├── web_dashboard.py # Логика дашборда
+│ └── templates/ # HTML шаблоны
+│ └── index.html
+│
+└── static/ # Статические файлы
+├── style.css # Стили CSS
+└── script.js # JavaScript логика

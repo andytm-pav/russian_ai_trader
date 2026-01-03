@@ -1,64 +1,108 @@
 {
-  "sources": [
-    {
-      "name": "БизнессФМ",
-      "url": "https://www.bfm.ru/news.rss?rubric=19",
-      "category": "market",
-      "priority": 10,
-      "enabled": true
+    "sources": [
+        {
+            "name": "БизнессФМ",
+            "url": "https://www.bfm.ru/news.rss?rubric=19",
+            "category": "market",
+            "priority": 10,
+            "enabled": true
+        },
+        {
+            "name": "РБК Финансы",
+            "url": "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
+            "category": "finance",
+            "priority": 9,
+            "enabled": true
+        },
+        {
+            "name": "Интерфакс Финансы",
+            "url": "https://www.interfax.ru/rss",
+            "category": "finance",
+            "priority": 8,
+            "enabled": true
+        },
+        {
+            "name": "Ведомости Финансы",
+            "url": "https://www.vedomosti.ru/rss/rubric/finance",
+            "category": "finance",
+            "priority": 7,
+            "enabled": true
+        },
+        {
+            "name": "Коммерсантъ Бизнес",
+            "url": "https://www.kommersant.ru/rss/section-business.xml",
+            "category": "business",
+            "priority": 6,
+            "enabled": true
+        },
+        {
+            "name": "ЦБ РФ Пресс-релизы",
+            "url": "https://www.cbr.ru/rss/eventrss",
+            "category": "regulatory",
+            "priority": 10,
+            "enabled": true
+        },
+        {
+            "name": "Finam Новости",
+            "url": "https://www.finam.ru/analysis/conews/rsspoint/",
+            "category": "analysis",
+            "priority": 5,
+            "enabled": true
+        },
+        {
+            "url": "https://www.rg.ru/xml/index.xml",
+            "name": "Р_Г",
+            "enabled": true,
+            "update_interval": 300
+        }
+    ],
+    "update_interval_minutes": 5,
+    "max_news_per_source": 20,
+    "keywords_filter": {
+        "include": [
+            "акци",
+            "дивиденд",
+            "отчет",
+            "прибыль",
+            "выручк",
+            "результат",
+            "прогноз",
+            "рекомендац",
+            "купить",
+            "продать"
+        ],
+        "exclude": [
+            "крипто",
+            "криптовалют",
+            "биткоин"
+        ]
     },
-    {
-      "name": "РБК Финансы",
-      "url": "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
-      "category": "finance",
-      "priority": 9,
-      "enabled": true
-    },
-    {
-      "name": "Интерфакс Финансы",
-      "url": "https://www.interfax.ru/rss",
-      "category": "finance",
-      "priority": 8,
-      "enabled": true
-    },
-    {
-      "name": "Ведомости Финансы",
-      "url": "https://www.vedomosti.ru/rss/rubric/finance",
-      "category": "finance",
-      "priority": 7,
-      "enabled": true
-    },
-    {
-      "name": "Коммерсантъ Бизнес",
-      "url": "https://www.kommersant.ru/rss/section-business.xml",
-      "category": "business",
-      "priority": 6,
-      "enabled": true
-    },
-    {
-      "name": "ЦБ РФ Пресс-релизы",
-      "url": "https://www.cbr.ru/rss/eventrss",
-      "category": "regulatory",
-      "priority": 10,
-      "enabled": true
-    },
-    {
-      "name": "Finam Новости",
-      "url": "https://www.finam.ru/analysis/conews/rsspoint/",
-      "category": "analysis",
-      "priority": 5,
-      "enabled": true
+    "sentiment_dictionary": {
+        "positive": [
+            "рост",
+            "увеличение",
+            "прибыль",
+            "дивиденд",
+            "выше",
+            "рекомендуют",
+            "покупать",
+            "переоцен"
+        ],
+        "negative": [
+            "падение",
+            "снижение",
+            "убыток",
+            "сокращение",
+            "ниже",
+            "продавать",
+            "недооцен"
+        ],
+        "neutral": [
+            "отчет",
+            "объявлен",
+            "результат",
+            "заседание",
+            "конференц"
+        ]
     }
-  ],
-  "update_interval_minutes": 5,
-  "max_news_per_source": 20,
-  "keywords_filter": {
-    "include": ["акци", "дивиденд", "отчет", "прибыль", "выручк", "результат", "прогноз", "рекомендац", "купить", "продать"],
-    "exclude": ["крипто", "криптовалют", "биткоин"]
-  },
-  "sentiment_dictionary": {
-    "positive": ["рост", "увеличение", "прибыль", "дивиденд", "выше", "рекомендуют", "покупать", "переоцен"],
-    "negative": ["падение", "снижение", "убыток", "сокращение", "ниже", "продавать", "недооцен"],
-    "neutral": ["отчет", "объявлен", "результат", "заседание", "конференц"]
-  }
 }

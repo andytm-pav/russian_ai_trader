@@ -572,11 +572,21 @@ settings_layout = dbc.Container([
                                 switch=True
                             )
                         ], width=6)
+                    ]),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Div(id="session-save-status", className="mt-2 text-center"),
+                            dbc.Button("💾 Сохранить часы торговли",
+                                       id="session-save-btn",
+                                       color="primary",
+                                       className="w-100 mt-3")
+                        ])
                     ])
                 ])
             ])
         ])
     ], className="mb-4"),
+
 
     # RSS источники
     dbc.Row([
@@ -584,7 +594,19 @@ settings_layout = dbc.Container([
             dbc.Card([
                 dbc.CardHeader("📰 RSS источники новостей"),
                 dbc.CardBody([
-                    html.Div(id="rss-sources-list"),
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Input(id="new-rss-url", placeholder="Введите URL RSS-ленты...", type="url",
+                                      className="mb-2"),
+                            dbc.Input(id="new-rss-name", placeholder="Название источника (необязательно)",
+                                      className="mb-2"),
+                            dbc.Button("➕ Добавить источник", id="add-rss-btn", color="success", className="w-100"),
+                            html.Div(id="rss-action-status", className="mt-2 text-center"),  # Для статуса
+                            html.Hr(),
+                            html.H5("Текущие источники"),
+                            html.Div(id="rss-sources-list")  # Список будет обновляться
+                        ])
+                    ]),
 
                     dbc.Button("➕ Добавить источник",
                                id="add-rss-btn",
@@ -944,6 +966,145 @@ def update_refresh_speed(value):
     return value * 1000  # Конвертируем в миллисекунды
 
 
+# Коллбэк для сохранения торговых настроек
+@app.callback(
+    Output("save-settings-btn", "children"),
+    [Input("save-settings-btn", "n_clicks")],
+    [State("initial-capital-input", "value"),
+     State("max-positions-input", "value"),
+     State("max-weight-input", "value"),
+     State("stop-loss-input", "value"),
+     State("take-profit-input", "value"),
+     State("risk-per-trade-input", "value")]
+)
+def save_trading_settings(n_clicks, initial_capital, max_positions, max_weight,
+                          stop_loss, take_profit, risk_per_trade):
+    """Сохранение торговых настроек"""
+    if n_clicks is None or n_clicks == 0:
+        return "💾 Сохранить настройки"
+
+    try:
+        # Загружаем текущие настройки
+        with open('config/settings.json', 'r', encoding='utf-8') as f:
+            settings = json.load(f)
+
+        # Обновляем настройки
+        settings['initial_capital_rub'] = initial_capital
+        settings['max_positions'] = max_positions
+        settings['max_position_weight_percent'] = max_weight
+        settings['stop_loss_percent'] = stop_loss
+        settings['take_profit_percent'] = take_profit
+        settings['risk_per_trade_percent'] = risk_per_trade
+
+        # Сохраняем в файл
+        with open('config/settings.json', 'w', encoding='utf-8') as f:
+            json.dump(settings, f, indent=4, ensure_ascii=False)
+
+        # Обновляем настройки в брокере
+        if broker_instance is not None:
+            broker_instance.settings = settings
+            broker_instance.portfolio.initial_capital = initial_capital
+            broker_instance.portfolio.max_positions = max_positions
+
+        logger.info(f"Настройки сохранены: капитал={initial_capital}, макс.позиций={max_positions}")
+        return "✅ Настройки сохранены!"
+
+    except Exception as e:
+        logger.error(f"Ошибка сохранения настроек: {e}")
+        return "❌ Ошибка сохранения"
+
+
+@app.callback(
+    Output("session-save-status", "children"),  # Нужно добавить этот элемент в layout
+    [Input("session-save-btn", "n_clicks")],  # Нужно создать кнопку с этим ID
+    [State("session-start-input", "value"),
+     State("session-end-input", "value"),
+     State("evening-start-input", "value"),
+     State("evening-end-input", "value"),
+     State("weekend-trading-check", "value"),
+     State("force-trading-check", "value")]
+)
+def save_session_settings(n_clicks, main_start, main_end,
+                          evening_start, evening_end, weekend_trading, force_trading):
+    """Сохранение настроек торговых сессий"""
+    if not n_clicks:
+        return ""
+
+    try:
+        # 1. Загружаем настройки
+        with open('config/settings.json', 'r', encoding='utf-8') as f:
+            settings = json.load(f)
+
+        # 2. Обновляем раздел trading_hours
+        if 'trading_hours' not in settings:
+            settings['trading_hours'] = {}
+
+        settings['trading_hours']['main_session'] = f"{main_start}-{main_end}"
+        settings['trading_hours']['evening_session'] = f"{evening_start}-{evening_end}"
+        settings['trading_hours']['trade_on_weekend'] = 'weekend' in weekend_trading
+        settings['trading_hours']['force_247'] = 'force' in force_trading
+
+        # 3. Сохраняем файл
+        with open('config/settings.json', 'w', encoding='utf-8') as f:
+            json.dump(settings, f, indent=2, ensure_ascii=False)
+
+        # 4. Обновляем планировщик (если брокер инициализирован)
+        if broker_instance and hasattr(broker_instance, 'scheduler'):
+            broker_instance.scheduler.trading_hours = settings['trading_hours']
+
+        logger.info(f"Часы торговли сохранены: {settings['trading_hours']['main_session']}")
+        return "✅ Часы торговли сохранены!"
+
+    except Exception as e:
+        logger.error(f"Ошибка сохранения часов: {e}")
+        return "❌ Ошибка"
+
+@app.callback(
+    [Output("rss-action-status", "children"),
+     Output("rss-sources-list", "children"),
+     Output("new-rss-url", "value"),
+     Output("new-rss-name", "value")],
+    [Input("add-rss-btn", "n_clicks")],
+    [State("new-rss-url", "value"),
+     State("new-rss-name", "value")]
+)
+def add_rss_source(n_clicks, new_url, new_name):
+    if n_clicks is None or not new_url:
+        return "", "Загружаем список...", "", ""
+
+    config_path = "config/rss_sources.json"
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+    except:
+        config = {'sources': []}
+
+    # Проверяем, нет ли такого URL уже
+    if any(source.get('url') == new_url for source in config['sources']):
+        return f"❌ Источник {new_url} уже добавлен.", "", new_url, new_name
+
+    # Добавляем новый источник
+    new_source = {
+        'url': new_url,
+        'name': new_name or f"Источник {len(config['sources'])+1}",
+        'enabled': True,
+        'update_interval': 300
+    }
+    config['sources'].append(new_source)
+
+    with open(config_path, 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=4, ensure_ascii=False)
+
+    # Формируем список для отображения
+    sources_list = html.Ul([
+        html.Li([
+            html.Span(f"📰 {src['name']} ", style={'font-weight': 'bold'}),
+            html.Span(f"({src['url'][:50]}...)"),
+            dbc.Button("🗑️", id={'type': 'del-rss-btn', 'index': i}, color="danger", size="sm", className="ms-2")
+        ]) for i, src in enumerate(config['sources'])
+    ])
+
+    return f"✅ Добавлен: {new_source['name']}", sources_list, "", ""
 # Запуск приложения
 if __name__ == '__main__':
     # Тестовый запуск
