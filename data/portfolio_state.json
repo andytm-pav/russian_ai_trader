@@ -1,7 +1,38 @@
 {
-  "total_value": 10000.0,
-  "cash": 10000.0,
-  "positions": {},
-  "last_update": "2026-01-03T23:32:03.594645",
-  "initial_capital": 9000
+  "total_value": 9945.0,
+  "cash": 7013.216,
+  "positions": {
+    "LNZLP": {
+      "qty": 1,
+      "avg_price": 745.0,
+      "buy_time": 1767605750.364675,
+      "total_cost": 745.0
+    },
+    "KRSBP": {
+      "qty": 25,
+      "avg_price": 23.2,
+      "buy_time": 1767605938.177254,
+      "total_cost": 580.0
+    },
+    "KRSB": {
+      "qty": 24,
+      "avg_price": 22.96,
+      "buy_time": 1767605938.178119,
+      "total_cost": 551.04
+    },
+    "ABRD": {
+      "qty": 3,
+      "avg_price": 162.4,
+      "buy_time": 1767611113.102168,
+      "total_cost": 487.20000000000005
+    },
+    "KCHE": {
+      "qty": 1304,
+      "avg_price": 0.436,
+      "buy_time": 1767611113.1037123,
+      "total_cost": 568.544
+    }
+  },
+  "last_update": "2026-01-05T16:02:48.529135",
+  "initial_capital": 10000
 }

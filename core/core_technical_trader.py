@@ -64,45 +64,69 @@ class TechnicalTraderCore:
         try:
             # 1. Трендовые индикаторы
             if len(prices) >= 10:
-                indicators['sma_10'] = talib.SMA(prices, timeperiod=10)[-1]
-                indicators['sma_20'] = talib.SMA(prices, timeperiod=20)[-1]
-                indicators['sma_50'] = talib.SMA(prices, timeperiod=50)[-1] if len(prices) >= 50 else 0
+                sma_10_result = talib.SMA(prices, timeperiod=10)
+                indicators['sma_10'] = sma_10_result[-1] if len(sma_10_result) > 0 and not np.isnan(
+                    sma_10_result[-1]) else prices[-1]
 
-                indicators['ema_12'] = talib.EMA(prices, timeperiod=12)[-1]
-                indicators['ema_26'] = talib.EMA(prices, timeperiod=26)[-1]
+                sma_20_result = talib.SMA(prices, timeperiod=20)
+                indicators['sma_20'] = sma_20_result[-1] if len(sma_20_result) > 0 and not np.isnan(
+                    sma_20_result[-1]) else prices[-1]
+
+                if len(prices) >= 50:
+                    sma_50_result = talib.SMA(prices, timeperiod=50)
+                    indicators['sma_50'] = sma_50_result[-1] if len(sma_50_result) > 0 and not np.isnan(
+                        sma_50_result[-1]) else 0
+
+                ema_12_result = talib.EMA(prices, timeperiod=12)
+                indicators['ema_12'] = ema_12_result[-1] if len(ema_12_result) > 0 and not np.isnan(
+                    ema_12_result[-1]) else prices[-1]
+
+                ema_26_result = talib.EMA(prices, timeperiod=26)
+                indicators['ema_26'] = ema_26_result[-1] if len(ema_26_result) > 0 and not np.isnan(
+                    ema_26_result[-1]) else prices[-1]
 
             # 2. Осцилляторы
             if len(prices) >= 14:
-                indicators['rsi'] = talib.RSI(prices, timeperiod=14)[-1]
+                rsi_result = talib.RSI(prices, timeperiod=14)
+                indicators['rsi'] = rsi_result[-1] if len(rsi_result) > 0 and not np.isnan(rsi_result[-1]) else 50.0
 
             if len(prices) >= 14:
-                upper, middle, lower = talib.BBANDS(prices, timeperiod=20, nbdevup=2, nbdevdn=2)
-                indicators['bb_upper'] = upper[-1]
-                indicators['bb_middle'] = middle[-1]
-                indicators['bb_lower'] = lower[-1]
-                indicators['bb_width'] = (upper[-1] - lower[-1]) / middle[-1]
+                bbands_result = talib.BBANDS(prices, timeperiod=20, nbdevup=2, nbdevdn=2)
+                upper, middle, lower = bbands_result
+
+                if len(upper) > 0 and len(middle) > 0 and len(lower) > 0:
+                    indicators['bb_upper'] = upper[-1] if not np.isnan(upper[-1]) else prices[-1] * 1.1
+                    indicators['bb_middle'] = middle[-1] if not np.isnan(middle[-1]) else prices[-1]
+                    indicators['bb_lower'] = lower[-1] if not np.isnan(lower[-1]) else prices[-1] * 0.9
+                    indicators['bb_width'] = (indicators['bb_upper'] - indicators['bb_lower']) / indicators[
+                        'bb_middle'] if indicators['bb_middle'] > 0 else 0
 
             # 3. MACD
             if len(prices) >= 26:
-                macd, macd_signal, macd_hist = talib.MACD(prices, fastperiod=12, slowperiod=26, signalperiod=9)
-                indicators['macd'] = macd[-1]
-                indicators['macd_signal'] = macd_signal[-1]
-                indicators['macd_hist'] = macd_hist[-1]
+                macd_result = talib.MACD(prices, fastperiod=12, slowperiod=26, signalperiod=9)
+                macd, macd_signal, macd_hist = macd_result
+
+                if len(macd) > 0 and len(macd_signal) > 0 and len(macd_hist) > 0:
+                    indicators['macd'] = macd[-1] if not np.isnan(macd[-1]) else 0
+                    indicators['macd_signal'] = macd_signal[-1] if not np.isnan(macd_signal[-1]) else 0
+                    indicators['macd_hist'] = macd_hist[-1] if not np.isnan(macd_hist[-1]) else 0
 
             # 4. Volume indicators
             if len(volumes) >= 20 and volumes.sum() > 0:
-                indicators['volume_sma'] = talib.SMA(volumes, timeperiod=20)[-1]
+                volume_sma_result = talib.SMA(volumes, timeperiod=20)
+                indicators['volume_sma'] = volume_sma_result[-1] if len(volume_sma_result) > 0 and volume_sma_result[
+                    -1] > 0 else 1
                 indicators['volume_ratio'] = volumes[-1] / indicators['volume_sma'] if indicators[
                                                                                            'volume_sma'] > 0 else 1
 
             # 5. Волатильность
-            if len(prices) >= 14:
-                indicators['atr'] = talib.ATR(
-                    np.array([prices] * 3).T,  # Нужен high, low, close
-                    np.array([prices] * 3).T,
-                    np.array([prices] * 3).T,
-                    timeperiod=14
-                )[-1]
+            # Создаем массивы для high, low, close (используем цены для всех)
+            high_prices = np.array(prices, dtype=float)
+            low_prices = np.array(prices, dtype=float)
+            close_prices = np.array(prices, dtype=float)
+
+            atr_result = talib.ATR(high_prices, low_prices, close_prices, timeperiod=14)
+            indicators['atr'] = atr_result[-1] if len(atr_result) > 0 and not np.isnan(atr_result[-1]) else 0
 
             # 6. Моментум
             indicators['momentum'] = self._calculate_momentum(prices)
@@ -119,7 +143,7 @@ class TechnicalTraderCore:
             logger.debug(f"Рассчитано {len(indicators)} индикаторов для {ticker}")
 
         except Exception as e:
-            logger.error(f"Ошибка расчета индикаторов для {ticker}: {e}")
+            logger.error(f"Ошибка расчета индикаторов для {ticker}: {str(e)}")
             indicators = {}
 
         return indicators
