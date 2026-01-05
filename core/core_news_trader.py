@@ -51,10 +51,14 @@ class NewsTraderCore:
         self.running = True
         self.fetch_thread = threading.Thread(
             target=self._fetch_loop,
-            daemon=True
+            daemon=True,
+            name = "NewsFetcherThread"
         )
         self.fetch_thread.start()
         logger.info("Запущен непрерывный сбор новостей")
+        # +++ ДЕТАЛИ О ИНТЕРВАЛЕ +++
+        interval = self.config.get('update_interval_minutes', 5)
+        logger.debug(f"Интервал обновления: {interval} минут ({interval * 60} секунд)")
 
     def stop_continuous_fetching(self):
         """Остановка сбора новостей"""
@@ -67,9 +71,20 @@ class NewsTraderCore:
         """Цикл сбора новостей"""
         update_interval = self.config.get('update_interval_minutes', 5) * 60
 
+        # +++ СЧЕТЧИК ЦИКЛОВ И ЛОГИРОВАНИЕ +++
+        cycle_count = 0
+        logger.debug(f"Поток сбора новостей запущен, интервал: {update_interval} секунд")
+
         while self.running:
             try:
-                self.fetch_all_news()
+                cycle_count += 1
+                logger.debug(f"Начало цикла сбора новостей #{cycle_count}")
+
+                # +++ РЕЗУЛЬТАТ СБОРА +++
+                news_result = self.fetch_all_news()
+                total_news = sum(len(items) for items in news_result.values())
+                logger.debug(f"Цикл #{cycle_count}: собрано {total_news} новостей из {len(news_result)} источников")
+
                 time.sleep(update_interval)
             except Exception as e:
                 logger.error(f"Ошибка в цикле сбора новостей: {e}")

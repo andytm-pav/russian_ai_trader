@@ -1,34 +1,34 @@
 {
-    "initial_capital_rub": 10000,
-    "max_positions": 5,
-    "max_position_weight_percent": 20,
-    "risk_per_trade_percent": 1.5,
-    "daily_loss_limit_percent": 5,
-    "trading_hours": {
-        "main_session": "06:50-18:50",
-        "evening_session": "19:00-23:50",
-        "weekend_trading_enabled": false,
-        "trade_on_weekend": true,
-        "force_247": true
-    },
-    "news_sensitivity_score": 0.7,
-    "enable_technical_core": true,
-    "enable_news_core": true,
-    "min_cash_per_trade": 1000,
-    "target_positions": 4,
-    "stop_loss_percent": 3,
-    "take_profit_percent": 6,
-    "commission_percent": 0.05,
-    "slippage_percent": 0.1,
-    "model_confidence_threshold": 0.65,
-    "rss_update_interval_seconds": 60,
-    "price_update_interval_seconds": 30,
-    "portfolio_rebalance_hours": [
-        10,
-        14,
-        16
-    ],
-    "logging_level": "INFO",
-    "simulation_mode": true,
-    "paper_trading": true
+  "initial_capital_rub": 10000,
+  "max_positions": 5,
+  "max_position_weight_percent": 20,
+  "risk_per_trade_percent": 1.5,
+  "daily_loss_limit_percent": 5,
+  "trading_hours": {
+    "main_session": "06:50-18:50",
+    "evening_session": "19:00-23:50",
+    "weekend_trading_enabled": false,
+    "trade_on_weekend": true,
+    "force_247": true
+  },
+  "news_sensitivity_score": 0.7,
+  "enable_technical_core": true,
+  "enable_news_core": true,
+  "min_cash_per_trade": 1000,
+  "target_positions": 4,
+  "stop_loss_percent": 3,
+  "take_profit_percent": 6,
+  "commission_percent": 0.05,
+  "slippage_percent": 0.1,
+  "model_confidence_threshold": 0.65,
+  "rss_update_interval_seconds": 60,
+  "price_update_interval_seconds": 30,
+  "portfolio_rebalance_hours": [
+    10,
+    14,
+    16
+  ],
+  "logging_level": "INFO",
+  "simulation_mode": true,
+  "paper_trading": true
 }

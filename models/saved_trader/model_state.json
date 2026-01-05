@@ -971,12 +971,12 @@
       "last_trade": null
     },
     "ABRD": {
-      "total_trades": 0,
+      "total_trades": 2,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
+      "total_pnl": -0.002463054187192328,
+      "avg_hold_time": 2.6865137947930226e-07,
+      "success_rate": 0.0,
+      "last_trade": "2026-01-05T16:40:52.159343"
     },
     "AFKS": {
       "total_trades": 0,
