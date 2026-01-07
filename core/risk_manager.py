@@ -1,12 +1,14 @@
 """
-Централизованный риск-менеджер системы
+Централизованный риск-менеджер системы - ИСПРАВЛЕННАЯ ВЕРСИЯ
 """
 
 import json
 import math
+import threading
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 import numpy as np
+from collections import deque
 
 from utils.logger import setup_logger
 
@@ -19,257 +21,584 @@ class RiskManager:
     def __init__(self, config_path: str = "config/settings.json"):
         self.config = self._load_config(config_path)
         self.portfolio_state = self._load_portfolio_state()
+
+        # Потокобезопасность - критическое исправление
+        self.lock = threading.RLock()
+
+        # Метрики риска - ИСПРАВЛЕНО: отслеживаем просадку, а не только PnL
         self.daily_pnl = 0.0
         self.daily_trades = 0
-        self.max_daily_loss = 0.0
-        self.trade_history = []
+        self.max_daily_drawdown = 0.0  # Положительное число: максимальная просадка от максимума
+        self.daily_high_watermark = self.portfolio_state.get('total_value', 0)
+        self.trade_history = deque(maxlen=1000)  # Используем deque для фиксированного размера
 
         logger.info(f"Инициализирован Risk Manager (риск на сделку: {self.config['risk_per_trade_percent']}%)")
 
     def _load_config(self, config_path: str) -> Dict:
-        """Загрузка конфигурации"""
+        """Загрузка конфигурации с расширенными параметрами"""
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                loaded_config = json.load(f)
+
+                # Добавляем расширенные параметры с дефолтами для обратной совместимости
+                extended_defaults = {
+                    'use_atr_for_stops': True,
+                    'atr_multiplier': 2.0,
+                    'max_adv_percent': 5.0,
+                    'max_sector_weight_percent': 40.0,
+                    'correlation_threshold': 0.7,
+                    'min_risk_per_share_percent': 0.1,
+                    'consecutive_loss_limit': 4,
+                    'consecutive_trades_window': 5,
+                    'risk_multiplier_on_high_confidence': 1.2,
+                    'max_daily_trades': 50,
+                    'confidence_weight_min': 0.5,
+                    'confidence_weight_max': 1.0
+                }
+
+                # Объединяем с существующим конфигом
+                for key, value in extended_defaults.items():
+                    if key not in loaded_config:
+                        loaded_config[key] = value
+
+                return loaded_config
+
         except Exception as e:
             logger.error(f"Ошибка загрузки конфигурации: {e}")
+            # Возвращаем все параметры с дефолтами
             return {
-                'risk_per_trade_percent': 1.5,
+                'initial_capital_rub': 10000,
+                'max_positions': 10,
+                'max_position_weight_percent': 20,
+                'risk_per_trade_percent': 3,
                 'daily_loss_limit_percent': 5,
-                'max_positions': 5,
-                'initial_capital_rub': 10000
+                'min_cash_per_trade': 1000,
+                'stop_loss_percent': 3,
+                'take_profit_percent': 6,
+                'commission_percent': 0.05,
+                'slippage_percent': 0.1,
+                'model_confidence_threshold': 0.65,
+                # Расширенные параметры
+                'use_atr_for_stops': True,
+                'atr_multiplier': 2.0,
+                'max_adv_percent': 5.0,
+                'max_sector_weight_percent': 40.0,
+                'correlation_threshold': 0.7,
+                'min_risk_per_share_percent': 0.1,
+                'consecutive_loss_limit': 4,
+                'consecutive_trades_window': 5,
+                'risk_multiplier_on_high_confidence': 1.2,
+                'max_daily_trades': 50,
+                'confidence_weight_min': 0.5,
+                'confidence_weight_max': 1.0
             }
 
     def _load_portfolio_state(self) -> Dict:
         """Загрузка состояния портфеля"""
         try:
             with open('data/portfolio_state.json', 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except:
+                state = json.load(f)
+
+                # Добавляем поля для расширенной функциональности
+                if 'sector_allocation' not in state:
+                    state['sector_allocation'] = {}
+                if 'correlation_matrix' not in state:
+                    state['correlation_matrix'] = {}
+
+                return state
+
+        except Exception as e:
+            logger.error(f"Ошибка загрузки состояния портфеля: {e}")
             return {
                 'total_value': self.config.get('initial_capital_rub', 10000),
                 'cash': self.config.get('initial_capital_rub', 10000),
                 'positions': {},
+                'sector_allocation': {},
+                'correlation_matrix': {},
                 'last_update': datetime.now().isoformat()
             }
 
     def calculate_position_size(self,
                                 ticker: str,
                                 price: float,
-                                stop_loss: float,
-                                confidence: float = 0.5) -> Tuple[int, float]:
+                                stop_loss: float = None,
+                                atr: float = None,
+                                confidence: float = 0.5,
+                                adv: float = None,
+                                sector: str = None) -> Tuple[int, float]:
         """
-        Расчет размера позиции на основе риска
+        Расчет размера позиции на основе риска - УЛУЧШЕННАЯ ВЕРСИЯ
 
-        Возвращает: (количество, риск в рублях)
+        Параметры:
+        - atr: Average True Range (для волатильностных стопов)
+        - adv: Average Daily Volume (для ликвидностных ограничений)
+        - sector: Сектор (для диверсификации)
         """
-        try:
-            # Текущая стоимость портфеля
-            portfolio_value = self.portfolio_state.get('total_value',
-                                                       self.config.get('initial_capital_rub', 10000))
+        with self.lock:
+            try:
+                # Текущая стоимость портфеля
+                portfolio_value = self.portfolio_state.get('total_value',
+                                                           self.config.get('initial_capital_rub', 10000))
 
-            # Максимальный риск на сделку (в рублях)
-            max_risk_rub = portfolio_value * (self.config['risk_per_trade_percent'] / 100)
+                # 1. РАСЧЕТ СТОП-ЛОССА (приоритет ATR если включен и доступен)
+                use_atr = self.config.get('use_atr_for_stops', True)
+                if use_atr and atr is not None and atr > 0:
+                    # Используем ATR-based стоп
+                    atr_multiplier = self.config.get('atr_multiplier', 2.0)
+                    stop_loss_price = price - (atr * atr_multiplier)
+                    risk_per_share = atr * atr_multiplier
+                    logger.debug(f"Использую ATR-стоп для {ticker}: ATR={atr:.2f}, стоп={stop_loss_price:.2f}")
+                elif stop_loss is not None and stop_loss > 0:
+                    # Используем переданный стоп
+                    risk_per_share = abs(price - stop_loss)
+                    stop_loss_price = stop_loss
+                else:
+                    # Дефолтный фиксированный процент из конфига
+                    default_stop_pct = self.config.get('stop_loss_percent', 3.0)
+                    risk_per_share = price * (default_stop_pct / 100)
+                    stop_loss_price = price - risk_per_share
+                    logger.debug(f"Нет ATR/стопа для {ticker}, использую фиксированный {default_stop_pct}%")
 
-            # Корректировка риска на основе уверенности
-            confidence_adjustment = min(confidence * 2, 1.0)  # 0.5 уверенность = 1.0, 1.0 уверенность = 2.0
-            adjusted_risk_rub = max_risk_rub * confidence_adjustment
+                # 2. ПРОВЕРКА МИНИМАЛЬНОГО РИСКА (из конфига)
+                min_risk_pct = self.config.get('min_risk_per_share_percent', 0.1) / 100
+                min_risk_per_share = price * min_risk_pct
 
-            # Риск на одну акцию (в рублях)
-            risk_per_share = abs(price - stop_loss)
-
-            if risk_per_share <= 0:
-                logger.warning(f"Нулевой риск на акцию для {ticker}")
-                return 0, 0
-
-            # Расчет количества
-            quantity = int(adjusted_risk_rub / risk_per_share)
-
-            # Минимальная проверка
-            if quantity < 1:
-                return 0, 0
-
-            # Проверка на минимальную сделку
-            min_trade_value = self.config.get('min_cash_per_trade', 1000)
-            trade_value = quantity * price
-
-            if trade_value < min_trade_value:
-                # Пытаемся увеличить до минимального
-                quantity = math.ceil(min_trade_value / price)
-                trade_value = quantity * price
-
-                # Пересчитываем риск
-                actual_risk_rub = quantity * risk_per_share
-
-                if actual_risk_rub > max_risk_rub * 1.5:  # Не более 150% от макс риска
-                    logger.warning(f"Сделка {ticker} превышает лимит риска")
+                if risk_per_share < min_risk_per_share:
+                    logger.warning(
+                        f"Слишком малый риск на акцию для {ticker}: {risk_per_share:.4f} < {min_risk_per_share:.4f}")
                     return 0, 0
 
-            # Финальная проверка диверсификации
-            if not self.check_diversification(ticker, trade_value):
-                logger.warning(f"Сделка {ticker} нарушает диверсификацию")
+                # 3. МАКСИМАЛЬНЫЙ РИСК НА СДЕЛКУ (из конфига)
+                max_risk_pct = self.config.get('risk_per_trade_percent', 3) / 100
+                max_risk_rub = portfolio_value * max_risk_pct
+
+                # 4. КОРРЕКТИРОВКА НА УВЕРЕННОСТЬ (исправленная логика из конфига)
+                conf_weight_min = self.config.get('confidence_weight_min', 0.5)
+                conf_weight_max = self.config.get('confidence_weight_max', 1.0)
+                confidence_adjustment = conf_weight_min + (confidence * (conf_weight_max - conf_weight_min))
+                adjusted_risk_rub = max_risk_rub * confidence_adjustment
+
+                # 5. ЛИКВИДНОСТНЫЕ ОГРАНИЧЕНИЯ (из конфига)
+                quantity_by_risk = int(adjusted_risk_rub / risk_per_share)
+
+                if adv is not None and adv > 0:
+                    max_adv_pct = self.config.get('max_adv_percent', 5.0) / 100
+                    max_quantity_by_adv = int(adv * max_adv_pct)
+                    quantity_by_risk = min(quantity_by_risk, max_quantity_by_adv)
+                    logger.debug(
+                        f"Лимит ликвидности для {ticker}: {max_quantity_by_adv} акций ({max_adv_pct * 100:.1f}% от ADV)")
+
+                # 6. ПРОВЕРКА МИНИМАЛЬНОЙ СДЕЛКИ (из конфига)
+                min_trade_value = self.config.get('min_cash_per_trade', 1000)
+                trade_value = quantity_by_risk * price
+
+                if trade_value < min_trade_value:
+                    quantity = max(1, math.ceil(min_trade_value / price))
+                    trade_value = quantity * price
+
+                    # Пересчитываем фактический риск
+                    actual_risk_rub = quantity * risk_per_share
+
+                    # Лимит превышения риска (из конфига)
+                    risk_multiplier_limit = self.config.get('risk_multiplier_on_high_confidence', 1.2)
+                    if actual_risk_rub > max_risk_rub * risk_multiplier_limit:
+                        logger.warning(f"Минимальная сделка {ticker} превышает лимит риска: "
+                                       f"{actual_risk_rub:.0f}₽ > {max_risk_rub * risk_multiplier_limit:.0f}₽")
+                        return 0, 0
+                else:
+                    quantity = quantity_by_risk
+                    actual_risk_rub = quantity * risk_per_share
+
+                # 7. ПРОВЕРКА ДИВЕРСИФИКАЦИИ С УЧЕТОМ СЕКТОРА
+                if not self.check_diversification(ticker, quantity * price, sector):
+                    logger.warning(f"Сделка {ticker} нарушает диверсификацию")
+                    return 0, 0
+
+                # 8. ФИНАЛЬНАЯ ПРОВЕРКА
+                if quantity < 1:
+                    return 0, 0
+
+                risk_pct = (actual_risk_rub / portfolio_value * 100) if portfolio_value > 0 else 0
+
+                logger.info(f"Расчет позиции {ticker}: {quantity} акций, риск {actual_risk_rub:.0f}₽ "
+                            f"({risk_pct:.1f}% от портфеля), стоп: {stop_loss_price:.2f}")
+
+                return quantity, actual_risk_rub
+
+            except Exception as e:
+                logger.error(f"Ошибка расчета размера позиции для {ticker}: {e}")
                 return 0, 0
 
-            actual_risk = quantity * risk_per_share
-            logger.info(f"Расчет позиции {ticker}: {quantity} акций, риск {actual_risk:.0f}₽ "
-                        f"({actual_risk / portfolio_value * 100:.1f}% от портфеля)")
+    def check_diversification(self, ticker: str, new_position_value: float, sector: str = None) -> bool:
+        """Проверка диверсификации портфеля - УЛУЧШЕННАЯ"""
+        with self.lock:
+            try:
+                portfolio_value = self.portfolio_state.get('total_value',
+                                                           self.config.get('initial_capital_rub', 10000))
 
-            return quantity, actual_risk
+                if portfolio_value <= 0:
+                    return False
 
-        except Exception as e:
-            logger.error(f"Ошибка расчета размера позиции для {ticker}: {e}")
-            return 0, 0
+                # 1. ПРОВЕРКА МАКСИМАЛЬНОГО КОЛИЧЕСТВА ПОЗИЦИЙ (из конфига)
+                max_positions = self.config.get('max_positions', 10)
+                current_positions = len(self.portfolio_state.get('positions', {}))
 
-    def check_diversification(self, ticker: str, new_position_value: float) -> bool:
-        """Проверка диверсификации портфеля"""
-        try:
-            max_positions = self.config.get('max_positions', 5)
-            current_positions = len(self.portfolio_state.get('positions', {}))
+                if ticker not in self.portfolio_state.get('positions', {}) and current_positions >= max_positions:
+                    logger.warning(f"Достигнут лимит позиций: {current_positions}/{max_positions}")
+                    return False
 
-            # Проверка максимального количества позиций
-            if ticker not in self.portfolio_state.get('positions', {}) and current_positions >= max_positions:
-                logger.warning(f"Достигнут лимит позиций: {current_positions}/{max_positions}")
+                # 2. ПРОВЕРКА МАКСИМАЛЬНОГО ВЕСА ПОЗИЦИИ (из конфига)
+                max_weight_pct = self.config.get('max_position_weight_percent', 20)
+                max_weight = max_weight_pct / 100
+
+                if ticker in self.portfolio_state.get('positions', {}):
+                    # Уже есть позиция
+                    current_position = self.portfolio_state['positions'][ticker]
+                    current_value = current_position.get('current_value',
+                                                         current_position.get('qty', 0) *
+                                                         current_position.get('avg_price', 0))
+                    new_total_value = current_value + new_position_value
+
+                    position_weight = new_total_value / portfolio_value
+
+                    if position_weight > max_weight:
+                        logger.warning(f"Превышен максимальный вес позиции {ticker}: "
+                                       f"{position_weight * 100:.1f}% > {max_weight_pct}%")
+                        return False
+                else:
+                    # Новая позиция
+                    position_weight = new_position_value / portfolio_value
+
+                    if position_weight > max_weight:
+                        logger.warning(f"Новая позиция {ticker} превышает лимит веса: "
+                                       f"{position_weight * 100:.1f}% > {max_weight_pct}%")
+                        return False
+
+                # 3. ПРОВЕРКА ЭКСПОЗИЦИИ НА СЕКТОР (из конфига)
+                if sector:
+                    sector_allocation = self.portfolio_state.get('sector_allocation', {})
+                    current_sector_exposure = sector_allocation.get(sector, 0)
+                    new_sector_exposure = current_sector_exposure + new_position_value
+                    sector_weight = new_sector_exposure / portfolio_value
+
+                    # Максимальный вес сектора (из конфига)
+                    max_sector_weight_pct = self.config.get('max_sector_weight_percent', 40.0)
+                    max_sector_weight = max_sector_weight_pct / 100
+
+                    if sector_weight > max_sector_weight:
+                        logger.warning(f"Превышена экспозиция на сектор {sector}: "
+                                       f"{sector_weight * 100:.1f}% > {max_sector_weight_pct}%")
+                        return False
+
+                # 4. ПРОВЕРКА КОРРЕЛЯЦИИ (порог из конфига)
+                correlation_threshold = self.config.get('correlation_threshold', 0.7)
+
+                if ticker in self.portfolio_state.get('correlation_matrix', {}):
+                    correlations = self.portfolio_state['correlation_matrix'][ticker]
+
+                    # Проверяем корреляцию с существующими позициями
+                    for existing_ticker in self.portfolio_state.get('positions', {}):
+                        if existing_ticker in correlations:
+                            corr = correlations[existing_ticker]
+                            if abs(corr) > correlation_threshold:
+                                logger.warning(f"Высокая корреляция {ticker} с {existing_ticker}: {corr:.2f}")
+                                # Не блокируем по умолчанию, только предупреждаем
+                                # Можно раскомментировать для строгой проверки:
+                                # return False
+
+                return True
+
+            except Exception as e:
+                logger.error(f"Ошибка проверки диверсификации: {e}")
+                # ВАЖНО: При ошибке блокируем сделку!
                 return False
-
-            # Проверка максимального веса позиции
-            portfolio_value = self.portfolio_state.get('total_value',
-                                                       self.config.get('initial_capital_rub', 10000))
-            max_weight = self.config.get('max_position_weight_percent', 20) / 100
-
-            if ticker in self.portfolio_state.get('positions', {}):
-                # Уже есть позиция, проверяем общий вес
-                current_position = self.portfolio_state['positions'][ticker]
-                current_value = current_position.get('current_value', 0)
-                new_total_value = current_value + new_position_value
-
-                if new_total_value / portfolio_value > max_weight:
-                    logger.warning(f"Превышен максимальный вес позиции {ticker}: "
-                                   f"{new_total_value / portfolio_value * 100:.1f}% > {max_weight * 100}%")
-                    return False
-            else:
-                # Новая позиция
-                if new_position_value / portfolio_value > max_weight:
-                    logger.warning(f"Новая позиция {ticker} превышает лимит веса: "
-                                   f"{new_position_value / portfolio_value * 100:.1f}% > {max_weight * 100}%")
-                    return False
-
-            return True
-
-        except Exception as e:
-            logger.error(f"Ошибка проверки диверсификации: {e}")
-            return False
 
     def check_daily_limits(self) -> bool:
-        """Проверка дневных лимитов"""
-        try:
-            portfolio_value = self.portfolio_state.get('total_value',
-                                                       self.config.get('initial_capital_rub', 10000))
-            daily_limit = portfolio_value * (self.config.get('daily_loss_limit_percent', 5) / 100)
+        """Проверка дневных лимитов - ИСПРАВЛЕННАЯ"""
+        with self.lock:
+            try:
+                portfolio_value = self.portfolio_state.get('total_value',
+                                                           self.config.get('initial_capital_rub', 10000))
 
-            if self.daily_pnl <= -daily_limit:
-                logger.critical(f"Достигнут дневной лимит убытков: {self.daily_pnl:.0f}₽ "
-                                f"(лимит: {-daily_limit:.0f}₽)")
-                return False
+                if portfolio_value <= 0:
+                    return True
 
-            # Проверка максимального количества сделок в день (опционально)
-            max_daily_trades = self.config.get('max_daily_trades', 20)
-            if max_daily_trades and self.daily_trades >= max_daily_trades:
-                logger.warning(f"Достигнут лимит сделок за день: {self.daily_trades}/{max_daily_trades}")
-                return False
+                # 1. ЛИМИТ УБЫТКОВ НА ОСНОВЕ ПРОСАДКИ (ИСПРАВЛЕНО!)
+                daily_limit_pct = self.config.get('daily_loss_limit_percent', 5) / 100
+                daily_limit_rub = portfolio_value * daily_limit_pct
 
-            return True
+                # Сравниваем максимальную просадку с лимитом
+                if self.max_daily_drawdown >= daily_limit_rub:  # max_daily_drawdown - положительное число!
+                    logger.critical(f"Достигнут дневной лимит просадки: {self.max_daily_drawdown:.0f}₽ "
+                                    f"(лимит: {daily_limit_rub:.0f}₽)")
+                    return False
 
-        except Exception as e:
-            logger.error(f"Ошибка проверки дневных лимитов: {e}")
-            return True
+                # 2. ЛИМИТ СДЕЛОК В ДЕНЬ (из конфига)
+                max_daily_trades = self.config.get('max_daily_trades', 50)
+                if self.daily_trades >= max_daily_trades:
+                    logger.warning(f"Достигнут лимит сделок за день: {self.daily_trades}/{max_daily_trades}")
+                    return False
+
+                # 3. ЛИМИТ НА ПОСЛЕДОВАТЕЛЬНЫЕ УБЫТКИ (из конфига)
+                consecutive_trades_window = self.config.get('consecutive_trades_window', 5)
+                if len(self.trade_history) >= consecutive_trades_window:
+                    recent_trades = list(self.trade_history)[-consecutive_trades_window:]
+                    losing_trades = [t for t in recent_trades if t.get('pnl', 0) < 0]
+
+                    consecutive_loss_limit = self.config.get('consecutive_loss_limit', 4)
+                    if len(losing_trades) >= consecutive_loss_limit:
+                        logger.warning(
+                            f"Слишком много убыточных сделок подряд: {len(losing_trades)}/{consecutive_trades_window}")
+                        return False
+
+                return True
+
+            except Exception as e:
+                logger.error(f"Ошибка проверки дневных лимитов: {e}")
+                return False  # При ошибке блокируем!
 
     def update_trade_result(self,
                             ticker: str,
                             action: str,
                             quantity: int,
                             price: float,
-                            pnl: float):
-        """Обновление результатов сделки"""
-        try:
-            # Обновляем дневной PnL
-            self.daily_pnl += pnl
-            self.daily_trades += 1
+                            pnl: float,
+                            atr: float = None):
+        """Обновление результатов сделки - РАСШИРЕННАЯ"""
+        with self.lock:
+            try:
+                # Обновляем дневной PnL
+                self.daily_pnl += pnl
+                self.daily_trades += 1
 
-            # Записываем в историю
-            trade_record = {
-                'timestamp': datetime.now().isoformat(),
-                'ticker': ticker,
-                'action': action,
-                'quantity': quantity,
-                'price': price,
-                'pnl': pnl,
-                'daily_pnl': self.daily_pnl
-            }
+                # Обновляем максимум портфеля за день
+                portfolio_value = self.portfolio_state.get('total_value',
+                                                           self.config.get('initial_capital_rub', 10000))
 
-            self.trade_history.append(trade_record)
+                if portfolio_value > self.daily_high_watermark:
+                    self.daily_high_watermark = portfolio_value
 
-            # Ограничиваем размер истории
-            if len(self.trade_history) > 1000:
-                self.trade_history = self.trade_history[-1000:]
+                # ИСПРАВЛЕНО: Рассчитываем текущую просадку (положительное число!)
+                current_drawdown = self.daily_high_watermark - portfolio_value
+                if current_drawdown > self.max_daily_drawdown:
+                    self.max_daily_drawdown = current_drawdown
 
-            logger.info(f"Trade update: {ticker} {action} {quantity} @ {price:.2f}, "
-                        f"PnL: {pnl:+.0f}₽, Daily: {self.daily_pnl:+.0f}₽")
+                # Записываем в историю
+                trade_record = {
+                    'timestamp': datetime.now().isoformat(),
+                    'ticker': ticker,
+                    'action': action,
+                    'quantity': quantity,
+                    'price': price,
+                    'pnl': pnl,
+                    'atr': atr,
+                    'pnl_percent': (pnl / (quantity * price) * 100) if quantity * price > 0 else 0,
+                    'daily_pnl': self.daily_pnl,
+                    'daily_drawdown': self.max_daily_drawdown
+                }
 
-            # Проверяем, не установлен ли новый максимальный убыток
-            if pnl < self.max_daily_loss:
-                self.max_daily_loss = pnl
+                self.trade_history.append(trade_record)
 
-        except Exception as e:
-            logger.error(f"Ошибка обновления результатов сделки: {e}")
+                logger.info(f"Trade update: {ticker} {action} {quantity} @ {price:.2f}, "
+                            f"PnL: {pnl:+.0f}₽ ({trade_record['pnl_percent']:+.1f}%), "
+                            f"Daily: {self.daily_pnl:+.0f}₽, Drawdown: {self.max_daily_drawdown:.0f}₽")
+
+            except Exception as e:
+                logger.error(f"Ошибка обновления результатов сделки: {e}")
 
     def get_risk_metrics(self) -> Dict:
-        """Получение метрик риска"""
-        portfolio_value = self.portfolio_state.get('total_value',
-                                                   self.config.get('initial_capital_rub', 10000))
+        """Получение метрик риска - УЛУЧШЕННЫЕ"""
+        with self.lock:
+            try:
+                portfolio_value = self.portfolio_state.get('total_value',
+                                                           self.config.get('initial_capital_rub', 10000))
 
-        metrics = {
-            'portfolio_value': portfolio_value,
-            'daily_pnl': self.daily_pnl,
-            'daily_trades': self.daily_trades,
-            'max_daily_loss': self.config.get('daily_loss_limit_percent', 5),
-            'current_daily_loss_pct': (self.daily_pnl / portfolio_value * 100) if portfolio_value > 0 else 0,
-            'risk_per_trade': self.config.get('risk_per_trade_percent', 1.5),
-            'positions_count': len(self.portfolio_state.get('positions', {})),
-            'max_positions': self.config.get('max_positions', 5),
-            'can_trade': self.check_daily_limits()
-        }
+                if portfolio_value <= 0:
+                    return {'error': 'Invalid portfolio value'}
 
-        # Рассчитываем концентрацию портфеля
-        positions = self.portfolio_state.get('positions', {})
-        if positions:
-            position_values = [p.get('current_value', 0) for p in positions.values()]
-            total_positions_value = sum(position_values)
+                metrics = {
+                    'portfolio_value': portfolio_value,
+                    'cash': self.portfolio_state.get('cash', 0),
+                    'daily_pnl': self.daily_pnl,
+                    'daily_trades': self.daily_trades,
+                    'max_daily_drawdown': self.max_daily_drawdown,  # ИСПРАВЛЕНО: просадка, а не loss
+                    'daily_high_watermark': self.daily_high_watermark,
+                    'current_drawdown_pct': (self.max_daily_drawdown / portfolio_value * 100)
+                    if portfolio_value > 0 else 0,
+                    'risk_per_trade_pct': self.config.get('risk_per_trade_percent', 3),
+                    'positions_count': len(self.portfolio_state.get('positions', {})),
+                    'max_positions': self.config.get('max_positions', 10),
+                    'can_trade': self.check_daily_limits(),
+                    'last_update': datetime.now().isoformat()
+                }
 
-            if total_positions_value > 0:
-                # Индекс Херфиндаля-Хиршмана (HHI) для концентрации
-                hhi = sum((v / total_positions_value * 100) ** 2 for v in position_values)
-                metrics['concentration_hhi'] = hhi
+                # Рассчитываем концентрацию портфеля
+                positions = self.portfolio_state.get('positions', {})
+                if positions:
+                    position_values = []
+                    for pos in positions.values():
+                        value = pos.get('current_value',
+                                        pos.get('qty', 0) * pos.get('avg_price', 0))
+                        position_values.append(value)
 
-                # Максимальный вес позиции
-                max_weight = max(position_values) / portfolio_value * 100 if portfolio_value > 0 else 0
-                metrics['max_position_weight'] = max_weight
+                    total_positions_value = sum(position_values)
 
-        return metrics
+                    if total_positions_value > 0 and portfolio_value > 0:
+                        # Доля портфеля в позициях
+                        metrics['portfolio_in_positions_pct'] = (total_positions_value / portfolio_value * 100)
+
+                        # Максимальный вес позиции
+                        max_weight = max(position_values) / portfolio_value * 100
+                        metrics['max_position_weight_pct'] = max_weight
+
+                        # Коэффициент Джини для концентрации (упрощенный)
+                        if len(position_values) > 1:
+                            sorted_values = sorted(position_values)
+                            n = len(sorted_values)
+                            index = np.arange(1, n + 1)
+                            gini_numerator = np.sum(index * sorted_values)
+                            gini_denominator = n * np.sum(sorted_values)
+                            metrics['gini_coefficient'] = (2 * gini_numerator / gini_denominator) - (n + 1) / n
+
+                        # Win rate по последним сделкам
+                        if len(self.trade_history) >= 20:
+                            recent_trades = list(self.trade_history)[-20:]
+                            winning_trades = [t for t in recent_trades if t.get('pnl', 0) > 0]
+                            metrics['recent_win_rate'] = len(winning_trades) / len(recent_trades)
+                            metrics['avg_win'] = np.mean([t['pnl'] for t in winning_trades]) if winning_trades else 0
+                            losing_trades = [t for t in recent_trades if t.get('pnl', 0) < 0]
+                            metrics['avg_loss'] = np.mean([t['pnl'] for t in losing_trades]) if losing_trades else 0
+
+                # Добавляем конфигурационные параметры для прозрачности
+                metrics['config'] = {
+                    'daily_loss_limit_pct': self.config.get('daily_loss_limit_percent', 5),
+                    'max_position_weight_pct': self.config.get('max_position_weight_percent', 20),
+                    'use_atr_for_stops': self.config.get('use_atr_for_stops', True),
+                    'atr_multiplier': self.config.get('atr_multiplier', 2.0),
+                    'max_adv_percent': self.config.get('max_adv_percent', 5.0),
+                    'max_sector_weight_pct': self.config.get('max_sector_weight_percent', 40.0),
+                    'correlation_threshold': self.config.get('correlation_threshold', 0.7)
+                }
+
+                return metrics
+
+            except Exception as e:
+                logger.error(f"Ошибка расчета метрик риска: {e}")
+                return {'error': str(e)}
 
     def reset_daily_metrics(self):
         """Сброс дневных метрик (вызывается в начале дня)"""
-        self.daily_pnl = 0.0
-        self.daily_trades = 0
-        self.max_daily_loss = 0.0
-        logger.info("Дневные метрики риска сброшены")
+        with self.lock:
+            self.daily_pnl = 0.0
+            self.daily_trades = 0
+            self.max_daily_drawdown = 0.0
+            self.daily_high_watermark = self.portfolio_state.get('total_value', 0)
+            logger.info("Дневные метрики риска сброшены")
 
     def update_portfolio_state(self, new_state: Dict):
-        """Обновление состояния портфеля"""
-        self.portfolio_state = new_state
+        """Обновление состояния портфеля с потокобезопасностью"""
+        with self.lock:
+            try:
+                # Обновляем только необходимые поля для обратной совместимости
+                update_fields = {
+                    'total_value': new_state.get('total_value'),
+                    'cash': new_state.get('cash'),
+                    'positions': new_state.get('positions'),
+                    'last_update': datetime.now().isoformat()
+                }
 
-        # Сохраняем состояние
+                # Удаляем None значения
+                update_fields = {k: v for k, v in update_fields.items() if v is not None}
+                self.portfolio_state.update(update_fields)
+
+                # Сохраняем состояние
+                self._save_portfolio_state()
+
+                logger.debug("Состояние портфеля обновлено")
+
+            except Exception as e:
+                logger.error(f"Ошибка обновления состояния портфеля: {e}")
+
+    def _save_portfolio_state(self):
+        """Сохранение состояния портфеля"""
         try:
             with open('data/portfolio_state.json', 'w', encoding='utf-8') as f:
-                json.dump(new_state, f, indent=2, default=str)
+                json.dump(self.portfolio_state, f, indent=2, default=str)
         except Exception as e:
             logger.error(f"Ошибка сохранения состояния портфеля: {e}")
+
+    # Новые методы для расширенной функциональности (обратная совместимость)
+
+    def update_correlation_matrix(self, ticker: str, correlations: Dict[str, float]):
+        """Обновление матрицы корреляций для тикера"""
+        with self.lock:
+            try:
+                if 'correlation_matrix' not in self.portfolio_state:
+                    self.portfolio_state['correlation_matrix'] = {}
+
+                self.portfolio_state['correlation_matrix'][ticker] = correlations
+                self._save_portfolio_state()
+
+                logger.debug(f"Обновлены корреляции для {ticker}: {len(correlations)} записей")
+
+            except Exception as e:
+                logger.error(f"Ошибка обновления корреляций для {ticker}: {e}")
+
+    def update_sector_allocation(self, sector: str, value: float):
+        """Обновление распределения по секторам"""
+        with self.lock:
+            try:
+                if 'sector_allocation' not in self.portfolio_state:
+                    self.portfolio_state['sector_allocation'] = {}
+
+                self.portfolio_state['sector_allocation'][sector] = value
+                self._save_portfolio_state()
+
+            except Exception as e:
+                logger.error(f"Ошибка обновления распределения по секторам: {e}")
+
+    def get_trade_statistics(self, lookback_trades: int = 20) -> Dict:
+        """Получение статистики сделок за период"""
+        with self.lock:
+            try:
+                if not self.trade_history:
+                    return {'error': 'No trade history'}
+
+                # Безопасное копирование под локом
+                recent_trades = list(self.trade_history)
+
+                if len(recent_trades) > lookback_trades:
+                    recent_trades = recent_trades[-lookback_trades:]
+
+                if not recent_trades:
+                    return {'error': 'No recent trades'}
+
+                # Базовая статистика
+                pnls = [t['pnl'] for t in recent_trades]
+                win_rate = sum(1 for p in pnls if p > 0) / len(pnls) if pnls else 0
+
+                # Упрощенный Sharpe ratio (для внутридневной торговли)
+                avg_return = np.mean(pnls) if pnls else 0
+                std_return = np.std(pnls) if len(pnls) > 1 else 0
+
+                # 252 торговых дня в году (стандарт)
+                trading_days_per_year = 252
+                sharpe_ratio = (avg_return / std_return * np.sqrt(trading_days_per_year)) \
+                    if std_return > 0 else 0
+
+                return {
+                    'total_trades': len(recent_trades),
+                    'win_rate': win_rate,
+                    'total_pnl': sum(pnls),
+                    'avg_pnl': avg_return,
+                    'std_pnl': std_return,
+                    'max_win': max(pnls) if pnls else 0,
+                    'max_loss': min(pnls) if pnls else 0,
+                    'sharpe_ratio': sharpe_ratio,
+                    'profit_factor': abs(sum(p for p in pnls if p > 0) / sum(p for p in pnls if p < 0))
+                    if sum(p for p in pnls if p < 0) < 0 else float('inf')
+                }
+
+            except Exception as e:
+                logger.error(f"Ошибка расчета статистики сделок: {e}")
+                return {'error': str(e)}

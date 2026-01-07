@@ -11,6 +11,7 @@ from typing import List, Dict, Tuple, Optional
 from collections import defaultdict
 import re
 
+from core.core_technical_trader import TechnicalTraderCore
 from utils.logger import setup_logger
 from models.trader_model import trader_model_instance
 
@@ -23,6 +24,7 @@ class NewsTraderCore:
     def __init__(self, config_path: str = "config/rss_sources.json"):
         self.config = self._load_config(config_path)
         self.model = trader_model_instance
+        self.technical_core = TechnicalTraderCore()
         self.last_fetch_time = 0
         self.news_cache = defaultdict(list)
         self.running = False
@@ -68,26 +70,84 @@ class NewsTraderCore:
         logger.info("Сбор новостей остановлен")
 
     def _fetch_loop(self):
-        """Цикл сбора новостей"""
+        """Цикл непрерывного сбора новостей с реализацией кэширования"""
+        # Получаем интервал обновления из конфига (в секундах)
+        # По умолчанию 5 минут = 300 секунд между циклами
         update_interval = self.config.get('update_interval_minutes', 5) * 60
 
-        # +++ СЧЕТЧИК ЦИКЛОВ И ЛОГИРОВАНИЕ +++
+        # Переменная для отслеживания количества выполненных циклов
+        # Помогает при отладке и логировании периодических событий
         cycle_count = 0
-        logger.debug(f"Поток сбора новостей запущен, интервал: {update_interval} секунд")
 
+        # Основной рабочий цикл - выполняется пока self.running = True
+        # Флаг running изменяется методами start/stop_continuous_fetching()
         while self.running:
             try:
                 cycle_count += 1
                 logger.debug(f"Начало цикла сбора новостей #{cycle_count}")
 
-                # +++ РЕЗУЛЬТАТ СБОРА +++
-                news_result = self.fetch_all_news()
-                total_news = sum(len(items) for items in news_result.values())
-                logger.debug(f"Цикл #{cycle_count}: собрано {total_news} новостей из {len(news_result)} источников")
+                # 1. СБОР НОВОСТЕЙ СО ВСЕХ АКТИВНЫХ ИСТОЧНИКОВ
+                # Метод fetch_all_news() возвращает словарь вида:
+                # {'Название источника': [список_новостей], ...}
+                all_news = self.fetch_all_news()
 
+                # 2. ОБНОВЛЕНИЕ КЭША НОВОСТЕЙ (КЛЮЧЕВОЕ ИЗМЕНЕНИЕ)
+                # В оригинале news_cache объявлен, но никогда не заполняется
+                # Здесь мы наполняем его реальными данными
+                total_news_collected = 0
+
+                # Проходим по всем собранным новостям
+                for source_name, news_list in all_news.items():
+                    if news_list:  # Если для источника есть новости
+                        # Добавляем новости в кэш для этого источника
+                        # extend() добавляет элементы списка в конец существующего списка
+                        self.news_cache[source_name].extend(news_list)
+
+                        # 3. ОГРАНИЧЕНИЕ РАЗМЕРА КЭША ДЛЯ КАЖДОГО ИСТОЧНИКА
+                        # Предотвращает неограниченный рост потребления памяти
+                        max_cache_size = self.config.get('max_news_per_source', 20)
+
+                        # Оставляем только последние N новостей (самые свежие)
+                        # Срезы в Python безопасны при превышении индекса
+                        self.news_cache[source_name] = self.news_cache[source_name][-max_cache_size:]
+
+                        total_news_collected += len(news_list)
+
+                # Обновляем время последнего успешного сбора
+                # Используется в get_news_summary() для отображения статуса
+                self.last_fetch_time = time.time()
+
+                # 4. ЛОГИРОВАНИЕ РЕЗУЛЬТАТОВ ЦИКЛА
+                # Вычисляем общее количество новостей в кэше после обновления
+                total_in_cache = sum(len(items) for items in self.news_cache.values())
+
+                logger.debug(
+                    f"Цикл #{cycle_count}: собрано {total_news_collected} новостей, "
+                    f"в кэше {total_in_cache} новостей из {len(self.news_cache)} источников"
+                )
+
+                # 5. ПЕРИОДИЧЕСКОЕ ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ (каждые 10 циклов)
+                # Помогает мониторить состояние системы без избыточных логов
+                if cycle_count % 10 == 0:
+                    # Используем существующий метод get_news_summary()
+                    summary = self.get_news_summary()
+                    logger.info(
+                        f"Статус кэша новостей (цикл #{cycle_count}): "
+                        f"{summary['cache_size']} новостей из {summary['sources_count']} источников"
+                    )
+
+                # 6. ОЖИДАНИЕ СЛЕДУЮЩЕГО ЦИКЛА СБОРА
+                # time.sleep() приостанавливает выполнение потока на указанное время
+                # Это позволяет соблюдать интервал между запросами к RSS-источникам
                 time.sleep(update_interval)
+
             except Exception as e:
+                # ОБРАБОТКА ОШИБОК В РАБОЧЕМ ЦИКЛЕ
+                # Важно перехватывать все исключения, чтобы поток не завершался аварийно
                 logger.error(f"Ошибка в цикле сбора новостей: {e}")
+
+                # При ошибке ждем 60 секунд перед следующей попыткой
+                # Это дает время на восстановление сети или сервисов RSS
                 time.sleep(60)
 
     def fetch_all_news(self) -> Dict[str, List[Dict]]:
@@ -242,21 +302,52 @@ class NewsTraderCore:
     def generate_trading_signals(self, prices: Dict[str, float]) -> List[Dict]:
         """Генерация торговых сигналов на основе новостей"""
         try:
-            # 1. Сбор новостей
-            all_news = self.fetch_all_news()
-
-            # 2. Преобразуем в плоский список
+            # 1. ПОЛУЧАЕМ НОВОСТИ ИЗ КЭША вместо новых HTTP-запросов
+            # Проверяем, есть ли данные в кэше
             news_items = []
-            for source_news in all_news.values():
-                news_items.extend(source_news)
+            cache_used = True  # Флаг для отслеживания источника данных
 
+            # Проходим по всем источникам в кэше
+            for source_name, cached_news in self.news_cache.items():
+                if cached_news:  # Если для источника есть кэшированные новости
+                    news_items.extend(cached_news)
+
+            # 2. ЕСЛИ КЭШ ПУСТ - делаем разовый сбор новостей
+            # Это fallback-механизм на случай, если цикл сбора еще не успел наполнить кэш
             if not news_items:
+                logger.info("Кэш новостей пуст, выполняется разовый сбор...")
+                cache_used = False
+
+                # Используем существующий метод для сбора
+                all_news = self.fetch_all_news()
+
+                # Сохраняем собранные новости в кэш для будущих циклов
+                for source_name, news_list in all_news.items():
+                    if news_list:
+                        self.news_cache[source_name].extend(news_list)
+                        # Ограничиваем размер кэша (как в _fetch_loop)
+                        max_cache_size = self.config.get('max_news_per_source', 20)
+                        self.news_cache[source_name] = self.news_cache[source_name][-max_cache_size:]
+                        news_items.extend(news_list)
+
+                # Обновляем время последнего сбора
+                self.last_fetch_time = time.time()
+
+            # 3. ЛОГИРОВАНИЕ ИСТОЧНИКА ДАННЫХ
+            # Помогает в отладке и мониторинге производительности
+            logger.debug(f"Генерация сигналов: использован {'КЭШ' if cache_used else 'разовый сбор'}, "
+                         f"{len(news_items)} новостей")
+
+            # 4. ДАЛЬНЕЙШАЯ ОБРАБОТКА БЕЗ ИЗМЕНЕНИЙ
+            # Существующая логика работает с news_items как и раньше
+            if not news_items:
+                logger.debug("Нет новостей для анализа")
                 return []
 
-            # 3. Анализ тональности
+            # Анализ тональности (существующий метод)
             sentiments = self.analyze_news_sentiment(news_items)
 
-            # 4. Генерация сигналов
+            # Генерация сигналов (существующая логика)
             signals = []
             market_sentiment = sentiments.get('MARKET', 0.0)
 
@@ -264,29 +355,55 @@ class NewsTraderCore:
                 if ticker == 'MARKET':
                     continue
 
+
                 ticker_sentiment = sentiments.get(ticker, market_sentiment)
 
-                # Используем существующую модель для принятия решения
-                news_texts = [n['title'] for n in news_items if ticker in n.get('title', '')]
+                # Ищем новости, связанные с текущим тикером
+                news_texts = []
+                for news in news_items:
+                    news_text = f"{news.get('title', '')} {news.get('summary', '')}"
+                    # Простой поиск тикера в тексте (можно улучшить)
+                    if ticker.lower() in news_text.lower():
+                        news_texts.append(news_text)
 
                 if news_texts:
-                    # Кодируем новости через модель
+                    # Используем модель для анализа (существующий код)
                     news_features = self.model.encode_news(news_texts[:3])
 
-                    # Строим вектор состояния
+                    # 1. Получаем технические индикаторы для тикера
+                    indicators = self.technical_core.calculate_indicators(ticker)
+
+                    # 2. Рассчитываем реальный моментум
+                    momentum = indicators.get('momentum', 0.0)  # ✅ Берем из индикаторов
+
+                    # 3. Подготавливаем рыночные данные
+                    market_data = {
+                        'volume': indicators.get('volume_ratio', 1.0),
+                        'spread': 0.01,
+                        'liquidity': 0.5,
+                        'rsi': indicators.get('rsi', 50),
+                        'volatility': indicators.get('atr', 0) / price if price > 0 else 0.1,
+                        'sma_10_ratio': indicators.get('sma_10', price) / price if price > 0 else 1.0,
+                        'sma_20_ratio': indicators.get('sma_20', price) / price if price > 0 else 1.0,
+                        'bb_position': self._calculate_bb_position(price, indicators),
+                        'market_cap': 0,
+                        'pe_ratio': 15
+                    }
+
+                    # 4. ИСПРАВЛЕННЫЙ вызов build_state_vector
                     state = self.model.build_state_vector(
                         ticker=ticker,
                         price=price,
-                        momentum=0.0,  # Можно получить из данных рынка
+                        momentum=momentum,  # ✅ Теперь не 0.0
                         sentiment=ticker_sentiment,
                         news_features=news_features,
-                        market_data={'volume': 0, 'spread': 0.01}
+                        market_data=market_data  # ✅ Теперь не {'volume': 0, 'spread': 0.01}
                     )
 
-                    # Выбираем действие
+                    # Выбираем действие через модель
                     action, confidence, _ = self.model.choose_action(state, ticker, price)
 
-                    # Генерируем сигнал если уверенность высокая
+                    # Генерация сигнала при высокой уверенности
                     if confidence > 0.7:
                         signal = {
                             'ticker': ticker,
@@ -296,12 +413,14 @@ class NewsTraderCore:
                             'price': float(price),
                             'reason': 'news_analysis',
                             'timestamp': datetime.now().isoformat(),
-                            'news_count': len(news_texts)
+                            'news_count': len(news_texts),
+                            'data_source': 'cache' if cache_used else 'direct_fetch',
+                            'momentum': float(momentum)  # ✅ ДОБАВЛЯЕМ momentum в сигнал
                         }
 
                         signals.append(signal)
                         logger.info(f"Сгенерирован сигнал: {ticker} {signal['action']} "
-                                    f"(conf={confidence:.2f}, sent={ticker_sentiment:.2f})")
+                                    f"(conf={confidence:.2f}, sent={ticker_sentiment:.2f}, mom={momentum:.2f})")
 
             return signals
 
@@ -311,8 +430,48 @@ class NewsTraderCore:
 
     def get_news_summary(self) -> Dict:
         """Получение сводки новостей"""
+        # ВЫЧИСЛЯЕМ РЕАЛЬНЫЙ РАЗМЕР КЭША
+        # sum() проходит по всем источникам и суммирует количество новостей
+        total_cached_news = sum(len(v) for v in self.news_cache.values())
+
+        # СЧИТАЕМ АКТИВНЫЕ ИСТОЧНИКИ
+        # Фильтруем источники с enabled=true или без этого флага (по умолчанию включены)
+        active_sources = len([
+            s for s in self.config['sources']
+            if s.get('enabled', True)
+        ])
+
+        # СЧИТАЕМ ИСТОЧНИКИ С ДАННЫМИ В КЭШЕ
+        sources_with_data = len([
+            name for name, news_list in self.news_cache.items()
+            if news_list  # Источник считается активным в кэше, если есть хотя бы одна новость
+        ])
+
         return {
-            'last_fetch': datetime.fromtimestamp(self.last_fetch_time).isoformat() if self.last_fetch_time else None,
-            'sources_count': len([s for s in self.config['sources'] if s.get('enabled', True)]),
-            'cache_size': sum(len(v) for v in self.news_cache.values())
+            # Время последнего обновления (форматированное из timestamp)
+            'last_fetch': datetime.fromtimestamp(self.last_fetch_time).isoformat()
+            if self.last_fetch_time else None,
+
+            # Количество активных источников из конфига
+            'sources_count': active_sources,
+
+            # РЕАЛЬНЫЙ РАЗМЕР КЭША вместо фиктивного значения
+            'cache_size': total_cached_news,
+
+            # ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ для мониторинга
+            'sources_with_data': sources_with_data,  # Источники, которые реально дали данные
+            'avg_news_per_source': total_cached_news / max(sources_with_data, 1),  # Среднее количество новостей
+            'cache_status': 'active' if self.running else 'stopped',  # Статус фонового сбора
+
+            # Сохраняем обратную совместимость - если где-то ожидают старые ключи
+            'last_update': datetime.now().isoformat()  # Дополнительное поле для временных меток
         }
+
+    def _calculate_bb_position(self, price: float, indicators: Dict) -> float:
+        """Расчет позиции в Bollinger Bands"""
+        bb_upper = indicators.get('bb_upper', price * 1.1)  # Дефолт: +10%
+        bb_lower = indicators.get('bb_lower', price * 0.9)  # Дефолт: -10%
+
+        if bb_upper > bb_lower:
+            return (price - bb_lower) / (bb_upper - bb_lower)
+        return 0.5  # По умолчанию середина

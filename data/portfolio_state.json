@@ -1,18 +1,12 @@
 {
-  "total_value": 9944.6,
-  "cash": 7337.616,
+  "total_value": 9927.1,
+  "cash": 7900.116,
   "positions": {
     "LNZLP": {
       "qty": 1,
       "avg_price": 745.0,
       "buy_time": 1767605750.364675,
       "total_cost": 745.0
-    },
-    "KRSBP": {
-      "qty": 25,
-      "avg_price": 23.2,
-      "buy_time": 1767605938.177254,
-      "total_cost": 580.0
     },
     "KRSB": {
       "qty": 24,
@@ -33,6 +27,6 @@
       "total_cost": 568.544
     }
   },
-  "last_update": "2026-01-05T22:37:59.285911",
+  "last_update": "2026-01-08T20:50:29.292877",
   "initial_capital": 10000
 }
