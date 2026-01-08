@@ -8,6 +8,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import numpy as np
+import pandas as pd
 import torch
 
 from utils.logger import setup_logger
@@ -286,6 +287,31 @@ class ModelTrainer:
         except Exception as e:
             logger.error(f"Ошибка экспорта данных обучения: {e}")
             return False
+
+    def train_strategies(self):
+        """Обучение выбору стратегий"""
+        if len(self.model.strategy_memory) < 50:
+            return
+
+        # Создаем dataset из стратегий
+        strategy_data = []
+
+        for memory in self.model.strategy_memory:
+            strategy_data.append({
+                'strategy': memory['strategy'],
+                'pnl': memory['pnl'],
+                'hold_time': memory['hold_time'],
+                'action': memory['action']
+            })
+
+        # Анализ эффективности стратегий
+        df = pd.DataFrame(strategy_data)
+        strategy_stats = df.groupby('strategy').agg({
+            'pnl': ['mean', 'std', 'count'],
+            'hold_time': 'mean'
+        })
+
+        logger.info(f"Статистика стратегий:\n{strategy_stats}")
 
 
 # Глобальный экземпляр

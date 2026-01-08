@@ -3,6 +3,7 @@
 """
 
 import json
+import torch
 import time
 import threading
 from datetime import datetime
@@ -50,6 +51,298 @@ class SmartPortfolioBroker:
         print(f"[SmartBroker] Инициализирован. Капитал: {self.portfolio.cash:,.0f}₽")
         print(f"[SmartBroker] Модель sentiment: {self.model.market_sentiment:.3f}")
         print(f"[SmartBroker] Макс. позиций: {settings['max_positions']}")
+
+        self.ticker_states = {}  # {ticker: last_state}
+        self.pending_experiences = []  # Опыты для обучения
+        self.strategy_tracker = defaultdict(list)  # История стратегий по тикерам
+
+    def _execute_trading_decisions(self, signals: List[Dict],
+                                   prices: Dict[str, float], securities: Dict):
+        """Исполнение торговых решений с RL"""
+        executed_count = 0
+
+        for signal in signals[:5]:
+            ticker = signal['ticker']
+            action_str = signal['action']  # 'BUY', 'SELL'
+            confidence = signal['confidence']
+
+            if ticker not in prices:
+                continue
+
+            price = prices[ticker]
+            action_idx = {'BUY': 0, 'HOLD': 1, 'SELL': 2}[action_str]
+
+            # 1. Получаем или создаем состояние для тикера
+            if ticker in self.ticker_states:
+                current_state = self.ticker_states[ticker]
+            else:
+                # Создаем начальное состояние
+                current_state = self._create_initial_state(ticker, price, securities.get(ticker, {}))
+                self.ticker_states[ticker] = current_state
+
+            if action_str == 'BUY':
+                # 2. Выбор стратегии для покупки
+                strategy, stop_loss, take_profit = self._select_buy_strategy(
+                    ticker, price, confidence, current_state
+                )
+
+                # 3. Исполнение
+                quantity, risk_amount = self.risk_manager.calculate_position_size(
+                    ticker=ticker,
+                    price=price,
+                    stop_loss=stop_loss,
+                    confidence=confidence,
+                    strategy_multiplier=self.model.strategies[strategy]['risk_multiplier']
+                )
+
+                if quantity > 0 and self.portfolio.buy(ticker, quantity, price):
+                    # 4. Запись RL-опыта (состояние -> действие)
+                    self._record_rl_experience(
+                        ticker=ticker,
+                        state=current_state,
+                        action=action_idx,
+                        strategy=strategy,
+                        price=price,
+                        quantity=quantity
+                    )
+
+                    # 5. Обновляем позицию информацией о стратегии
+                    self.portfolio.positions[ticker]['strategy'] = strategy
+                    self.portfolio.positions[ticker]['stop_loss'] = stop_loss
+                    self.portfolio.positions[ticker]['take_profit'] = take_profit
+                    self.portfolio.positions[ticker]['entry_state'] = current_state.cpu().numpy().tolist()
+
+                    executed_count += 1
+
+            elif action_str == 'SELL':
+                if ticker in self.portfolio.positions:
+                    # 6. Продажа - завершение RL-опыта
+                    self._complete_rl_experience(ticker, price)
+
+                    # Исполнение продажи
+                    pos = self.portfolio.positions[ticker]
+                    qty = pos['qty'] // 2 if pos['qty'] > 1 else pos['qty']
+
+                    if qty > 0 and self.portfolio.sell(ticker, qty, price):
+                        # Обновляем стратегию
+                        strategy = pos.get('strategy', 'balanced')
+                        self.model.record_strategy_outcome(
+                            strategy_name=strategy,
+                            action='SELL',
+                            pnl=(price - pos['avg_price']) * qty,
+                            hold_time=time.time() - pos.get('buy_time', time.time())
+                        )
+
+                        executed_count += 1
+
+    def _record_rl_experience(self, ticker: str, state: torch.Tensor,
+                              action: int, strategy: str, price: float, quantity: int):
+        """Запись начала RL-опыта"""
+        experience = {
+            'ticker': ticker,
+            'start_state': state.cpu(),
+            'action': action,
+            'strategy': strategy,
+            'entry_price': price,
+            'entry_time': time.time(),
+            'quantity': quantity,
+            'completed': False
+        }
+
+        self.pending_experiences.append(experience)
+
+        # Сохраняем для отслеживания
+        if ticker not in self.strategy_tracker:
+            self.strategy_tracker[ticker] = []
+
+        self.strategy_tracker[ticker].append({
+            'strategy': strategy,
+            'action': ['BUY', 'HOLD', 'SELL'][action],
+            'entry_time': datetime.now().isoformat(),
+            'entry_price': price
+        })
+
+    def _complete_rl_experience(self, ticker: str, exit_price: float):
+        """Завершение RL-опыта при продаже"""
+        # Находим незавершенный опыт для этого тикера
+        for exp in self.pending_experiences:
+            if exp['ticker'] == ticker and not exp['completed']:
+                # Рассчитываем reward
+                pnl = (exit_price - exp['entry_price']) * exp['quantity']
+                hold_time = (time.time() - exp['entry_time']) / 3600  # в часах
+
+                # Создаем следующее состояние
+                next_state = self._create_next_state(ticker, exit_price)
+
+                # Нормализованный reward
+                reward = self._calculate_reward(pnl, hold_time, exp['strategy'])
+
+                # Сохраняем опыт для обучения
+                self.model.remember_experience(
+                    state=exp['start_state'],
+                    action=exp['action'],
+                    reward=reward,
+                    next_state=next_state,
+                    done=True,
+                    strategy=exp['strategy']
+                )
+
+                exp['completed'] = True
+                break
+
+    def _calculate_reward(self, pnl: float, hold_time: float, strategy: str) -> float:
+        """Расчет награды с учетом стратегии"""
+        base_reward = pnl / 100  # Нормализация
+
+        # Штрафы/бонусы за время удержания
+        target_hold_time = self.model.strategies[strategy].get('target_hold_time', 6)
+        time_penalty = abs(hold_time - target_hold_time) * 0.1
+
+        # Штраф за убыток
+        loss_penalty = 0 if pnl > 0 else abs(pnl) * 0.2
+
+        # Бонус за прибыль
+        profit_bonus = pnl * 0.3 if pnl > 0 else 0
+
+        final_reward = base_reward - time_penalty - loss_penalty + profit_bonus
+
+        return final_reward
+
+    def _create_initial_state(self, ticker: str, price: float, security_info: Dict) -> torch.Tensor:
+        """Создание начального состояния для RL"""
+        # Используем существующий метод модели
+        momentum = security_info.get('momentum', 0.0)
+        sentiment = self.news_core.get_current_sentiment(ticker)
+
+        # Получаем технические данные
+        indicators = self.technical_core.calculate_indicators(ticker)
+
+        # Получаем новости
+        news_items = self.rss_fetcher.get_news_for_ticker(ticker, limit=3)
+        news_texts = [n.get('title', '') + ' ' + n.get('summary', '') for n in news_items]
+        news_features = self.model.encode_news(news_texts)
+
+        # Строим состояние
+        state = self.model.build_state_vector(
+            ticker=ticker,
+            price=price,
+            momentum=momentum,
+            sentiment=sentiment,
+            news_features=news_features,
+            market_data={
+                'volume': indicators.get('volume_ratio', 1.0),
+                'spread': 0.01,
+                'rsi': indicators.get('rsi', 50),
+                'volatility': indicators.get('atr', 0) / price if price > 0 else 0.1,
+                'sma_10_ratio': indicators.get('sma_10', price) / price if price > 0 else 1.0,
+                'sma_20_ratio': indicators.get('sma_20', price) / price if price > 0 else 1.0,
+                'bb_position': (price - indicators.get('bb_lower', price)) /
+                               (indicators.get('bb_upper', price * 1.1) - indicators.get('bb_lower', price * 0.9))
+                if indicators.get('bb_upper', price * 1.1) > indicators.get('bb_lower', price * 0.9) else 0.5
+            }
+        )
+
+        return state
+
+    def _select_buy_strategy(self, ticker: str, price: float,
+                             confidence: float, state: torch.Tensor) -> Tuple[str, float, float]:
+        """Выбор стратегии для покупки"""
+        # Контекст рынка
+        market_context = {
+            'market_sentiment': self.model.market_sentiment,
+            'volatility': self.model.volatility_index,
+            'confidence': confidence,
+            'time_of_day': datetime.now().hour / 24.0
+        }
+
+        # Используем модель для выбора стратегии
+        action, strategy, strategy_confidence = self.model.choose_action_with_strategy(
+            state=state,
+            ticker=ticker,
+            price=price,
+            market_context=market_context
+        )
+
+        # Параметры стратегии
+        strategy_params = self.model.strategies[strategy]
+
+        # Расчет стоп-лосса и тейк-профита по стратегии
+        if strategy == 'news_aggressive':
+            stop_loss = price * (1 - 2.0 / 100)  # 2% стоп
+            take_profit = price * (1 + 4.0 / 100)  # 4% тейк
+        elif strategy == 'tech_conservative':
+            stop_loss = price * (1 - 1.5 / 100)  # 1.5% стоп
+            take_profit = price * (1 + 3.0 / 100)  # 3% тейк
+        elif strategy == 'momentum':
+            stop_loss = price * (1 - 1.0 / 100)  # 1% стоп
+            take_profit = price * (1 + 2.0 / 100)  # 2% тейк
+        else:  # balanced
+            stop_loss = price * (1 - 2.5 / 100)  # 2.5% стоп
+            take_profit = price * (1 + 5.0 / 100)  # 5% тейк
+
+        return strategy, stop_loss, take_profit
+
+    def _periodic_learning(self):
+        """Периодическое обучение с RL"""
+        try:
+            # 1. Обучение на опыте
+            if len(self.model.memory) > 100:
+                loss = self.model.learn_from_experience(batch_size=32)
+
+                if loss is not None:
+                    logger.info(f"Обучение RL: Loss={loss:.6f}, "
+                                f"Опытов={len(self.model.memory)}, "
+                                f"Стратегий={len(self.model.strategy_performance)}")
+
+            # 2. Оценка эффективности стратегий
+            self._evaluate_strategies()
+
+            # 3. Адаптация стратегий (раз в 50 циклов)
+            if self.cycle_count % 50 == 0:
+                self._adapt_strategies()
+
+        except Exception as e:
+            logger.error(f"Ошибка периодического обучения: {e}")
+
+    def _evaluate_strategies(self):
+        """Оценка эффективности стратегий"""
+        strategies_report = {}
+
+        for strategy_name, perf in self.model.strategy_performance.items():
+            if perf['total_trades'] > 0:
+                strategies_report[strategy_name] = {
+                    'total_trades': perf['total_trades'],
+                    'win_rate': f"{perf['win_rate'] * 100:.1f}%",
+                    'avg_pnl': f"{perf['avg_pnl']:.2f}",
+                    'total_pnl': f"{perf['total_pnl']:.2f}"
+                }
+
+        if strategies_report:
+            logger.info(f"Эффективность стратегий: {json.dumps(strategies_report, indent=2)}")
+
+    def _adapt_strategies(self):
+        """Адаптация параметров стратегий на основе эффективности"""
+        for strategy_name, perf in self.model.strategy_performance.items():
+            if perf['total_trades'] >= 10:
+                win_rate = perf['win_rate']
+                avg_pnl = perf['avg_pnl']
+
+                # Адаптируем risk multiplier на основе эффективности
+                current_multiplier = self.model.strategies[strategy_name]['risk_multiplier']
+
+                if win_rate > 0.6 and avg_pnl > 0:
+                    # Успешная стратегия - увеличиваем риск
+                    new_multiplier = min(current_multiplier * 1.1, 2.0)
+                elif win_rate < 0.4 or avg_pnl < 0:
+                    # Неуспешная стратегия - уменьшаем риск
+                    new_multiplier = max(current_multiplier * 0.9, 0.5)
+                else:
+                    new_multiplier = current_multiplier
+
+                self.model.strategies[strategy_name]['risk_multiplier'] = new_multiplier
+
+                logger.debug(f"Адаптация {strategy_name}: "
+                             f"risk_multiplier {current_multiplier:.2f} -> {new_multiplier:.2f}")
 
     def _initialize_components(self):
         """Инициализация всех компонентов"""

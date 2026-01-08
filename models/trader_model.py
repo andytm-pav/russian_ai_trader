@@ -183,6 +183,175 @@ class AdvancedTraderModel:
         print(f"[TraderModel] Статистика: {len(self.error_memory)} тикеров, "
               f"{len(self.memory)} опытов, sentiment={self.market_sentiment:.3f}")
 
+        # ✅Загружаем конфигурацию стратегий
+        self.strategy_config = self._load_strategy_config()
+        self.strategies = self.strategy_config['strategies']
+
+        # ✅Параметры из конфига
+        self.exploration_rate = self.strategy_config['strategy_selection']['exploration_rate']
+        self.confidence_boost_factor = self.strategy_config['strategy_selection']['confidence_boost_factor']
+
+        self.strategy_performance = defaultdict(lambda: {
+            'total_trades': 0,
+            'profitable_trades': 0,
+            'total_pnl': 0.0,
+            'avg_pnl': 0.0,
+            'win_rate': 0.5
+        })
+
+        # Используем memory_size из конфига
+        self.strategy_memory = deque(
+            maxlen=self.strategy_config['strategy_selection']['memory_size']
+        )
+
+    def _load_strategy_config(self, config_path: str = "config/strategies.json") -> Dict:
+        """Загрузка конфигурации стратегий"""
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[TraderModel] Ошибка загрузки конфига стратегий: {e}")
+            # Возвращаем дефолтные значения
+            return {
+                'strategies': {
+                    'news_aggressive': {
+                        'news_weight': 0.8,
+                        'tech_weight': 0.2,
+                        'risk_multiplier': 1.5,
+                        'target_hold_time_hours': 1,
+                        'stop_loss_percent': 2.0,
+                        'take_profit_percent': 4.0
+                    },
+                    'tech_conservative': {
+                        'news_weight': 0.2,
+                        'tech_weight': 0.8,
+                        'risk_multiplier': 0.7,
+                        'target_hold_time_hours': 24,
+                        'stop_loss_percent': 1.5,
+                        'take_profit_percent': 3.0
+                    },
+                    'balanced': {
+                        'news_weight': 0.5,
+                        'tech_weight': 0.5,
+                        'risk_multiplier': 1.0,
+                        'target_hold_time_hours': 6,
+                        'stop_loss_percent': 2.5,
+                        'take_profit_percent': 5.0
+                    },
+                    'momentum': {
+                        'news_weight': 0.3,
+                        'tech_weight': 0.7,
+                        'risk_multiplier': 1.2,
+                        'target_hold_time_hours': 0.5,
+                        'stop_loss_percent': 1.0,
+                        'take_profit_percent': 2.0
+                    }
+                },
+                'strategy_selection': {
+                    'exploration_rate': 0.3,
+                    'confidence_boost_factor': 0.4,
+                    'memory_size': 2000,
+                    'min_trades_for_evaluation': 10,
+                    'adaptation_rate': 0.1
+                }
+            }
+
+    def choose_action_with_strategy(self, state: torch.Tensor, ticker: str,
+                                    price: float, market_context: Dict) -> Tuple[int, str, float]:
+        """
+        Выбор действия с учетом стратегии
+        """
+        # 1. Оцениваем пригодность каждой стратегии для текущего состояния
+        strategy_scores = {}
+
+        for strategy_name, params in self.strategies.items():
+            # Модифицируем состояние под стратегию
+            strategy_state = self._create_strategy_state(state, params)
+
+            # Получаем предсказание
+            with torch.no_grad():
+                action_probs, state_value = self.policy_net(strategy_state)
+
+            # ✅ ИСПРАВЛЯЕМ: Используем конфигурируемый confidence_boost_factor
+            perf = self.strategy_performance[strategy_name]
+            confidence_boost = perf['win_rate'] * self.confidence_boost_factor
+
+            # Ожидаемая ценность стратегии
+            expected_value = state_value.item() + confidence_boost
+
+            strategy_scores[strategy_name] = {
+                'expected_value': expected_value,
+                'action_probs': action_probs.cpu().numpy().flatten(),
+                'params': params
+            }
+
+        # 2. Выбор стратегии (epsilon-greedy)
+        # ✅ ИСПРАВЛЯЕМ: Используем exploration_rate из конфига
+        if np.random.random() < self.exploration_rate:
+            # Exploration: случайная стратегия
+            chosen_strategy = np.random.choice(list(self.strategies.keys()))
+        else:
+            # Exploitation: лучшая стратегия
+            chosen_strategy = max(strategy_scores.items(),
+                                  key=lambda x: x[1]['expected_value'])[0]
+
+        # 3. Выбор действия для выбранной стратегии
+        action_probs = strategy_scores[chosen_strategy]['action_probs']
+
+        # ✅ ИСПРАВЛЯЕМ: Конфигурируемый exploration для действий
+        action_exploration_rate = 0.2  # Можно вынести в конфиг
+        if np.random.random() < action_exploration_rate and len(self.memory) < 2000:
+            action = np.random.choice(len(action_probs))
+        else:
+            action = np.argmax(action_probs)
+
+        confidence = action_probs[action]
+
+        return action, chosen_strategy, confidence
+
+    def _create_strategy_state(self, base_state: torch.Tensor,
+                               strategy_params: Dict) -> torch.Tensor:
+        """Создание состояния для конкретной стратегии"""
+        # Клонируем базовое состояние
+        strategy_state = base_state.clone()
+
+        # ✅ ИСПРАВЛЯЕМ: Более полные параметры стратегии
+        strategy_params_tensor = torch.tensor([
+            strategy_params['news_weight'],
+            strategy_params['tech_weight'],
+            strategy_params['risk_multiplier'],
+            strategy_params.get('target_hold_time_hours', 6) / 24.0,  # Нормализованное время
+            strategy_params.get('stop_loss_percent', 2.5) / 100.0,  # Нормализованный стоп-лосс
+            strategy_params.get('take_profit_percent', 5.0) / 100.0  # Нормализованный тейк-профит
+        ]).to(self.device)
+
+        # Объединяем с основным состоянием
+        strategy_state = torch.cat([strategy_state, strategy_params_tensor])
+
+        return strategy_state
+
+    def record_strategy_outcome(self, strategy_name: str, action: str,
+                                pnl: float, hold_time: float):
+        """Запись результата стратегии"""
+        perf = self.strategy_performance[strategy_name]
+        perf['total_trades'] += 1
+        perf['total_pnl'] += pnl
+
+        if pnl > 0:
+            perf['profitable_trades'] += 1
+
+        perf['avg_pnl'] = perf['total_pnl'] / perf['total_trades']
+        perf['win_rate'] = perf['profitable_trades'] / perf['total_trades']
+
+        # Сохраняем в memory для обучения
+        self.strategy_memory.append({
+            'strategy': strategy_name,
+            'action': action,
+            'pnl': pnl,
+            'hold_time': hold_time,
+            'timestamp': datetime.now().isoformat()
+        })
+
     def _load_bert_model(self):
         """Загрузка BERT модели с обработкой ошибок"""
         try:
@@ -226,6 +395,9 @@ class AdvancedTraderModel:
                 'volatility_index': self.volatility_index,
                 'memory_size': len(self.memory),
                 'total_experiences': sum(len(v['failed_trades']) for v in self.error_memory.values()),
+                'strategy_performance': dict(self.strategy_performance),  # ✅ ДОБАВЛЯЕМ
+                'strategy_memory': list(self.strategy_memory),  # ✅ ДОБАВЛЯЕМ
+                'strategies': self.strategies,  # ✅ ДОБАВЛЯЕМ
                 'save_time': datetime.now().isoformat()
             }
 
@@ -233,7 +405,7 @@ class AdvancedTraderModel:
                 json.dump(state, f, indent=2, default=str)
 
             print(f"[TraderModel] Модель сохранена: {len(self.memory)} опытов, "
-                  f"{len(self.error_memory)} тикеров")
+                  f"{len(self.error_memory)} тикеров, {len(self.strategies)} стратегий")
 
         except Exception as e:
             print(f"[TraderModel] Ошибка сохранения: {e}")
@@ -287,8 +459,26 @@ class AdvancedTraderModel:
                 )
                 self.volatility_index = state.get('volatility_index', 1.0)
 
+                # ✅ ДОБАВЛЯЕМ: Восстанавливаем стратегии
+                if 'strategies' in state:
+                    self.strategies = state['strategies']
+
+                # ✅ ДОБАВЛЯЕМ: Восстанавливаем статистику стратегий
+                if 'strategy_performance' in state:
+                    self.strategy_performance.clear()
+                    for strategy_name, perf in state.get('strategy_performance', {}).items():
+                        self.strategy_performance[strategy_name] = perf
+
+                # ✅ ДОБАВЛЯЕМ: Восстанавливаем память стратегий
+                if 'strategy_memory' in state:
+                    self.strategy_memory = deque(
+                        state.get('strategy_memory', []),
+                        maxlen=self.strategy_config['strategy_selection']['memory_size']
+                    )
+
                 print(f"[TraderModel] ✓ Загружено состояние: {len(self.error_memory)} тикеров, "
-                      f"senti={self.market_sentiment:.3f}, vol={self.volatility_index:.2f}")
+                      f"senti={self.market_sentiment:.3f}, vol={self.volatility_index:.2f}, "
+                      f"{len(self.strategies)} стратегий")
 
             except Exception as e:
                 print(f"[TraderModel] Ошибка загрузки состояния: {e}")
@@ -496,8 +686,15 @@ class AdvancedTraderModel:
     def choose_action(self,
                       state: torch.Tensor,
                       ticker: str,
-                      current_price: float) -> Tuple[int, float, float]:
+                      current_price: float,
+                      market_context: Dict = None) -> Tuple[int, float, float]:
         """Выбор действия с улучшенной логикой"""
+        if market_context is not None:
+            action, strategy, confidence = self.choose_action_with_strategy(
+                state, ticker, current_price, market_context
+            )
+            return action, confidence, 0.0  # Возвращаем совместимый формат
+
         self.policy_net.eval()
 
         with torch.no_grad():
@@ -712,7 +909,8 @@ class AdvancedTraderModel:
                              exit_price: float,
                              hold_time: float,
                              news_sentiment: float,
-                             market_conditions: Dict) -> Tuple[float, float]:
+                             market_conditions: Dict,
+                             strategy: str = None) -> Tuple[float, float]:  # ✅ ДОБАВЛЯЕМ параметр strategy
         """Запись результата сделки"""
 
         # Расчет PnL
@@ -744,6 +942,10 @@ class AdvancedTraderModel:
         stats['success_rate'] = stats['profitable_trades'] / stats['total_trades'] if stats['total_trades'] > 0 else 0.5
         stats['last_trade'] = datetime.now().isoformat()
 
+        # ✅ ДОБАВЛЯЕМ: Обновление статистики стратегии если указана
+        if strategy and action == 'SELL':
+            self.record_strategy_outcome(strategy, action, pnl, hold_time)
+
         # Запись ошибок (значительные убытки)
         if pnl < -0.02:  # Убыток более 2%
             error_data = self.error_memory[ticker]
@@ -756,7 +958,8 @@ class AdvancedTraderModel:
                 'pnl': pnl,
                 'hold_time': hold_time,
                 'sentiment': news_sentiment,
-                'market_conditions': market_conditions
+                'market_conditions': market_conditions,
+                'strategy': strategy  # ✅ ДОБАВЛЯЕМ стратегию
             }
 
             error_data['failed_trades'].append(trade_record)
@@ -772,11 +975,20 @@ class AdvancedTraderModel:
             error_data['success_rate'] = stats['success_rate']
             error_data['total_trades'] = stats['total_trades']
 
-            print(f"[TraderModel] Запомнена ошибка: {ticker} {action}, убыток {pnl:.2%}")
+            print(f"[TraderModel] Запомнена ошибка: {ticker} {action}, убыток {pnl:.2%}, стратегия: {strategy}")
 
         # Награда для обучения
         if action == 'SELL':
             reward = pnl * 20.0  # Масштабирование
+
+            # ✅ ИСПРАВЛЯЕМ: Учитываем стратегию в награде
+            if strategy:
+                # Проверяем соответствует ли hold_time целевой стратегии
+                target_hold_time = self.strategies.get(strategy, {}).get('target_hold_time_hours', 6)
+                hold_time_diff = abs(hold_time - target_hold_time)
+
+                if hold_time_diff > target_hold_time * 0.5:  # Отклонение более 50%
+                    reward -= 0.3 * hold_time_diff / target_hold_time
 
             # Бонусы/штрафы
             if hold_time < 0.5 and abs(pnl) < 0.01:  # Слишком быстро

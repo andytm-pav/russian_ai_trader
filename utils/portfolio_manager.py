@@ -22,6 +22,7 @@ class PortfolioManager:
         self.cash = 0.0
         self.trade_history = []
         self.initial_capital = 0.0
+        self.strategy_positions = defaultdict(list)  # Позиции по стратегиям
 
         # Загрузка состояния
         self.load_portfolio()
@@ -39,6 +40,13 @@ class PortfolioManager:
             self.initial_capital = data.get('initial_capital', self.cash)
             self.trade_history = data.get('trade_history', [])
 
+            # ДОБАВЛЯЕМ: Загрузка стратегий
+            self.strategy_positions = defaultdict(list)
+            for ticker, pos in self.positions.items():
+                strategy = pos.get('strategy')
+                if strategy:
+                    self.strategy_positions[strategy].append(ticker)
+
             # Конвертируем строковые даты обратно в timestamps
             for ticker, pos in self.positions.items():
                 if 'buy_time' in pos and isinstance(pos['buy_time'], str):
@@ -50,7 +58,7 @@ class PortfolioManager:
                         pos['buy_time'] = time.time()
 
             logger.info(f"Загружен портфель: {len(self.positions)} позиций, "
-                        f"{self.cash:,.0f}₽ кэша")
+                        f"{self.cash:,.0f}₽ кэша, {len(self.strategy_positions)} стратегий")
 
         except FileNotFoundError:
             logger.warning(f"Файл портфеля не найден: {self.portfolio_file}")
@@ -72,12 +80,16 @@ class PortfolioManager:
     def save_portfolio(self):
         """Сохранение состояния портфеля в файл"""
         try:
+            # ДОБАВЛЯЕМ: Конвертируем defaultdict в dict для сохранения
+            strategy_positions_dict = dict(self.strategy_positions)
+
             # Подготовка данных для сохранения
             data = {
                 'positions': self.positions,
                 'cash': self.cash,
                 'initial_capital': self.initial_capital,
                 'trade_history': self.trade_history[-100:],  # Сохраняем последние 100 сделок
+                'strategy_positions': strategy_positions_dict,  # ДОБАВЛЯЕМ
                 'total_value': self.get_total_value({}),
                 'last_update': datetime.now().isoformat(),
                 'stats': self.get_portfolio_stats()
@@ -87,7 +99,7 @@ class PortfolioManager:
                 json.dump(data, f, indent=2, default=str)
 
             logger.debug(f"Портфель сохранен: {len(self.positions)} позиций, "
-                         f"{self.cash:,.0f}₽ кэша")
+                         f"{self.cash:,.0f}₽ кэша, {len(strategy_positions_dict)} стратегий")
 
             return True
 
@@ -95,8 +107,9 @@ class PortfolioManager:
             logger.error(f"Ошибка сохранения портфеля: {e}")
             return False
 
-    def buy(self, ticker: str, quantity: int, price: float) -> bool:
-        """Покупка акций"""
+    def buy(self, ticker: str, quantity: int, price: float, strategy: str = None, **kwargs) -> bool:
+        """Покупка акций с указанием стратегии"""
+
         try:
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
@@ -122,8 +135,17 @@ class PortfolioManager:
                 pos['avg_price'] = total_cost / total_qty
                 pos['buy_time'] = time.time()  # Обновляем время покупки
 
+                # ДОБАВЛЯЕМ: Сохраняем стратегию если указана
+                if strategy and 'strategy' not in pos:
+                    pos['strategy'] = strategy
+
+                # ДОБАВЛЯЕМ: Сохраняем дополнительные параметры
+                if kwargs:
+                    for key, value in kwargs.items():
+                        pos[key] = value
+
                 logger.debug(f"Усреднена позиция {ticker}: +{quantity} @ {price:.2f}, "
-                             f"итого {total_qty} @ {pos['avg_price']:.2f}")
+                         f"итого {total_qty} @ {pos['avg_price']:.2f}, стратегия: {strategy}")
             else:
                 # Новая позиция
                 self.positions[ticker] = {
@@ -132,6 +154,20 @@ class PortfolioManager:
                     'buy_time': time.time(),
                     'total_cost': cost
                 }
+
+                # Сохраняем стратегию если указана
+                if strategy:
+                    self.positions[ticker]['strategy'] = strategy
+
+                # Сохраняем дополнительные параметры
+                if kwargs:
+                    for key, value in kwargs.items():
+                        self.positions[ticker][key] = value
+
+                # Добавляем в отслеживание стратегий
+                if strategy:
+                    self.strategy_positions[strategy].append(ticker)
+
 
             # Списание средств
             self.cash -= cost
@@ -145,8 +181,13 @@ class PortfolioManager:
                 'price': price,
                 'cost': cost,
                 'cash_after': self.cash,
-                'position_after': self.positions[ticker].copy()
+                'position_after': self.positions[ticker].copy(),
+                'strategy': strategy  # ДОБАВЛЯЕМ стратегию в историю
             }
+
+            # ДОБАВЛЯЕМ: Сохраняем дополнительные параметры в историю
+            if kwargs:
+                trade_record['params'] = kwargs
 
             self.trade_history.append(trade_record)
 
@@ -154,7 +195,7 @@ class PortfolioManager:
             self.save_portfolio()
 
             logger.info(f"КУПЛЕНО: {ticker} {quantity} @ {price:.2f} = {cost:,.0f}₽, "
-                        f"остаток кэша: {self.cash:,.0f}₽")
+                        f"остаток кэша: {self.cash:,.0f}₽, стратегия: {strategy}")
 
             return True
 
@@ -177,6 +218,9 @@ class PortfolioManager:
 
             pos = self.positions[ticker]
 
+            # ДОБАВЛЯЕМ: Получаем стратегию перед удалением позиции
+            strategy = pos.get('strategy')
+
             # Проверка количества
             if quantity > pos['qty']:
                 logger.error(f"Недостаточно акций для продажи {ticker}: "
@@ -195,12 +239,17 @@ class PortfolioManager:
             if quantity == pos['qty']:
                 # Продажа всей позиции
                 del self.positions[ticker]
-                logger.debug(f"Закрыта позиция {ticker}")
+
+                # ДОБАВЛЯЕМ: Удаляем из трекера стратегий
+                if strategy:
+                    self.remove_strategy_from_tracker(ticker, strategy)
+
+                logger.debug(f"Закрыта позиция {ticker}, стратегия: {strategy}")
             else:
                 # Частичная продажа
                 pos['qty'] -= quantity
                 pos['buy_time'] = time.time()  # Обновляем время покупки для оставшихся
-                logger.debug(f"Частичная продажа {ticker}: -{quantity}, осталось {pos['qty']}")
+                logger.debug(f"Частичная продажа {ticker}: -{quantity}, осталось {pos['qty']}, стратегия: {strategy}")
 
             # Зачисление средств
             self.cash += revenue
@@ -216,7 +265,8 @@ class PortfolioManager:
                 'pnl': pnl,
                 'pnl_percent': pnl_percent,
                 'cash_after': self.cash,
-                'position_after': self.positions.get(ticker, {}).copy()
+                'position_after': self.positions.get(ticker, {}).copy(),
+                'strategy': strategy  # ДОБАВЛЯЕМ стратегию
             }
 
             self.trade_history.append(trade_record)
@@ -226,7 +276,7 @@ class PortfolioManager:
 
             logger.info(f"ПРОДАНО: {ticker} {quantity} @ {price:.2f} = {revenue:,.0f}₽, "
                         f"PnL: {pnl:+,.0f}₽ ({pnl_percent:+.1f}%), "
-                        f"кэш: {self.cash:,.0f}₽")
+                        f"кэш: {self.cash:,.0f}₽, стратегия: {strategy}")
 
             return True
 
@@ -253,8 +303,11 @@ class PortfolioManager:
             logger.error(f"Ошибка расчета стоимости портфеля: {e}")
             return self.cash
 
-    def get_portfolio_stats(self) -> Dict:
+    def get_portfolio_stats(self, current_prices: Dict[str, float] = None) -> Dict:
         """Получение статистики портфеля"""
+        if current_prices is None:
+            current_prices = {}
+
         stats = {
             'cash': self.cash,
             'positions_count': len(self.positions),
@@ -264,8 +317,14 @@ class PortfolioManager:
                 p.get('qty', 0) * p.get('avg_price', 0)
                 for p in self.positions.values()
             ),
-            'last_update': datetime.now().isoformat()
+            'last_update': datetime.now().isoformat(),
+            'strategies_count': len(self.strategy_positions)
         }
+        # Расчет стоимости с текущими ценами если есть
+        if current_prices:
+            total_value = self.get_total_value(current_prices)
+            stats['total_value_with_current_prices'] = total_value
+            stats['total_pnl_with_current_prices'] = total_value - self.initial_capital
 
         # Расчет PnL
         if self.trade_history:
@@ -276,14 +335,40 @@ class PortfolioManager:
                 stats['total_pnl'] = total_pnl
                 stats['total_pnl_percent'] = (total_pnl / self.initial_capital * 100) if self.initial_capital > 0 else 0
 
-        # Анализ позиций
-        if self.positions:
-            stats['largest_position'] = max(
-                self.positions.items(),
-                key=lambda x: x[1]['qty'] * x[1].get('avg_price', 0)
-            )[0] if self.positions else None
+                # ДОБАВЛЯЕМ: PnL по стратегиям
+                strategy_pnl = {}
+                for trade in sell_trades:
+                    strategy = trade.get('strategy', 'unknown')
+                    if strategy not in strategy_pnl:
+                        strategy_pnl[strategy] = 0
+                    strategy_pnl[strategy] += trade.get('pnl', 0)
 
-        return stats
+                stats['pnl_by_strategy'] = strategy_pnl
+
+                # Анализ позиций
+                if self.positions:
+                    # Находим самую крупную позицию
+                    largest = max(
+                        self.positions.items(),
+                        key=lambda x: x[1]['qty'] * x[1].get('avg_price', 0)
+                    )
+                    stats['largest_position'] = {
+                        'ticker': largest[0],
+                        'value': largest[1]['qty'] * largest[1]['avg_price'],
+                        'strategy': largest[1].get('strategy', 'unknown')
+                    }
+
+                    # ДОБАВЛЯЕМ: Распределение по стратегиям
+                    strategy_distribution = {}
+                    for pos in self.positions.values():
+                        strategy = pos.get('strategy', 'unknown')
+                        if strategy not in strategy_distribution:
+                            strategy_distribution[strategy] = 0
+                        strategy_distribution[strategy] += 1
+
+                    stats['strategy_distribution'] = strategy_distribution
+
+                return stats
 
     def calculate_projected_weight(self,
                                    ticker: str,
@@ -336,6 +421,54 @@ class PortfolioManager:
         }
 
         return details
+
+    def get_positions_by_strategy(self, strategy: str) -> List[Dict]:
+        """Получение позиций по конкретной стратегии"""
+        positions = []
+
+        for ticker, pos in self.positions.items():
+            if pos.get('strategy') == strategy:
+                positions.append({
+                    'ticker': ticker,
+                    'quantity': pos['qty'],
+                    'avg_price': pos['avg_price'],
+                    'buy_time': datetime.fromtimestamp(pos['buy_time']).isoformat() if 'buy_time' in pos else None,
+                    'strategy': pos.get('strategy', 'unknown'),
+                    'stop_loss': pos.get('stop_loss'),
+                    'take_profit': pos.get('take_profit')
+                })
+
+        return positions
+
+    def get_strategy_stats(self, current_prices: Dict[str, float]) -> Dict[str, Dict]:
+        """Статистика по стратегиям"""
+        strategy_stats = {}
+
+        for strategy, tickers in self.strategy_positions.items():
+            total_value = 0
+            total_pnl = 0
+            positions_count = 0
+
+            for ticker in tickers:
+                if ticker in self.positions:
+                    pos = self.positions[ticker]
+                    current_price = current_prices.get(ticker, pos['avg_price'])
+                    position_value = pos['qty'] * current_price
+                    pnl = (current_price - pos['avg_price']) * pos['qty']
+
+                    total_value += position_value
+                    total_pnl += pnl
+                    positions_count += 1
+
+            if positions_count > 0:
+                strategy_stats[strategy] = {
+                    'positions_count': positions_count,
+                    'total_value': total_value,
+                    'total_pnl': total_pnl,
+                    'avg_pnl_per_position': total_pnl / positions_count if positions_count > 0 else 0
+                }
+
+        return strategy_stats
 
     def get_all_positions_details(self, current_prices: Dict[str, float]) -> List[Dict]:
         """Получение деталей по всем позициям"""
@@ -458,3 +591,14 @@ class PortfolioManager:
         except Exception as e:
             logger.error(f"Ошибка экспорта отчета: {e}")
             return False
+
+    def remove_strategy_from_tracker(self, ticker: str, strategy: str):
+        """Удаление позиции из трекера стратегий"""
+        if strategy in self.strategy_positions and ticker in self.strategy_positions[strategy]:
+            self.strategy_positions[strategy].remove(ticker)
+
+            # Если стратегия больше не имеет позиций, удаляем её
+            if not self.strategy_positions[strategy]:
+                del self.strategy_positions[strategy]
+
+            logger.debug(f"Удален {ticker} из трекера стратегии {strategy}")
