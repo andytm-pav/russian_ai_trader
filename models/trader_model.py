@@ -130,6 +130,27 @@ class AdvancedTraderModel:
         # Устройство
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+        # ✅Загружаем конфигурацию стратегий
+        self.strategy_config = self._load_strategy_config()
+        self.strategies = self.strategy_config['strategies']
+
+        # ✅Параметры из конфига
+        self.exploration_rate = self.strategy_config['strategy_selection']['exploration_rate']
+        self.confidence_boost_factor = self.strategy_config['strategy_selection']['confidence_boost_factor']
+
+        self.strategy_performance = defaultdict(lambda: {
+            'total_trades': 0,
+            'profitable_trades': 0,
+            'total_pnl': 0.0,
+            'avg_pnl': 0.0,
+            'win_rate': 0.5
+        })
+
+        # Используем memory_size из конфига
+        self.strategy_memory = deque(
+            maxlen=self.strategy_config['strategy_selection']['memory_size']
+        )
+
         # Инициализация сетей с правильными размерностями
         self.news_encoder = NewsEncoder(input_dim=768, hidden_dim=256)
         self.news_encoder.to(self.device)
@@ -183,28 +204,8 @@ class AdvancedTraderModel:
         print(f"[TraderModel] Статистика: {len(self.error_memory)} тикеров, "
               f"{len(self.memory)} опытов, sentiment={self.market_sentiment:.3f}")
 
-        # ✅Загружаем конфигурацию стратегий
-        self.strategy_config = self._load_strategy_config()
-        self.strategies = self.strategy_config['strategies']
-
-        # ✅Параметры из конфига
-        self.exploration_rate = self.strategy_config['strategy_selection']['exploration_rate']
-        self.confidence_boost_factor = self.strategy_config['strategy_selection']['confidence_boost_factor']
-
-        self.strategy_performance = defaultdict(lambda: {
-            'total_trades': 0,
-            'profitable_trades': 0,
-            'total_pnl': 0.0,
-            'avg_pnl': 0.0,
-            'win_rate': 0.5
-        })
-
-        # Используем memory_size из конфига
-        self.strategy_memory = deque(
-            maxlen=self.strategy_config['strategy_selection']['memory_size']
-        )
-
     def _load_strategy_config(self, config_path: str = "config/strategies.json") -> Dict:
+
         """Загрузка конфигурации стратегий"""
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
@@ -300,7 +301,7 @@ class AdvancedTraderModel:
 
         # ✅ ИСПРАВЛЯЕМ: Конфигурируемый exploration для действий
         action_exploration_rate = 0.2  # Можно вынести в конфиг
-        if np.random.random() < action_exploration_rate and len(self.memory) < 2000:
+        if np.random.random() < action_exploration_rate and hasattr(self, 'memory') and len(self.memory) < 2000:
             action = np.random.choice(len(action_probs))
         else:
             action = np.argmax(action_probs)

@@ -47,6 +47,8 @@
     "exploration_rate": 0.3,
     "performance_lookback_days": 30,
     "min_trades_for_evaluation": 10,
-    "adaptation_rate": 0.1
+    "adaptation_rate": 0.1,
+    "confidence_boost_factor": 0.4,
+    "memory_size": 2000
   }
 }
