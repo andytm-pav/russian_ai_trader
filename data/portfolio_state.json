@@ -1,6 +1,6 @@
 {
-  "total_value": 9927.1,
-  "cash": 7900.116,
+  "total_value": 9930.900000000001,
+  "cash": 1839.7160000000003,
   "positions": {
     "LNZLP": {
       "qty": 1,
@@ -25,8 +25,26 @@
       "avg_price": 0.436,
       "buy_time": 1767611113.1037123,
       "total_cost": 568.544
+    },
+    "BANEP": {
+      "qty": 1,
+      "avg_price": 875.0,
+      "buy_time": 1767954420.6486516,
+      "total_cost": 3500.0
+    },
+    "AQUA": {
+      "qty": 4,
+      "avg_price": 491.3,
+      "buy_time": 1767954853.036371,
+      "total_cost": 3930.4
+    },
+    "BRZL": {
+      "qty": 2,
+      "avg_price": 1612.0,
+      "buy_time": 1767954884.9428282,
+      "total_cost": 3224.0
     }
   },
-  "last_update": "2026-01-09T13:07:32.795694",
+  "last_update": "2026-01-09T14:35:49.508687",
   "initial_capital": 10000
 }
