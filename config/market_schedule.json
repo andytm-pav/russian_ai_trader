@@ -18,7 +18,7 @@
     "evening_session": {
       "start": "19:00",
       "end": "23:50",
-      "enabled": false
+      "enabled": true
     },
     "overnight_session": {
       "start": "00:00",

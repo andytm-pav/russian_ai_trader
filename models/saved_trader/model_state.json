@@ -1035,12 +1035,12 @@
       "last_trade": null
     },
     "AQUA": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
+      "total_trades": 4,
+      "profitable_trades": 3,
+      "total_pnl": 0.0022389578668837082,
+      "avg_hold_time": 3.400279415978325e-07,
+      "success_rate": 0.75,
+      "last_trade": "2026-01-09T17:45:43.210031"
     },
     "ARSA": {
       "total_trades": 0,
@@ -1075,20 +1075,20 @@
       "last_trade": null
     },
     "BANE": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
+      "total_trades": 2,
+      "profitable_trades": 1,
+      "total_pnl": 0.0041841004184100415,
+      "avg_hold_time": 2.451406584845649e-07,
       "success_rate": 0.5,
-      "last_trade": null
+      "last_trade": "2026-01-09T17:07:15.151873"
     },
     "BANEP": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
+      "total_trades": 3,
+      "profitable_trades": 2,
+      "total_pnl": 0.002285714285714286,
+      "avg_hold_time": 2.5376125618263525e-07,
+      "success_rate": 0.6666666666666666,
+      "last_trade": "2026-01-09T14:27:00.650007"
     },
     "BAZA": {
       "total_trades": 0,
@@ -1123,12 +1123,12 @@
       "last_trade": null
     },
     "BRZL": {
-      "total_trades": 0,
+      "total_trades": 2,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
+      "avg_hold_time": 2.2404723697238499e-07,
+      "success_rate": 0.0,
+      "last_trade": "2026-01-09T15:27:35.433100"
     },
     "BSPB": {
       "total_trades": 0,
@@ -1923,7 +1923,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": 0.0323429106706674,
+  "market_sentiment": 0.03752912611258109,
   "sentiment_history": [
     0.0015873015873015873,
     0.0021327967806841048,
@@ -1939,9 +1939,12 @@
     0.027803646589683494,
     0.028637739762040447,
     0.03187152676144616,
-    0.0323429106706674
+    0.0323429106706674,
+    0.03337691228652749,
+    0.03621206056404758,
+    0.03752912611258109
   ],
-  "volatility_index": 0.7222315910340654,
+  "volatility_index": 0.7137051999362072,
   "memory_size": 0,
   "total_experiences": 0,
   "strategy_performance": {},
@@ -1990,5 +1993,5 @@
       }
     }
   },
-  "save_time": "2026-01-09T12:44:53.893343"
+  "save_time": "2026-01-09T23:22:14.188235"
 }

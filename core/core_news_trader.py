@@ -239,6 +239,56 @@ class NewsTraderCore:
 
         return result
 
+    def get_current_sentiment(self, ticker: str) -> float:
+        """Получение текущего сентимента для тикера"""
+        try:
+            # 1. Проверяем кэш
+            if hasattr(self, 'sentiment_cache'):
+                cached = self.sentiment_cache.get(ticker)
+                if cached and time.time() - cached['timestamp'] < 300:  # 5 минут
+                    return cached['sentiment']
+
+            # 2. Собираем свежие новости
+            all_news = self.fetch_all_news()
+            news_items = []
+            for source_news in all_news.values():
+                news_items.extend(source_news)
+
+            # 3. Фильтруем новости по тикеру
+            ticker_news = []
+            for news in news_items:
+                text = f"{news['title']} {news['summary']}".lower()
+                # Ищем упоминание тикера
+                if re.search(rf'\b{ticker}\b', text, re.IGNORECASE):
+                    ticker_news.append(news)
+
+            # 4. Анализируем сентимент
+            if ticker_news:
+                sentiments = self.analyze_news_sentiment(ticker_news)
+                sentiment = sentiments.get(ticker, 0.0)
+            else:
+                # Если новостей нет, используем рыночный сентимент
+                if news_items:
+                    sentiments = self.analyze_news_sentiment(news_items)
+                    sentiment = sentiments.get('MARKET', 0.0)
+                else:
+                    sentiment = 0.0
+
+            # 5. Кэшируем результат
+            if not hasattr(self, 'sentiment_cache'):
+                self.sentiment_cache = {}
+            self.sentiment_cache[ticker] = {
+                'sentiment': sentiment,
+                'timestamp': time.time(),
+                'news_count': len(ticker_news)
+            }
+
+            return sentiment
+
+        except Exception as e:
+            logger.error(f"Ошибка получения сентимента для {ticker}: {e}")
+            return 0.0
+
     def generate_trading_signals(self, prices: Dict[str, float]) -> List[Dict]:
         """Генерация торговых сигналов на основе новостей"""
         try:
