@@ -8,10 +8,12 @@
       "target_hold_time_hours": 1,
       "stop_loss_percent": 2.0,
       "take_profit_percent": 4.0,
+      "max_positions": 2,
       "conditions": {
         "min_confidence": 0.75,
-        "max_positions": 2,
-        "market_sentiment_threshold": 0.3
+        "market_sentiment_threshold": 0.3,
+        "min_news_count": 2,
+        "max_volatility": 0.05
       }
     },
     "tech_conservative": {
@@ -22,10 +24,12 @@
       "target_hold_time_hours": 24,
       "stop_loss_percent": 1.5,
       "take_profit_percent": 3.0,
+      "max_positions": 3,
       "conditions": {
         "min_confidence": 0.65,
-        "max_positions": 3,
-        "rsi_threshold": 30
+        "rsi_threshold_low": 30,
+        "rsi_threshold_high": 70,
+        "volume_ratio_min": 1.5
       }
     },
     "balanced": {
@@ -36,19 +40,43 @@
       "target_hold_time_hours": 6,
       "stop_loss_percent": 2.5,
       "take_profit_percent": 5.0,
+      "max_positions": 4,
       "conditions": {
         "min_confidence": 0.7,
-        "max_positions": 4,
-        "volatility_threshold": 0.02
+        "volatility_threshold": 0.02,
+        "momentum_threshold": 0.5
+      }
+    },
+    "momentum_scalping": {
+      "description": "Моментум скальпинг",
+      "news_weight": 0.3,
+      "tech_weight": 0.7,
+      "risk_multiplier": 1.2,
+      "target_hold_time_hours": 0.5,
+      "stop_loss_percent": 1.0,
+      "take_profit_percent": 2.0,
+      "max_positions": 5,
+      "conditions": {
+        "min_confidence": 0.6,
+        "momentum_threshold": 1.0,
+        "volume_ratio_min": 2.0,
+        "max_spread_percent": 0.1
       }
     }
   },
   "strategy_selection": {
     "exploration_rate": 0.3,
-    "performance_lookback_days": 30,
+    "confidence_boost_factor": 0.4,
+    "memory_size": 2000,
     "min_trades_for_evaluation": 10,
     "adaptation_rate": 0.1,
-    "confidence_boost_factor": 0.4,
-    "memory_size": 2000
+    "performance_lookback_days": 30,
+    "strategy_weights_update_interval": 100
+  },
+  "fallback_strategy": "balanced",
+  "default_strategy_parameters": {
+    "min_position_size_rub": 500,
+    "max_position_size_rub": 50000,
+    "cooldown_period_hours": 2
   }
 }

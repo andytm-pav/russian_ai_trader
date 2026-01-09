@@ -1,0 +1,53 @@
+{
+  "execution": {
+    "max_signals_per_cycle": 5,
+    "sell_fraction": 0.5,
+    "min_sell_quantity": 1,
+    "position_sizing": {
+      "min_position_value_rub": 1000,
+      "max_position_weight_percent": 20,
+      "risk_per_trade_percent": 2
+    }
+  },
+  "reward_calculation": {
+    "pnl_normalization": 100,
+    "time_penalty_factor": 0.1,
+    "loss_penalty_factor": 0.2,
+    "profit_bonus_factor": 0.3,
+    "max_hold_time_penalty": 2.0,
+    "min_hold_time_hours": 0.5,
+    "max_hold_time_hours": 72
+  },
+  "strategy_adaptation": {
+    "success_win_rate_threshold": 0.6,
+    "failure_win_rate_threshold": 0.4,
+    "increase_factor": 1.1,
+    "decrease_factor": 0.9,
+    "max_risk_multiplier": 2.0,
+    "min_risk_multiplier": 0.5,
+    "min_trades_for_adaptation": 10,
+    "adaptation_check_interval_days": 7
+  },
+  "learning": {
+    "min_experiences_for_learning": 100,
+    "batch_size": 32,
+    "target_update_interval": 10,
+    "gamma": 0.95,
+    "tau": 0.005,
+    "learning_rate": 0.0005,
+    "evaluation_cycle_interval": 50,
+    "save_model_interval": 100
+  },
+  "exploration": {
+    "initial_exploration_rate": 0.3,
+    "final_exploration_rate": 0.1,
+    "exploration_decay_steps": 10000,
+    "action_exploration_rate": 0.2
+  },
+  "state_parameters": {
+    "state_vector_size": 153,
+    "news_features_size": 128,
+    "strategy_params_size": 3,
+    "market_features_count": 22
+  }
+}

@@ -10,6 +10,8 @@ russian_ai_trader/
 │
 ├── config/ # Конфигурационные файлы
 │ ├── settings.json # Основные настройки
+│ ├── strategies.json
+│ ├── rl_config.json
 │ ├── broker.json # Настройки брокера
 │ ├── rss_sources.json # RSS источники новостей
 │ ├── tickers.json # Список тикеров

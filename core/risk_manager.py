@@ -39,6 +39,10 @@ class RiskManager:
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 loaded_config = json.load(f)
+                # Отладочный вывод
+                logger.debug(f"Загружен конфиг: {list(loaded_config.keys())}")
+                logger.debug(
+                    f"max_position_weight_percent: {loaded_config.get('max_position_weight_percent', 'NOT FOUND')}")
 
                 # Добавляем расширенные параметры с дефолтами для обратной совместимости
                 extended_defaults = {
