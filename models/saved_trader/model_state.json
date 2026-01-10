@@ -1923,7 +1923,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": 0.03752912611258109,
+  "market_sentiment": 0.04052508587333997,
   "sentiment_history": [
     0.0015873015873015873,
     0.0021327967806841048,
@@ -1942,13 +1942,76 @@
     0.0323429106706674,
     0.03337691228652749,
     0.03621206056404758,
-    0.03752912611258109
+    0.03752912611258109,
+    0.03933176905687854,
+    0.041571431657363524,
+    0.04235256009656545,
+    0.04299535286739671,
+    0.04052508587333997
   ],
-  "volatility_index": 0.7137051999362072,
+  "volatility_index": 0.7119548274829692,
   "memory_size": 0,
   "total_experiences": 0,
-  "strategy_performance": {},
-  "strategy_memory": [],
+  "strategy_performance": {
+    "balanced": {
+      "total_trades": 5,
+      "profitable_trades": 3,
+      "total_pnl": -4.500000000000028,
+      "avg_pnl": -0.9000000000000057,
+      "win_rate": 0.6
+    },
+    "news_aggressive": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_pnl": 0.0,
+      "win_rate": 0.5
+    },
+    "tech_conservative": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_pnl": 0.0,
+      "win_rate": 0.5
+    }
+  },
+  "strategy_memory": [
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 14.0,
+      "hold_time": 23489.606369018555,
+      "timestamp": "2026-01-09T23:38:44.756477"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": -18.0,
+      "hold_time": 29471.410754919052,
+      "timestamp": "2026-01-09T23:38:46.842241"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": -2.5999999999999943,
+      "hold_time": 371447.3314754963,
+      "timestamp": "2026-01-09T23:51:39.489856"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 0.5999999999999659,
+      "hold_time": 22889.545962810516,
+      "timestamp": "2026-01-10T00:07:12.754211"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 1.5,
+      "hold_time": 35129.70314645767,
+      "timestamp": "2026-01-10T00:12:30.351809"
+    }
+  ],
   "strategies": {
     "news_aggressive": {
       "description": "\u0410\u0433\u0440\u0435\u0441\u0441\u0438\u0432\u043d\u0430\u044f \u0442\u043e\u0440\u0433\u043e\u0432\u043b\u044f \u043d\u0430 \u043d\u043e\u0432\u043e\u0441\u0442\u044f\u0445",
@@ -1993,5 +2056,5 @@
       }
     }
   },
-  "save_time": "2026-01-09T23:22:14.188235"
+  "save_time": "2026-01-10T11:47:16.995212"
 }

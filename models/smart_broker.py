@@ -92,8 +92,30 @@ class SmartPortfolioBroker:
                     price=price,
                     stop_loss=stop_loss,
                     confidence=confidence,
-                    strategy_multiplier=self.model.strategies[strategy]['risk_multiplier']
+
                 )
+
+                # Применяем стратегический множитель к результату RiskManager
+
+                if quantity > 0:
+                    strategy_multiplier = self.model.strategies[strategy]['risk_multiplier']
+
+                    # Безопасное применение множителя
+                    if strategy_multiplier != 1.0:
+                        # Используем округление для точности
+                        adjusted_quantity = max(1, int(round(quantity * strategy_multiplier)))
+
+                        # Проверка ликвидности (предотвращение превышения ADV)
+                        security_info = securities.get(ticker, {})
+                        adv = security_info.get('volume', 0)
+                        if adv > 0:
+                            max_by_adv = int(adv * 0.05)  # Макс 5% от дневного объема
+                            adjusted_quantity = min(adjusted_quantity, max_by_adv)
+                            logger.debug(f"Лимит ликвидности {ticker}: {adjusted_quantity} акций")
+
+                        quantity = adjusted_quantity
+
+                    logger.info(f"Стратегия {strategy}: {quantity} акций (множитель: {strategy_multiplier:.2f}×)")
 
                 if quantity > 0 and self.portfolio.buy(ticker, quantity, price):
                     # 4. Запись RL-опыта (состояние -> действие)
@@ -184,7 +206,8 @@ class SmartPortfolioBroker:
                     reward=reward,
                     next_state=next_state,
                     done=True,
-                    strategy=exp['strategy']
+                    news_features=None,
+                    market_conditions={'strategy': exp['strategy']}  # ✅ передаем в market_conditions
                 )
 
                 exp['completed'] = True
@@ -247,6 +270,16 @@ class SmartPortfolioBroker:
     def _select_buy_strategy(self, ticker: str, price: float,
                              confidence: float, state: torch.Tensor) -> Tuple[str, float, float]:
         """Выбор стратегии для покупки"""
+
+        # ✅ ДОБАВИТЬ ПРОВЕРКУ РАЗМЕРНОСТИ СТАТЕ
+        if state.shape[0] > 150:
+            state = state[:150]
+            logger.debug(f"Обрезано состояние {ticker}: {state.shape[0]} → 150")
+        elif state.shape[0] < 150:
+            padding = torch.zeros(150 - state.shape[0]).to(state.device)
+            state = torch.cat([state, padding])
+            logger.debug(f"Дополнено состояние {ticker}: {state.shape[0]} → 150")
+
         # Контекст рынка
         market_context = {
             'market_sentiment': self.model.market_sentiment,
