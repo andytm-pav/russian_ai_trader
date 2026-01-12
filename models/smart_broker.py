@@ -52,6 +52,10 @@ class SmartPortfolioBroker:
         print(f"[SmartBroker] Модель sentiment: {self.model.market_sentiment:.3f}")
         print(f"[SmartBroker] Макс. позиций: {settings['max_positions']}")
 
+        # Проверка совместимости с моделью
+        print(f"[SmartBroker] Размерность состояния модели: {self.model.policy_net.state_dim}")
+        print(f"[SmartBroker] Доступные стратегии: {list(self.model.strategies.keys())}")
+
         self.ticker_states = {}  # {ticker: last_state}
         self.pending_experiences = []  # Опыты для обучения
         self.strategy_tracker = defaultdict(list)  # История стратегий по тикерам
@@ -61,7 +65,7 @@ class SmartPortfolioBroker:
         """Исполнение торговых решений с RL"""
         executed_count = 0
 
-        for signal in signals[:5]:
+        for signal in signals[:5]:  # Обрабатываем только топ-5 сигналов
             ticker = signal['ticker']
             action_str = signal['action']  # 'BUY', 'SELL'
             confidence = signal['confidence']
@@ -92,13 +96,16 @@ class SmartPortfolioBroker:
                     price=price,
                     stop_loss=stop_loss,
                     confidence=confidence,
-
                 )
 
                 # Применяем стратегический множитель к результату RiskManager
-
                 if quantity > 0:
-                    strategy_multiplier = self.model.strategies[strategy]['risk_multiplier']
+                    # Проверяем наличие стратегии в модели
+                    if hasattr(self.model, 'strategies') and strategy in self.model.strategies:
+                        strategy_multiplier = self.model.strategies[strategy].get('risk_multiplier', 1.0)
+                    else:
+                        strategy_multiplier = 1.0
+                        logger.warning(f"Стратегия {strategy} не найдена в модели")
 
                     # Безопасное применение множителя
                     if strategy_multiplier != 1.0:
@@ -148,12 +155,15 @@ class SmartPortfolioBroker:
                     if qty > 0 and self.portfolio.sell(ticker, qty, price):
                         # Обновляем стратегию
                         strategy = pos.get('strategy', 'balanced')
-                        self.model.record_strategy_outcome(
-                            strategy_name=strategy,
-                            action='SELL',
-                            pnl=(price - pos['avg_price']) * qty,
-                            hold_time=time.time() - pos.get('buy_time', time.time())
-                        )
+
+                        # Записываем результат стратегии
+                        if hasattr(self.model, 'record_strategy_outcome'):
+                            self.model.record_strategy_outcome(
+                                strategy_name=strategy,
+                                action='SELL',
+                                pnl=(price - pos['avg_price']) * qty,
+                                hold_time=time.time() - pos.get('buy_time', time.time())
+                            )
 
                         executed_count += 1
 
@@ -218,7 +228,7 @@ class SmartPortfolioBroker:
         base_reward = pnl / 100  # Нормализация
 
         # Штрафы/бонусы за время удержания
-        target_hold_time = self.model.strategies[strategy].get('target_hold_time', 6)
+        target_hold_time = self.model.strategies[strategy].get('target_hold_time_hours', 6)
         time_penalty = abs(hold_time - target_hold_time) * 0.1
 
         # Штраф за убыток
@@ -271,14 +281,20 @@ class SmartPortfolioBroker:
                              confidence: float, state: torch.Tensor) -> Tuple[str, float, float]:
         """Выбор стратегии для покупки"""
 
-        # ✅ ДОБАВИТЬ ПРОВЕРКУ РАЗМЕРНОСТИ СТАТЕ
-        if state.shape[0] > 150:
-            state = state[:150]
-            logger.debug(f"Обрезано состояние {ticker}: {state.shape[0]} → 150")
-        elif state.shape[0] < 150:
-            padding = torch.zeros(150 - state.shape[0]).to(state.device)
+        # Получаем размерность состояния из модели
+        if hasattr(self.model, 'policy_net') and hasattr(self.model.policy_net, 'state_dim'):
+            state_dimension = self.model.policy_net.state_dim
+        else:
+            state_dimension = 150  # Значение по умолчанию из модели
+
+        # Проверка размерности состояния
+        if state.shape[0] > state_dimension:
+            state = state[:state_dimension]
+            logger.debug(f"Обрезано состояние {ticker}: {state.shape[0]} → {state_dimension}")
+        elif state.shape[0] < state_dimension:
+            padding = torch.zeros(state_dimension - state.shape[0]).to(state.device)
             state = torch.cat([state, padding])
-            logger.debug(f"Дополнено состояние {ticker}: {state.shape[0]} → 150")
+            logger.debug(f"Дополнено состояние {ticker}: {state.shape[0]} → {state_dimension}")
 
         # Контекст рынка
         market_context = {
@@ -296,22 +312,28 @@ class SmartPortfolioBroker:
             market_context=market_context
         )
 
-        # Параметры стратегии
-        strategy_params = self.model.strategies[strategy]
-
         # Расчет стоп-лосса и тейк-профита по стратегии
-        if strategy == 'news_aggressive':
-            stop_loss = price * (1 - 2.0 / 100)  # 2% стоп
-            take_profit = price * (1 + 4.0 / 100)  # 4% тейк
-        elif strategy == 'tech_conservative':
-            stop_loss = price * (1 - 1.5 / 100)  # 1.5% стоп
-            take_profit = price * (1 + 3.0 / 100)  # 3% тейк
-        elif strategy == 'momentum':
-            stop_loss = price * (1 - 1.0 / 100)  # 1% стоп
-            take_profit = price * (1 + 2.0 / 100)  # 2% тейк
-        else:  # balanced
-            stop_loss = price * (1 - 2.5 / 100)  # 2.5% стоп
-            take_profit = price * (1 + 5.0 / 100)  # 5% тейк
+        # Используем константы для избежания магических чисел
+        STRATEGY_STOPS = {
+            'news_aggressive': {'stop': 2.0, 'profit': 4.0},
+            'tech_conservative': {'stop': 1.5, 'profit': 3.0},
+            'momentum': {'stop': 1.0, 'profit': 2.0},
+            'balanced': {'stop': 2.5, 'profit': 5.0}
+        }
+
+        # Проверяем, есть ли параметры стратегии в модели
+        if hasattr(self.model, 'strategies') and strategy in self.model.strategies:
+            strategy_config = self.model.strategies[strategy]
+            stop_loss = price * (1 - strategy_config.get('stop_loss_percent', 2.5) / 100)
+            take_profit = price * (1 + strategy_config.get('take_profit_percent', 5.0) / 100)
+        elif strategy in STRATEGY_STOPS:
+            # Используем захардкоженные значения если нет в модели
+            stop_loss = price * (1 - STRATEGY_STOPS[strategy]['stop'] / 100)
+            take_profit = price * (1 + STRATEGY_STOPS[strategy]['profit'] / 100)
+        else:
+            # Стратегия по умолчанию (balanced)
+            stop_loss = price * (1 - 2.5 / 100)
+            take_profit = price * (1 + 5.0 / 100)
 
         return strategy, stop_loss, take_profit
 
@@ -319,7 +341,7 @@ class SmartPortfolioBroker:
         """Периодическое обучение с RL"""
         try:
             # 1. Обучение на опыте
-            if len(self.model.memory) > 100:
+            if len(self.model.memory) > 100:  # Используем константу из модели
                 loss = self.model.learn_from_experience(batch_size=32)
 
                 if loss is not None:
@@ -839,35 +861,75 @@ class SmartPortfolioBroker:
         except Exception as e:
             logger.error(f"Ошибка анализа сентимента: {e}")
 
-    def update_settings(self, new_settings: Dict):
-        """Обновление настроек брокера"""
+    def _create_next_state(self, ticker: str, exit_price: float) -> torch.Tensor:
+        """Создание следующего состояния для RL после закрытия позиции"""
         try:
-            # Обновляем основные настройки
-            self.settings.update(new_settings)
+            # Получаем текущую цену
+            current_price = self.moex.get_price(ticker)
+            if not current_price:
+                current_price = exit_price
 
-            # Специфичные обновления компонентов
-            if 'initial_capital_rub' in new_settings:
-                self.portfolio.initial_capital = new_settings['initial_capital_rub']
+            # Получаем информацию о бумаге
+            securities = self.moex.get_all_securities()
+            security_info = securities.get(ticker, {})
 
-            if 'max_positions' in new_settings:
-                self.portfolio.max_positions = new_settings['max_positions']
+            # Получаем сентимент
+            sentiment = 0.0
+            if hasattr(self.news_core, 'get_current_sentiment'):
+                sentiment = self.news_core.get_current_sentiment(ticker)
 
-            # Обновление Risk Manager
-            if 'risk_per_trade_percent' in new_settings:
-                if hasattr(self.risk_manager, 'config'):
-                    self.risk_manager.config['risk_per_trade_percent'] = new_settings['risk_per_trade_percent']
+            # Получаем технические индикаторы
+            indicators = self.technical_core.calculate_indicators(ticker)
 
-            # Обновление параметров стоп-лоссов
-            stop_loss_updates = ['stop_loss_percent', 'take_profit_percent', 'max_position_weight_percent']
-            for param in stop_loss_updates:
-                if param in new_settings:
-                    if hasattr(self.risk_manager, 'config') and param in self.risk_manager.config:
-                        self.risk_manager.config[param] = new_settings[param]
+            # Получаем новости
+            news_items = []
+            try:
+                news_items = self.rss_fetcher.get_news_for_ticker(ticker, limit=3)
+            except:
+                pass
 
-            logger.info(f"Настройки брокера обновлены: {new_settings}")
+            news_texts = [n.get('title', '') + ' ' + n.get('summary', '') for n in news_items]
+            news_features = self.model.encode_news(news_texts)
+
+            # Используем существующий метод модели для создания состояния
+            state = self.model.build_state_vector(
+                ticker=ticker,
+                price=current_price,
+                momentum=security_info.get('momentum', 0.0),
+                sentiment=sentiment,
+                news_features=news_features,
+                market_data={
+                    'volume': indicators.get('volume_ratio', 1.0) if indicators else 1.0,
+                    'spread': 0.01,
+                    'rsi': indicators.get('rsi', 50) if indicators else 50,
+                    'volatility': indicators.get('atr', 0) / current_price if indicators and current_price > 0 else 0.1,
+                    'sma_10_ratio': indicators.get('sma_10',
+                                                   current_price) / current_price if indicators and current_price > 0 else 1.0,
+                    'sma_20_ratio': indicators.get('sma_20',
+                                                   current_price) / current_price if indicators and current_price > 0 else 1.0,
+                    'bb_position': (
+                        (current_price - indicators.get('bb_lower', current_price * 0.9)) /
+                        (indicators.get('bb_upper', current_price * 1.1) - indicators.get('bb_lower',
+                                                                                          current_price * 0.9))
+                        if indicators and indicators.get('bb_upper', current_price * 1.1) > indicators.get('bb_lower',
+                                                                                                           current_price * 0.9)
+                        else 0.5
+                    ) if indicators else 0.5
+                }
+            )
+
+            return state
 
         except Exception as e:
-            logger.error(f"Ошибка обновления настроек брокера: {e}")
+            logger.error(f"Ошибка создания следующего состояния для {ticker}: {e}")
+            # Возвращаем состояние по умолчанию
+            if hasattr(self.model, 'policy_net') and hasattr(self.model.policy_net, 'state_dim'):
+                state_dim = self.model.policy_net.state_dim
+            else:
+                state_dim = 150  # Значение по умолчанию из модели
+
+            return torch.zeros(state_dim, dtype=torch.float32)
+
 
     def get_portfolio_summary(self) -> Dict:
         """Получение сводки портфеля"""
@@ -909,9 +971,43 @@ class SmartPortfolioBroker:
         return summary
 
     def update_settings(self, new_settings: Dict):
-        """Обновление настроек"""
-        self.settings.update(new_settings)
-        logger.info(f"Настройки обновлены: {new_settings}")
+        """Обновление настроек системы"""
+        try:
+            # Обновляем основные настройки
+            self.settings.update(new_settings)
+
+            # Специфичные обновления компонентов
+            updates_to_apply = []
+
+            if 'initial_capital_rub' in new_settings:
+                self.portfolio.initial_capital = new_settings['initial_capital_rub']
+                updates_to_apply.append(f"initial_capital_rub={new_settings['initial_capital_rub']}")
+
+            if 'max_positions' in new_settings:
+                self.portfolio.max_positions = new_settings['max_positions']
+                updates_to_apply.append(f"max_positions={new_settings['max_positions']}")
+
+            # Обновление Risk Manager
+            if 'risk_per_trade_percent' in new_settings:
+                if hasattr(self.risk_manager, 'config'):
+                    self.risk_manager.config['risk_per_trade_percent'] = new_settings['risk_per_trade_percent']
+                    updates_to_apply.append(f"risk_per_trade_percent={new_settings['risk_per_trade_percent']}%")
+
+            # Обновление параметров стоп-лоссов
+            stop_loss_params = ['stop_loss_percent', 'take_profit_percent', 'max_position_weight_percent']
+            for param in stop_loss_params:
+                if param in new_settings:
+                    if hasattr(self.risk_manager, 'config') and param in self.risk_manager.config:
+                        self.risk_manager.config[param] = new_settings[param]
+                        updates_to_apply.append(f"{param}={new_settings[param]}")
+
+            if updates_to_apply:
+                logger.info(f"Настройки обновлены: {', '.join(updates_to_apply)}")
+            else:
+                logger.info(f"Настройки обновлены: {new_settings}")
+
+        except Exception as e:
+            logger.error(f"Ошибка обновления настроек брокера: {e}")
 
     def shutdown(self):
         """Корректное завершение работы"""

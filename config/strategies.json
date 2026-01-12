@@ -47,7 +47,7 @@
         "momentum_threshold": 0.5
       }
     },
-    "momentum_scalping": {
+    "momentum": {
       "description": "Моментум скальпинг",
       "news_weight": 0.3,
       "tech_weight": 0.7,
