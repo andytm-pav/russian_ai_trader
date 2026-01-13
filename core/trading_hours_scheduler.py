@@ -55,10 +55,25 @@ class TradingScheduler:
         if self.today_cache == date_str and self.is_trading_day_cache is not None:
             return self.is_trading_day_cache
 
+        date_str_short = check_date.strftime('%Y-%m-%d')
         day_of_week = check_date.strftime('%A').lower()
 
-        # Проверка регулярных дней
-        if day_of_week not in self.config['trading_calendar']['regular_days']:
+        # Проверка регулярных дней и выходных сессий (ДСВД)
+        is_regular_weekday = day_of_week in self.config['trading_calendar']['regular_days']
+        is_weekend = day_of_week in ['saturday', 'sunday']
+
+        if not is_regular_weekday:
+            # Для субботы и воскресенья проверяем, не входят ли они в список исключений для ДСВД
+            if is_weekend:
+                excluded_dates = self.config.get('weekend_sessions', {}).get('excluded_dates_2026', [])
+                if date_str_short in excluded_dates:
+                    self._update_cache(date_str, False)
+                    return False
+                else:
+                    # Это выходной, но на него назначена ДСВД
+                    self._update_cache(date_str, True)
+                    return True
+            # Если это не будний день и не выходной с ДСВД (например, праздник в середине недели)
             self._update_cache(date_str, False)
             return False
 
@@ -127,6 +142,15 @@ class TradingScheduler:
 
             if start_time <= current_time <= end_time:
                 return True
+
+        # Сессия в выходной день (ДСВД)
+        weekend_session = sessions.get('weekend_session', {})
+        if weekend_session.get('enabled', False):
+            start_time = self._parse_time(weekend_session.get('start', '09:50'))
+            end_time = self._parse_time(weekend_session.get('end', '19:00'))
+
+            if start_time <= current_time <= end_time:
+               return True
 
         # Проверка обеденного перерыва
         market_breaks = self.config.get('market_breaks', {})

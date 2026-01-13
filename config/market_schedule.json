@@ -24,6 +24,11 @@
       "start": "00:00",
       "end": "06:50",
       "enabled": false
+    },
+     "weekend_session": {
+      "start": "09:50",
+      "end": "19:00",
+      "enabled": true
     }
   },
   "holidays_2026": [
