@@ -55,6 +55,7 @@ class TradingScheduler:
         if self.today_cache == date_str and self.is_trading_day_cache is not None:
             return self.is_trading_day_cache
 
+
         date_str_short = check_date.strftime('%Y-%m-%d')
         day_of_week = check_date.strftime('%A').lower()
 
@@ -76,25 +77,6 @@ class TradingScheduler:
             # Если это не будний день и не выходной с ДСВД (например, праздник в середине недели)
             self._update_cache(date_str, False)
             return False
-
-        # Проверка праздников
-        date_str_short = check_date.strftime('%Y-%m-%d')
-        if date_str_short in self.config.get('holidays_2026', []):
-            self._update_cache(date_str, False)
-            return False
-
-        # Проверка специальных торговых дней
-        if date_str_short in self.config.get('special_trading_days', []):
-            self._update_cache(date_str, True)
-            return True
-
-        # Проверка предпраздничных дней
-        if date_str_short in self.config.get('trading_calendar', {}).get('pre_holiday_early_close', []):
-            self._update_cache(date_str, True)
-            return True
-
-        self._update_cache(date_str, True)
-        return True
 
     def _update_cache(self, date_str: str, is_trading: bool):
         """Обновление кэша"""
@@ -142,7 +124,6 @@ class TradingScheduler:
 
             if start_time <= current_time <= end_time:
                 return True
-
         # Сессия в выходной день (ДСВД)
         weekend_session = sessions.get('weekend_session', {})
         if weekend_session.get('enabled', False):
@@ -151,6 +132,19 @@ class TradingScheduler:
 
             if start_time <= current_time <= end_time:
                return True
+
+        # Сессия в выходной день (ДСВД)
+        weekend_session = sessions.get('weekend_day_session', {})
+        if weekend_session.get('enabled', False):
+            # Получаем день недели из текущей даты
+            day_of_week = check_datetime.strftime('%A').lower()
+
+            if day_of_week in ['saturday', 'sunday']:
+                start_time = self._parse_time(weekend_session.get('start', '09:50'))
+                end_time = self._parse_time(weekend_session.get('end', '19:00'))
+
+                if start_time <= current_time <= end_time:
+                    return True
 
         # Проверка обеденного перерыва
         market_breaks = self.config.get('market_breaks', {})
@@ -181,25 +175,31 @@ class TradingScheduler:
             check_date = now + timedelta(days=days_ahead)
 
             if self.is_trading_day(check_date):
-                # Получаем время начала первой сессии дня
+                # Получаем время начала сессии в зависимости от дня недели
+                day_of_week = check_date.strftime('%A').lower()
                 sessions = self.config.get('sessions', {})
 
-                # Главная сессия
-                main_session = sessions.get('main_session', {})
-                if main_session.get('enabled', True):
+                # Для выходных дней используем ДСВД
+                if day_of_week in ['saturday', 'sunday']:
+                    weekend_session = sessions.get('weekend_day_session', {})
+                    if weekend_session.get('enabled', True):
+                        start_time = self._parse_time(weekend_session.get('start', '09:50'))
+                else:
+                    # Для будних дней используем основную сессию
+                    main_session = sessions.get('main_session', {})
                     start_time = self._parse_time(main_session.get('start', '06:50'))
 
-                    session_start = datetime.combine(
-                        check_date.date(),
-                        start_time,
-                        self.moscow_tz
-                    )
+                session_start = datetime.combine(
+                    check_date.date(),
+                    start_time,
+                    self.moscow_tz
+                )
 
-                    # Если это сегодня и время уже прошло, ищем завтра
-                    if days_ahead == 0 and session_start <= now:
-                        continue
+                # Если это сегодня и время уже прошло, ищем завтра
+                if days_ahead == 0 and session_start <= now:
+                    continue
 
-                    return session_start
+                return session_start
 
         return None
 

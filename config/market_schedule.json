@@ -25,6 +25,17 @@
       "end": "06:50",
       "enabled": false
     },
+    "weekend_day_session": {
+      "enabled": true,
+      "start": "09:50",
+      "end": "19:00",
+      "auction_start": "09:50",
+      "auction_end": "10:00",
+      "continuous_start": "10:00",
+      "continuous_end": "18:45",
+      "closing_auction_start": "18:45",
+      "closing_auction_end": "18:50"
+    },
      "weekend_session": {
       "start": "09:50",
       "end": "19:00",
