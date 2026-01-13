@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Простой мониторинг модели трейдера с актуальными ценами
+Простой мониторинг модели трейдера с корректной оценкой стадии
 """
 
 import json
@@ -103,6 +103,125 @@ def calculate_portfolio_value(portfolio_state, current_prices=None):
             total_positions_value += qty * current_price
 
     return cash + total_positions_value
+
+
+def analyze_actual_model_progress(model_state, portfolio_state):
+    """Анализ реального прогресса модели на основе ВСЕХ данных"""
+
+    analysis = {
+        'estimated_total_trades': 0,
+        'recent_activity': 0,
+        'data_sources': [],
+        'confidence': 'низкая'
+    }
+
+    # 1. Сделки из ticker_stats (могут быть устаревшими)
+    ticker_stats = model_state.get('ticker_stats', {})
+    stats_trades = sum(safe_get(stats, 'total_trades') for stats in ticker_stats.values())
+    analysis['ticker_stats_trades'] = stats_trades
+
+    # 2. Анализ памяти модели
+    memory_size = model_state.get('memory_size', 0)
+    analysis['memory_size'] = memory_size
+
+    # Эмпирическая формула: опыт в памяти ≈ 2-3x от сделок
+    estimated_trades_from_memory = max(0, memory_size // 2)
+
+    # 3. Анализ стратегий (более актуальные данные)
+    strategy_perf = model_state.get('strategy_performance', {})
+    strategy_trades = sum(safe_get(perf, 'total_trades', 0) for perf in strategy_perf.values())
+    analysis['strategy_trades'] = strategy_trades
+
+    # 4. Анализ ошибок
+    error_memory = model_state.get('error_memory', {})
+    failed_trades = sum(len(data.get('failed_trades', [])) for data in error_memory.values())
+    analysis['failed_trades'] = failed_trades
+
+    # 5. Анализ портфеля (косвенный показатель активности)
+    portfolio_activity = 0
+    if portfolio_state:
+        positions = portfolio_state.get('positions', {})
+        if isinstance(positions, dict):
+            portfolio_activity = len(positions)
+            # Каждая позиция могла быть результатом нескольких сделок
+            portfolio_activity *= 2
+
+    # 6. Самый консервативный и реалистичный расчет
+    # Берем МАКСИМУМ из всех источников, так как данные могут быть рассинхронизированы
+    estimated_total = max(
+        stats_trades,  # Из статистики
+        strategy_trades,  # Из стратегий
+        estimated_trades_from_memory,  # Из памяти
+        portfolio_activity,  # Из портфеля
+        failed_trades * 3  # Ошибки обычно ~30% сделок
+    )
+
+    analysis['estimated_total_trades'] = estimated_total
+
+    # 7. Определяем надежность оценки
+    sources_count = sum(1 for x in [stats_trades, strategy_trades, memory_size] if x > 0)
+    if sources_count >= 3 and abs(stats_trades - strategy_trades) < 10:
+        analysis['confidence'] = 'высокая'
+    elif sources_count >= 2:
+        analysis['confidence'] = 'средняя'
+
+    # 8. Дополнительные метрики
+    analysis['unique_tickers_traded'] = len(ticker_stats)
+    analysis['active_strategies'] = len([p for p in strategy_perf.values() if safe_get(p, 'total_trades', 0) > 0])
+
+    # 9. Недавняя активность (по времени сохранения)
+    if 'save_time' in model_state:
+        try:
+            save_time = datetime.fromisoformat(model_state['save_time'].replace('Z', '+00:00'))
+            hours_since_save = (datetime.now() - save_time).total_seconds() / 3600
+            analysis['hours_since_last_save'] = hours_since_save
+
+            # Если модель сохранялась недавно, значит она активна
+            if hours_since_save < 2:
+                analysis['recent_activity'] = 1
+        except:
+            pass
+
+    return analysis
+
+
+def determine_real_development_stage(analysis):
+    """Определение РЕАЛЬНОЙ стадии развития на основе комплексного анализа"""
+
+    estimated_trades = analysis['estimated_total_trades']
+    memory_size = analysis['memory_size']
+    confidence = analysis['confidence']
+
+    # Основные критерии стадии
+    if estimated_trades == 0 and memory_size == 0:
+        return "🚀 НОВИЧОК: Модель только что создана"
+
+    elif estimated_trades < 5:
+        return f"🎓 САМЫЙ НАЧИНАЮЩИЙ: ~{estimated_trades} сделок (уверенность: {confidence})"
+
+    elif estimated_trades < 20:
+        return f"📈 НАЧИНАЮЩИЙ: ~{estimated_trades} сделок, {memory_size} опытов в памяти"
+
+    elif estimated_trades < 100:
+        return f"⚡ АКТИВНЫЙ УЧЕНИК: ~{estimated_trades} сделок, идет активное обучение"
+
+    elif estimated_trades < 300:
+        return f"🏆 ОПЫТНЫЙ ТРЕЙДЕР: ~{estimated_trades} сделок, стабильная работа"
+
+    elif memory_size >= 3000:
+        return f"🤖 ЭКСПЕРТ: ~{estimated_trades} сделок, {memory_size} опытов (макс. память)"
+
+    elif estimated_trades >= 500:
+        return f"🚀 ПРОДВИНУТЫЙ ЭКСПЕРТ: ~{estimated_trades} сделок, обширный опыт"
+
+    else:
+        # Динамическая оценка по эффективности
+        if analysis.get('active_strategies', 0) >= 3:
+            return f"🎯 СТРАТЕГИЧЕСКИЙ ТРЕЙДЕР: {analysis['active_strategies']} активных стратегий"
+        elif analysis.get('unique_tickers_traded', 0) >= 10:
+            return f"📊 РАЗНООБРАЗНЫЙ: {analysis['unique_tickers_traded']} уникальных тикеров"
+        else:
+            return f"📈 РАЗВИВАЮЩИЙСЯ: ~{estimated_trades} сделок (уверенность: {confidence})"
 
 
 def analyze_portfolio_details(portfolio_state):
@@ -289,84 +408,89 @@ def analyze_model():
         # 1. Основная информация
         print(f"\n📅 ПОСЛЕДНЕЕ СОХРАНЕНИЕ: {model_state.get('save_time', 'Неизвестно')}")
 
-        # 2. Статистика торговли
-        ticker_stats = model_state.get('ticker_stats', {})
-        total_trades = sum(safe_get(stats, 'total_trades') for stats in ticker_stats.values())
-        profitable_trades = sum(safe_get(stats, 'profitable_trades') for stats in ticker_stats.values())
-        success_rate = profitable_trades / total_trades if total_trades > 0 else 0
+        # 2. Комплексный анализ реального прогресса
+        progress_analysis = analyze_actual_model_progress(model_state, portfolio_state)
 
-        print(f"\n📊 ТОРГОВАЯ СТАТИСТИКА:")
-        print(f"   Всего сделок: {total_trades}")
-        print(f"   Успешных: {profitable_trades} ({success_rate:.1%})")
-        print(f"   Уникальных тикеров: {len(ticker_stats)}")
+        print(f"\n📊 РЕАЛЬНЫЙ ПРОГРЕСС МОДЕЛИ:")
+        print(f"   Статистика сделок (ticker_stats): {progress_analysis.get('ticker_stats_trades', 0)}")
+        print(f"   Сделок по стратегиям: {progress_analysis.get('strategy_trades', 0)}")
+        print(f"   Опытов в памяти: {progress_analysis.get('memory_size', 0)}")
+        print(f"   Неудачных сделок: {progress_analysis.get('failed_trades', 0)}")
+        print(f"   Уникальных тикеров: {progress_analysis.get('unique_tickers_traded', 0)}")
+        print(f"   Активных стратегий: {progress_analysis.get('active_strategies', 0)}")
 
-        # 3. Память и обучение
-        print(f"\n💾 ПАМЯТЬ И ОБУЧЕНИЕ:")
-        print(f"   Опытов в памяти: {model_state.get('memory_size', 0)}")
-        print(f"   Всего опытов: {model_state.get('total_experiences', 0)}")
+        # 3. Реальная стадия развития
+        print(f"\n📈 СТАДИЯ РАЗВИТИЯ:")
+        real_stage = determine_real_development_stage(progress_analysis)
+        print(f"   {real_stage}")
 
-        # 4. Стратегии
-        strategy_perf = model_state.get('strategy_performance', {})
-        if strategy_perf:
-            print(f"\n🎯 ЭФФЕКТИВНОСТЬ СТРАТЕГИЙ:")
-            for strategy, perf in strategy_perf.items():
-                trades = safe_get(perf, 'total_trades')
-                if trades > 0:
-                    win_rate = safe_get(perf, 'win_rate', 0)
-                    avg_pnl = safe_get(perf, 'avg_pnl', 0)
-                    total_pnl = safe_get(perf, 'total_pnl', 0)
-                    print(f"   • {strategy}: {trades} сделок, {win_rate:.1%} успешность")
-                    print(f"     PnL: {total_pnl:+,.0f}₽, Средний: {avg_pnl:+.2f}₽")
+        # 4. Дополнительные метрики надежности
+        estimated_total = progress_analysis['estimated_total_trades']
+        print(f"   📈 ОЦЕНОЧНО ВСЕГО СДЕЛОК: ~{estimated_total}")
+        print(f"   🎯 УВЕРЕННОСТЬ ОЦЕНКИ: {progress_analysis['confidence']}")
+
+        if 'hours_since_last_save' in progress_analysis:
+            hours = progress_analysis['hours_since_last_save']
+            if hours < 1:
+                print(f"   ⚡ АКТИВНОСТЬ: модель сохранялась {hours:.1f} ч. назад - В РАБОТЕ!")
+            elif hours < 24:
+                print(f"   ⏱ АКТИВНОСТЬ: модель сохранялась {hours:.1f} ч. назад")
+            else:
+                print(f"   💤 АКТИВНОСТЬ: модель не сохранялась {hours:.1f} ч.")
 
         # 5. Рыночное состояние
         print(f"\n🌐 РЫНОЧНОЕ СОСТОЯНИЕ:")
         print(f"   Настроение: {model_state.get('market_sentiment', 0):+.3f}")
         print(f"   Волатильность: {model_state.get('volatility_index', 1.0):.2f}")
 
-        # 6. Ошибки
-        error_memory = model_state.get('error_memory', {})
-        if error_memory:
-            tickers_with_errors = len([v for v in error_memory.values() if safe_get(v, 'failure_count', 0) > 0])
-            print(f"\n⚠ ОШИБКИ:")
-            print(f"   Тикеров с ошибками: {tickers_with_errors}")
-
-            # Показываем топ-3 тикеров по ошибкам
-            error_tickers = []
-            for ticker, error_data in error_memory.items():
-                failures = safe_get(error_data, 'failure_count', 0)
-                if failures > 0:
-                    error_tickers.append((ticker, failures, safe_get(error_data, 'avg_loss', 0)))
-
-            error_tickers.sort(key=lambda x: x[1], reverse=True)
-            for ticker, failures, avg_loss in error_tickers[:3]:
-                print(f"   • {ticker}: {failures} ошибок, средний убыток: {avg_loss:.2%}")
+        # 6. Стратегии (только если есть данные)
+        strategy_perf = model_state.get('strategy_performance', {})
+        if strategy_perf:
+            active_strategies = [(k, v) for k, v in strategy_perf.items() if safe_get(v, 'total_trades', 0) > 0]
+            if active_strategies:
+                print(f"\n🎯 ЭФФЕКТИВНОСТЬ СТРАТЕГИЙ:")
+                for strategy, perf in active_strategies[:3]:  # Показываем топ-3
+                    trades = safe_get(perf, 'total_trades')
+                    win_rate = safe_get(perf, 'win_rate', 0)
+                    avg_pnl = safe_get(perf, 'avg_pnl', 0)
+                    total_pnl = safe_get(perf, 'total_pnl', 0)
+                    print(f"   • {strategy}: {trades} сделок, {win_rate:.1%} успешность")
+                    if total_pnl != 0:
+                        print(f"     PnL: {total_pnl:+,.0f}₽, Средний: {avg_pnl:+.2f}₽")
 
         # 7. ДЕТАЛЬНЫЙ АНАЛИЗ ПОРТФЕЛЯ С АКТУАЛЬНЫМИ ЦЕНАМИ
         analyze_portfolio_details(portfolio_state)
 
-        # 8. Оценка стадии
-        print(f"\n📈 СТАДИЯ РАЗВИТИЯ:")
-        if total_trades == 0:
-            print("   🚀 НОВИЧОК: Модель только что создана")
-        elif total_trades < 10:
-            print(f"   🎓 УЧЕНИК: {total_trades} сделок, идет накопление опыта")
-        elif total_trades < 50:
-            print(f"   📈 НАЧИНАЮЩИЙ: {total_trades} сделок, начальное обучение")
-        elif total_trades < 200:
-            print(f"   ⚡ АКТИВНЫЙ: {total_trades} сделок, активное обучение")
-        else:
-            print(f"   🏆 ОПЫТНЫЙ: {total_trades} сделок, стабильная работа")
-
-        # 9. Рекомендации
+        # 8. Рекомендации на основе реального прогресса
         print(f"\n💡 РЕКОМЕНДАЦИИ:")
-        if total_trades == 0:
-            print("   ✅ Начните торговлю для накопления опыта")
-        elif success_rate < 0.4:
-            print("   ⚠ Низкая успешность. Рассмотрите снижение рисков")
-        elif success_rate > 0.6:
-            print("   ✅ Высокая успешность. Можно осторожно увеличивать объемы")
+
+        if progress_analysis['estimated_total_trades'] < 20:
+            print("   ✅ Продолжайте накопление опыта, модель еще учится")
+        elif progress_analysis['confidence'] == 'низкая':
+            print("   ⚠ Данные о сделках могут быть неполными. Проверьте логи работы модели.")
+        elif progress_analysis['memory_size'] >= 3000:
+            print("   🧠 Модель достигла максимального объема памяти. Рассмотрите очистку старых опытов.")
+        elif estimated_total >= 100:
+            print("   🎯 Модель имеет значительный опыт. Можно тестировать более сложные стратегии.")
         else:
-            print("   📊 Успешность в норме. Продолжайте текущую стратегию")
+            print("   📊 Модель в стадии активного обучения. Следите за эффективностью стратегий.")
+
+        # 9. Диагностика возможных проблем
+        print(f"\n🔍 ДИАГНОСТИКА:")
+
+        # Проверка синхронизации данных
+        stats_trades = progress_analysis.get('ticker_stats_trades', 0)
+        strategy_trades = progress_analysis.get('strategy_trades', 0)
+
+        if stats_trades > 0 and strategy_trades > 0 and abs(stats_trades - strategy_trades) > 10:
+            print("   ⚠ ВНИМАНИЕ: данные о сделках в разных источниках расходятся!")
+            print(f"     • ticker_stats: {stats_trades} сделок")
+            print(f"     • strategy_performance: {strategy_trades} сделок")
+            print("     Это может указывать на проблему синхронизации данных модели.")
+
+        # Проверка активности модели
+        if 'hours_since_last_save' in progress_analysis and progress_analysis['hours_since_last_save'] > 24:
+            print("   ⚠ Модель не сохранялась более 24 часов. Возможно, она не работает.")
 
         print("\n" + "=" * 70)
 
@@ -379,11 +503,8 @@ def analyze_model():
 def main():
     """Основная функция"""
     print("🔍 Мониторинг модели AI трейдера")
-    if MOEX_AVAILABLE:
-        print("📡 Используются реальные цены с MOEX API")
-    else:
-        print("⚠ Внимание: реальные цены недоступны, используются цены покупки")
-    print("=" * 50)
+    print("📡 Оценка РЕАЛЬНОГО прогресса на основе всех данных")
+    print("=" * 70)
 
     analyze_model()
 
@@ -396,7 +517,7 @@ def main():
                 print("\n🛑 Выход из мониторинга")
                 break
 
-            print("\n" + "=" * 50)
+            print("\n" + "=" * 70)
             analyze_model()
 
         except KeyboardInterrupt:

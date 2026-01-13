@@ -1,18 +1,10 @@
 {
-  "total_value": 9940.980000000003,
-  "cash": 3780.5960000000023,
   "positions": {
     "LNZLP": {
       "qty": 1,
       "avg_price": 745.0,
       "buy_time": 1767605750.364675,
       "total_cost": 745.0
-    },
-    "KRSB": {
-      "qty": 24,
-      "avg_price": 22.96,
-      "buy_time": 1767605938.178119,
-      "total_cost": 551.04
     },
     "KCHE": {
       "qty": 1304,
@@ -188,6 +180,51 @@
       ]
     }
   },
-  "last_update": "2026-01-13T01:04:33.326138",
-  "initial_capital": 10000
+  "cash": 4313.3960000000025,
+  "initial_capital": 10000,
+  "trade_history": [
+    {
+      "timestamp": "2026-01-14T00:30:55.057620",
+      "action": "SELL",
+      "ticker": "KRSB",
+      "quantity": 24,
+      "price": 22.2,
+      "revenue": 532.8,
+      "pnl": -18.24000000000001,
+      "pnl_percent": -3.310104529616727,
+      "cash_after": 4313.3960000000025,
+      "position_after": {},
+      "strategy": null
+    }
+  ],
+  "strategy_positions": {
+    "balanced": [
+      "DOMRF"
+    ]
+  },
+  "total_value": 9922.740000000002,
+  "last_update": "2026-01-14T00:30:55.057636",
+  "stats": {
+    "cash": 4313.3960000000025,
+    "positions_count": 4,
+    "total_trades": 1,
+    "initial_capital": 10000,
+    "current_capital": 9922.740000000002,
+    "last_update": "2026-01-14T00:30:55.057646",
+    "strategies_count": 1,
+    "total_pnl": -18.24000000000001,
+    "total_pnl_percent": -0.1824000000000001,
+    "pnl_by_strategy": {
+      "null": -18.24000000000001
+    },
+    "largest_position": {
+      "ticker": "DOMRF",
+      "value": 3796.8,
+      "strategy": "balanced"
+    },
+    "strategy_distribution": {
+      "unknown": 3,
+      "balanced": 1
+    }
+  }
 }
