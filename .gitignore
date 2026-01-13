@@ -8,3 +8,8 @@ __pycache__/
 *.log
 *.sqlite3
 .DS_Store
+
+#  .gitignore в PyCharm и добавьте строки:
+data/daily_report_*.json
+logs/*.log.*
+logs/tech_core.log
