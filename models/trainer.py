@@ -22,14 +22,16 @@ class ModelTrainer:
 
     def __init__(self,
                  model=None,
-                 training_interval: int = 300,  # секунд между обучениями
-                 batch_size: int = 32,
-                 save_interval: int = 10):  # сохранять каждые N обучений
+                 training_interval: int = 600,  # Увеличен с 300 до 600 секунд (10 минут)
+                 batch_size: int = 64,  # Увеличен с 32 до 64
+                 save_interval: int = 10,
+                 enable_priority_training: bool = False):  # НОВЫЙ ПАРАМЕТР
 
         self.model = model or trader_model_instance
         self.training_interval = training_interval
         self.batch_size = batch_size
         self.save_interval = save_interval
+        self.enable_priority_training = enable_priority_training  # НОВЫЙ ПАРАМЕТР
 
         self.training_enabled = True
         self.training_thread = None
@@ -40,7 +42,18 @@ class ModelTrainer:
             'loss_history': []
         }
 
-        logger.info(f"Инициализирован ModelTrainer (интервал: {training_interval}с)")
+        # НОВОЕ: Инициализация приоритетной памяти (только если включен режим)
+        if self.enable_priority_training:
+            from collections import deque
+            self.priority_memory = deque(maxlen=1000)  # Для критических сделок
+            logger.info(f"Приоритетное обучение ВКЛЮЧЕНО (лимит: {self.priority_memory.maxlen} записей)")
+        else:
+            self.priority_memory = None
+
+        logger.info(f"Инициализирован ModelTrainer "
+                    f"(интервал: {training_interval}с, "
+                    f"batch_size: {batch_size}, "
+                    f"приоритетное обучение: {'вкл' if enable_priority_training else 'выкл'})")
 
     def start_background_training(self):
         """Запуск фонового обучения"""
@@ -312,6 +325,71 @@ class ModelTrainer:
         })
 
         logger.info(f"Статистика стратегий:\n{strategy_stats}")
+
+    def _train_with_priority(self):
+        """Обучение с учетом приоритетных данных - НОВЫЙ МЕТОД"""
+        try:
+            import random
+
+            # Берем 50% из приоритетной памяти
+            priority_size = min(self.batch_size // 2, len(self.priority_memory))
+            standard_size = self.batch_size - priority_size
+
+            # Выборка
+            priority_sample = random.sample(list(self.priority_memory), priority_size)
+
+            # Выборка из обычной памяти
+            if len(self.model.memory) >= standard_size:
+                standard_sample = random.sample(list(self.model.memory), standard_size)
+            else:
+                standard_sample = []
+                standard_size = 0
+
+            # Объединение
+            mixed_batch = priority_sample + standard_sample
+
+            if not mixed_batch:
+                return None
+
+            # Подготовка батча для обучения
+            states = torch.stack([exp.get('state', torch.zeros(150))
+                                  for exp in mixed_batch]).to(self.model.device)
+            actions = torch.LongTensor([exp.get('action', 1)
+                                        for exp in mixed_batch]).to(self.model.device)
+            rewards = torch.FloatTensor([exp.get('reward', 0.0)
+                                         for exp in mixed_batch]).to(self.model.device)
+            next_states = torch.stack([exp.get('next_state', torch.zeros(150))
+                                       for exp in mixed_batch]).to(self.model.device)
+            dones = torch.FloatTensor([exp.get('done', True)
+                                       for exp in mixed_batch]).to(self.model.device)
+
+            # Вызываем существующий метод learn_from_experience с кастомным батчем
+            return self.model.learn_from_experience_custom(
+                states=states,
+                actions=actions,
+                rewards=rewards,
+                next_states=next_states,
+                dones=dones
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка приоритетного обучения: {e}")
+            return None
+
+    def add_priority_experience(self, experience):
+        """Добавление приоритетного опыта - НОВЫЙ МЕТОД"""
+        if not self.enable_priority_training or not hasattr(self, 'priority_memory'):
+            return
+
+        try:
+            # Ограничиваем размер
+            if len(self.priority_memory) >= self.priority_memory.maxlen:
+                self.priority_memory.popleft()
+
+            self.priority_memory.append(experience)
+
+        except Exception as e:
+            logger.error(f"Ошибка добавления приоритетного опыта: {e}")
 
 
 # Глобальный экземпляр

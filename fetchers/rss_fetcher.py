@@ -23,6 +23,7 @@ class RSSFetcher:
         self.last_update = {}
         self.news_by_ticker = defaultdict(list)
         self.ticker_patterns = self._load_ticker_patterns()
+        self.encoding_fix_sources = {}
 
         logger.info(f"Инициализирован RSSFetcher с {len(self.config.get('sources', []))} источниками")
 
@@ -30,7 +31,19 @@ class RSSFetcher:
         """Загрузка конфигурации"""
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                config = json.load(f)
+
+            # ✅ ДОБАВИТЬ: Автоматическое определение источников с проблемами кодировки
+            for source in config.get('sources', []):
+                url = source.get('url', '')
+                # Анализируем домен для определения проблемных источников
+                if any(domain in url for domain in ['vedomosti.ru', 'finam.ru']):
+                    source['force_utf8'] = True  # Флаг для исправления кодировки
+                else:
+                    source['force_utf8'] = False
+
+            return config
+
         except Exception as e:
             logger.error(f"Ошибка загрузки конфигурации RSS: {e}")
             return {'sources': []}
@@ -92,27 +105,61 @@ class RSSFetcher:
         return all_news
 
     def update_feed(self, source: Dict) -> List[Dict]:
-        """Обновление одной RSS-ленты"""
+        """Обновление одной RSS-ленты с исправлением кодировки"""
         try:
             url = source['url']
             source_name = source['name']
 
             # Проверяем, когда обновляли последний раз
             last_update = self.last_update.get(url, 0)
-            update_interval = source.get('update_interval', 300)  # 5 минут по умолчанию
+            update_interval = source.get('update_interval', 300)
 
             if time.time() - last_update < update_interval:
-                # Используем кэшированные данные
                 cached = self.feeds.get(url)
                 if cached:
                     return cached
 
-            # Загрузка RSS
-            feed = feedparser.parse(url)
+            # ✅ УНИВЕРСАЛЬНОЕ ИСПРАВЛЕНИЕ КОДИРОВКИ
+            import requests
+
+            try:
+                # Загружаем через requests для контроля кодировки
+                response = requests.get(url, timeout=10)
+
+                # Проверяем заголовки ответа
+                content_type = response.headers.get('content-type', '').lower()
+
+                # Исправляем некорректные декларации кодировки
+                if 'charset=us-ascii' in content_type and 'utf-8' in content_type:
+                    # Меняем объявленную кодировку на UTF-8
+                    fixed_content_type = content_type.replace('charset=us-ascii', 'charset=utf-8')
+                    response.headers['content-type'] = fixed_content_type
+
+                # Создаем фиктивный файл для feedparser
+                import io
+                content_io = io.BytesIO(response.content)
+
+                # Парсим с исправленной кодировкой
+                feed = feedparser.parse(content_io)
+
+            except requests.RequestException:
+                # Fallback: оригинальный метод если requests не работает
+                feed = feedparser.parse(url)
 
             if feed.bozo:  # Ошибка парсинга
-                logger.warning(f"Ошибка парсинга RSS {url}: {feed.bozo_exception}")
-                return []
+                # ✅ БОЛЕЕ ЩАДЯЩАЯ ОБРАБОТКА ОШИБОК КОДИРОВКИ
+                if hasattr(feed.bozo_exception, 'getMessage') and 'document declared as us-ascii' in str(
+                        feed.bozo_exception):
+                    # Игнорируем ошибку кодировки, если есть данные
+                    if hasattr(feed, 'entries') and feed.entries:
+                        logger.warning(f"Игнорируем ошибку кодировки для {url}, но данные получены")
+                        # Продолжаем обработку
+                    else:
+                        logger.warning(f"Ошибка парсинга RSS {url}: {feed.bozo_exception}")
+                        return []
+                else:
+                    logger.warning(f"Ошибка парсинга RSS {url}: {feed.bozo_exception}")
+                    return []
 
             news_items = []
             max_items = source.get('max_items', 20)

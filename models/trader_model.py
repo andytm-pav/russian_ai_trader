@@ -164,17 +164,27 @@ class TradingPolicyNetwork(nn.Module):
         )
 
     def forward(self, state, news_features=None):
-        # Проверяем размерность состояния
-        if state.shape[-1] != self.state_dim:
-            # Автоматическая корректировка размерности
-            if state.shape[-1] < self.state_dim:
+        # 🔴 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: АВТОКОРРЕКЦИЯ РАЗМЕРНОСТИ
+        actual_dim = state.shape[-1]
+        expected_dim = self.state_dim
+
+        if actual_dim != expected_dim:
+            # Логируем только если это реальное состояние (не все нули)
+            if torch.any(state != 0):
+                print(f"[TraderModel] ⚠ Размерность состояния: {actual_dim}, ожидалось: {expected_dim}")
+
+            if actual_dim < expected_dim:
+                # Добавляем нули для недостающих признаков
                 padding = torch.zeros(
                     *state.shape[:-1],
-                    self.state_dim - state.shape[-1]
-                ).to(state.device)
+                    expected_dim - actual_dim,
+                    device=state.device,
+                    dtype=state.dtype
+                )
                 state = torch.cat([state, padding], dim=-1)
             else:
-                state = state[..., :self.state_dim]
+                # Обрезаем лишние признаки
+                state = state[..., :expected_dim]
 
         # Обработка состояния
         state_features = self.state_net(state)
@@ -207,7 +217,6 @@ class TradingPolicyNetwork(nn.Module):
         state_value = self.value_net(state_features)
 
         return action_probs, state_value
-
 
 class AdvancedTraderModel:
     """Продвинутая модель трейдера с улучшенной архитектурой"""
@@ -416,6 +425,43 @@ class AdvancedTraderModel:
         confidence = action_probs[action]
 
         return action, chosen_strategy, confidence
+
+    def choose_strategy_based_on_sentiment(self, ticker: str, sentiment: float,
+                                           current_strategy: str) -> str:
+        """
+        Выбор стратегии на основе тональности новостей
+        sentiment: -1.0 (очень негативно) до +1.0 (очень позитивно)
+        """
+        # Загружаем конфиг
+        sentiment_config = self.strategy_config.get('sentiment_integration', {})
+
+        # Проверяем, включена ли интеграция
+        if not sentiment_config.get('enabled', True):
+            return current_strategy
+
+        thresholds = sentiment_config.get('sentiment_thresholds', {})
+
+        # Определяем категорию сентимента
+        if sentiment >= thresholds.get('very_positive', 0.3):
+            sentiment_category = "very_positive"
+        elif sentiment >= thresholds.get('positive', 0.1):
+            sentiment_category = "positive"
+        elif sentiment >= thresholds.get('neutral', 0.0):
+            sentiment_category = "neutral"
+        elif sentiment >= thresholds.get('negative', -0.1):
+            sentiment_category = "negative"
+        else:
+            sentiment_category = "very_negative"
+
+        # Получаем маппинг стратегий
+        strategy_mapping = sentiment_config.get('strategy_mapping', {})
+        mapped_strategy = strategy_mapping.get(sentiment_category, current_strategy)
+
+        # Проверяем, существует ли стратегия
+        if mapped_strategy not in self.strategies:
+            mapped_strategy = current_strategy
+
+        return mapped_strategy
 
     def _create_strategy_state(self, base_state: torch.Tensor,
                                strategy_params: Dict) -> torch.Tensor:
@@ -909,51 +955,168 @@ class AdvancedTraderModel:
         })
 
     def learn_from_experience(self, batch_size: int = DEFAULT_BATCH_SIZE):
-        """Обучение на опыте с улучшенной стабильностью"""
-        if len(self.memory) < batch_size * 2:
+        """Обучение на опыте с БЕЗОПАСНОЙ ОБРАБОТКОЙ ДАННЫХ"""
+        if len(self.memory) < max(batch_size * 2, MIN_EXPERIENCES_FOR_LEARNING):
             return None
 
         try:
-            # Выборка с приоритетом (простейшая реализация)
-            recent_size = min(len(self.memory) // 4, batch_size // 2)
-            recent_indices = list(range(len(self.memory) - recent_size, len(self.memory)))
-            random_indices = np.random.choice(len(self.memory) - recent_size,
-                                              batch_size - recent_size,
-                                              replace=False)
-            indices = list(random_indices) + recent_indices
+            # ✅ БЕЗОПАСНЫЙ ВЫБОР БАТЧА
+            actual_batch_size = min(batch_size, len(self.memory) // 2)
+            if actual_batch_size < 4:  # Минимальный размер для обучения
+                return None
 
+            indices = np.random.choice(len(self.memory), actual_batch_size, replace=False)
             batch = [self.memory[i] for i in indices]
 
-            # Подготовка данных
-            states = torch.stack([exp['state'] for exp in batch]).to(self.device)
-            actions = torch.LongTensor([exp['action'] for exp in batch]).to(self.device)
-            rewards = torch.FloatTensor([exp['reward'] for exp in batch]).to(self.device)
-            next_states = torch.stack([exp['next_state'] for exp in batch]).to(self.device)
-            dones = torch.FloatTensor([exp['done'] for exp in batch]).to(self.device)
+            # ✅ БЕЗОПАСНАЯ ПОДГОТОВКА ДАННЫХ
+            try:
+                states = torch.stack([exp['state'] for exp in batch]).to(self.device)
+                actions = torch.LongTensor([exp['action'] for exp in batch]).to(self.device)
+                rewards = torch.FloatTensor([exp['reward'] for exp in batch]).to(self.device)
+                next_states = torch.stack([exp['next_state'] for exp in batch]).to(self.device)
+                dones = torch.FloatTensor([exp['done'] for exp in batch]).to(self.device)
+            except Exception as e:
+                print(f"[TraderModel] Ошибка подготовки батча: {e}")
+                return None
 
-            # Новостные признаки (если есть)
+            # ✅ БЕЗОПАСНАЯ ПОДГОТОВКА NEW_FEATURES
             news_features_list = []
-            for exp in batch:
-                if exp['news_features'] is not None:
-                    news_features_list.append(exp['news_features'])
+            has_valid_news = True
 
-            if news_features_list:
-                news_features = torch.stack(news_features_list).to(self.device)
+            for exp in batch:
+                if exp.get('news_features') is not None:
+                    news_features_list.append(exp['news_features'])
+                else:
+                    has_valid_news = False
+                    break
+
+            if has_valid_news and len(news_features_list) == len(batch):
+                try:
+                    news_features = torch.stack(news_features_list).to(self.device)
+                    # Проверяем размерность новостей
+                    if news_features.shape[-1] != NEWS_ENCODED_DIM:
+                        print(f"[TraderModel] Неверная размерность новостей: {news_features.shape}")
+                        news_features = None
+                        has_valid_news = False
+                except Exception as e:
+                    print(f"[TraderModel] Ошибка подготовки новостей: {e}")
+                    news_features = None
+                    has_valid_news = False
             else:
                 news_features = None
+                has_valid_news = False
+
+            # Переключаем в режим обучения
+            self.policy_net.train()
+
+            # ✅ БЕЗОПАСНЫЕ ПРЯМЫЕ ПРОХОДЫ
+            try:
+                if has_valid_news and news_features is not None:
+                    current_probs, current_values = self.policy_net(states, news_features)
+                else:
+                    current_probs, current_values = self.policy_net(states)
+            except Exception as e:
+                print(f"[TraderModel] Ошибка прямого прохода: {e}")
+                self.policy_net.eval()
+                return None
+
+            # ✅ БЕЗОПАСНЫЕ СЛЕДУЮЩИЕ ОЦЕНКИ
+            try:
+                with torch.no_grad():
+                    if has_valid_news and news_features is not None:
+                        _, next_values = self.policy_net(next_states, news_features)
+                    else:
+                        _, next_values = self.policy_net(next_states)
+            except Exception as e:
+                print(f"[TraderModel] Ошибка следующего прохода: {e}")
+                self.policy_net.eval()
+                return None
+
+            # Целевые значения
+            target_values = rewards + (1 - dones) * self.gamma * next_values
+
+            # Value loss
+            value_loss = nn.SmoothL1Loss()(current_values, target_values.detach())
+
+            # Policy loss
+            try:
+                dist = torch.distributions.Categorical(current_probs)
+                log_probs = dist.log_prob(actions)
+            except Exception as e:
+                print(f"[TraderModel] Ошибка распределения: {e}")
+                self.policy_net.eval()
+                return None
+
+            advantages = (target_values - current_values).detach()
+            policy_loss = -(log_probs * advantages).mean()
+
+            # Entropy regularization
+            entropy = dist.entropy().mean()
+            entropy_bonus = ENTROPY_BONUS_COEFF * entropy
+
+            # Общий loss
+            total_loss = value_loss + policy_loss - entropy_bonus
+
+            # Оптимизация
+            self.policy_optimizer.zero_grad()
+            total_loss.backward()
+
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), GRADIENT_CLIP_VALUE)
+
+            self.policy_optimizer.step()
+
+            # Возвращаем в eval режим
+            self.policy_net.eval()
+
+            # ✅ ПЕРИОДИЧЕСКОЕ ОБУЧЕНИЕ ЭНКОДЕРА НОВОСТЕЙ (с защитой)
+            ENCODER_TRAIN_INTERVAL = 100
+            if len(self.memory) % ENCODER_TRAIN_INTERVAL == 0 and has_valid_news:
+                try:
+                    self._train_news_encoder(batch)
+                except Exception as e:
+                    print(f"[TraderModel] Ошибка обучения энкодера: {e}")
+
+            return total_loss.item()
+
+        except Exception as e:
+            print(f"[TraderModel] Критическая ошибка обучения: {e}")
+            import traceback
+            print(traceback.format_exc())
+            return None
+
+    def learn_from_experience_custom(self, states, actions, rewards, next_states, dones, news_features=None):
+        """Обучение на готовом батче с ЗАЩИТОЙ ОТ ОШИБОК"""
+        try:
+            # ✅ ПРОВЕРКА РАЗМЕРНОСТЕЙ
+            batch_size = states.shape[0]
+            if batch_size != actions.shape[0] or batch_size != rewards.shape[0]:
+                print(f"[TraderModel] Несоответствие размеров батча: "
+                      f"states={states.shape[0]}, actions={actions.shape[0]}, rewards={rewards.shape[0]}")
+                return None
+
+            # ✅ ПРОВЕРКА НОВОСТЕЙ
+            has_news = False
+            if news_features is not None:
+                if news_features.shape[0] == batch_size:
+                    has_news = True
+                else:
+                    print(f"[TraderModel] Несоответствие новостей: "
+                          f"states={batch_size}, news={news_features.shape[0]}")
+                    news_features = None
 
             # Переключаем в режим обучения
             self.policy_net.train()
 
             # Текущие оценки
-            if news_features is not None:
+            if has_news:
                 current_probs, current_values = self.policy_net(states, news_features)
             else:
                 current_probs, current_values = self.policy_net(states)
 
             # Следующие оценки (без градиентов)
             with torch.no_grad():
-                if news_features is not None:
+                if has_news:
                     _, next_values = self.policy_net(next_states, news_features)
                 else:
                     _, next_values = self.policy_net(next_states)
@@ -981,22 +1144,22 @@ class AdvancedTraderModel:
             # Оптимизация
             self.policy_optimizer.zero_grad()
             total_loss.backward()
-
-            # Gradient clipping
             torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), GRADIENT_CLIP_VALUE)
-
             self.policy_optimizer.step()
 
-            # Периодическое обучение энкодера новостей
-            ENCODER_TRAIN_INTERVAL = 100
-            if len(self.memory) % ENCODER_TRAIN_INTERVAL == 0 and news_features is not None:
-                self._train_news_encoder(batch)
+            # Возвращаем в eval режим
+            self.policy_net.eval()
 
             return total_loss.item()
 
         except Exception as e:
-            print(f"[TraderModel] Ошибка обучения: {e}")
+            print(f"[TraderModel] Ошибка кастомного обучения: {e}")
+            import traceback
+            print(traceback.format_exc())
+            # ✅ ВАЖНО: ВСЕГДА ВОЗВРАЩАЕМСЯ В EVAL РЕЖИМ ПРИ ОШИБКЕ
+            self.policy_net.eval()
             return None
+
 
     def _train_news_encoder(self, batch):
         """Обучение энкодера новостей"""
@@ -1059,22 +1222,35 @@ class AdvancedTraderModel:
                              news_sentiment: float,
                              market_conditions: Dict,
                              strategy: str = None) -> Tuple[float, float]:
-        """Запись результата сделки"""
+        """Запись результата сделки с УНИВЕРСАЛЬНЫМ PnL РАСЧЕТОМ"""
 
-        # Расчет PnL
-        if action == 'BUY':
-            # Для покупки PnL рассчитывается при продаже
-            pnl = 0.0
-        elif action == 'SELL':
-            pnl = (exit_price - entry_price) / entry_price
+        # ✅ УНИВЕРСАЛЬНЫЙ PnL РАСЧЕТ ДЛЯ ЛЮБОЙ ТОРГОВОЙ ЛОГИКИ
+        if entry_price > 0 and exit_price > 0:
+            # Процентное изменение цены (работает для любых стратегий)
+            price_change_ratio = (exit_price - entry_price) / entry_price
+
+            # Определяем PnL в зависимости от действия
+            if action == 'BUY':
+                # Для покупки PnL будет рассчитан позже при продаже
+                # Но мы все равно фиксируем начальную сделку
+                pnl = 0.0
+                trade_return = 0.0
+            elif action == 'SELL':
+                # Для продажи - это завершенная сделка
+                pnl = price_change_ratio
+                trade_return = price_change_ratio
+            else:  # HOLD или другие действия
+                pnl = 0.0
+                trade_return = 0.0
         else:
             pnl = 0.0
+            trade_return = 0.0
 
-        # Обновление статистики тикера
+        # ✅ ОБНОВЛЕНИЕ СТАТИСТИКИ ТИКЕРА
         stats = self.ticker_stats[ticker]
         stats['total_trades'] += 1
 
-        if action == 'SELL':
+        if action in ['SELL', 'CLOSE']:  # Только завершенные сделки
             stats['total_pnl'] += pnl
 
             if pnl > 0:
@@ -1087,18 +1263,22 @@ class AdvancedTraderModel:
                 stats['avg_hold_time'] = (stats['avg_hold_time'] * (stats['total_trades'] - 1) + hold_time) / stats[
                     'total_trades']
 
-        stats['success_rate'] = stats['profitable_trades'] / stats['total_trades'] if stats['total_trades'] > 0 else 0.5
+        # ✅ РАСЧЕТ УСПЕШНОСТИ
+        if stats['total_trades'] > 0:
+            stats['success_rate'] = stats['profitable_trades'] / stats['total_trades']
+        else:
+            stats['success_rate'] = 0.5  # Дефолт при отсутствии сделок
+
         stats['last_trade'] = datetime.now().isoformat()
 
-        # Обновление статистики стратегии если указана
-        if strategy and action == 'SELL':
+        # ✅ ОБНОВЛЕНИЕ СТАТИСТИКИ СТРАТЕГИИ
+        if strategy and action in ['SELL', 'CLOSE']:
             self.record_strategy_outcome(strategy, action, pnl, hold_time)
 
-        # Параметры для определения значительных убытков
-        SIGNIFICANT_LOSS_THRESHOLD = -0.02  # -2%
+        # ✅ ЗАПИСЬ ОШИБОК (значительные убытки)
+        SIGNIFICANT_LOSS_THRESHOLD = LOSS_THRESHOLD  # Используем константу из настроек
 
-        # Запись ошибок (значительные убытки)
-        if pnl < SIGNIFICANT_LOSS_THRESHOLD:
+        if pnl < SIGNIFICANT_LOSS_THRESHOLD and action in ['SELL', 'CLOSE']:
             error_data = self.error_memory[ticker]
 
             trade_record = {
@@ -1126,9 +1306,10 @@ class AdvancedTraderModel:
             error_data['success_rate'] = stats['success_rate']
             error_data['total_trades'] = stats['total_trades']
 
-            print(f"[TraderModel] Запомнена ошибка: {ticker} {action}, убыток {pnl:.2%}, стратегия: {strategy}")
+            print(f"[TraderModel] ⚠ Запомнена ошибка: {ticker} {action}, убыток {pnl:.2%}, стратегия: {strategy}")
 
-        # Параметры наград
+        # ✅ РАСЧЕТ НАГРАДЫ ДЛЯ ОБУЧЕНИЯ
+        # Используем константы из настроек
         REWARD_SCALING = 20.0
         HOLD_TIME_DEVIATION_PENALTY = 0.3
         MAX_HOLD_TIME_DEVIATION = 0.5
@@ -1137,8 +1318,8 @@ class AdvancedTraderModel:
         BIG_LOSS_PENALTY = 1.5
         SMALL_PROFIT_BONUS = 0.2
 
-        # Награда для обучения
-        if action == 'SELL':
+        # Базовая награда
+        if action in ['SELL', 'CLOSE']:
             reward = pnl * REWARD_SCALING
 
             # Учитываем стратегию в награде

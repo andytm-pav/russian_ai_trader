@@ -42,5 +42,16 @@
   ],
   "logging_level": "INFO",
   "simulation_mode": true,
-  "paper_trading": true
+  "paper_trading": true,
+
+  "profit_optimization": {
+  "extreme_pnl_threshold": 0.08,
+  "max_reward": 1000.0,
+  "min_reward": -1000.0,
+  "reward_scaling_profit": 100.0,
+  "fast_learning_cycles": 5,
+  "strategy_adaptation_cycles": 20,
+  "enable_extreme_learning": true,
+  "enable_aggressive_adaptation": true
+}
 }

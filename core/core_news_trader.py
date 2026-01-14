@@ -289,6 +289,87 @@ class NewsTraderCore:
             logger.error(f"Ошибка получения сентимента для {ticker}: {e}")
             return 0.0
 
+    def get_enhanced_sentiment(self, ticker: str) -> Dict[str, any]:
+        """Расширенный анализ тональности с метаданными"""
+        basic_sentiment = self.get_current_sentiment(ticker)
+
+        # Получаем свежие новости для тикера
+        all_news = self.fetch_all_news()
+
+        # Фильтруем новости по тикеру
+        ticker_news = []
+        for source_news in all_news.values():
+            for news in source_news:
+                text = f"{news['title']} {news['summary']}".lower()
+                if re.search(rf'\b{ticker}\b', text, re.IGNORECASE):
+                    ticker_news.append(news)
+
+        news_count = len(ticker_news)
+        sentiment_strength = abs(basic_sentiment)
+
+        # Определяем уровень воздействия
+        if news_count >= 3 and sentiment_strength >= 0.5:
+            impact_level = "high_impact"
+        elif news_count >= 1 and sentiment_strength >= 0.3:
+            impact_level = "medium_impact"
+        else:
+            impact_level = "low_impact"
+
+        # Определяем категорию сентимента
+        if basic_sentiment >= 0.3:
+            sentiment_category = "very_positive"
+        elif basic_sentiment >= 0.1:
+            sentiment_category = "positive"
+        elif basic_sentiment >= -0.1:
+            sentiment_category = "neutral"
+        elif basic_sentiment >= -0.3:
+            sentiment_category = "negative"
+        else:
+            sentiment_category = "very_negative"
+
+        return {
+            'sentiment': basic_sentiment,
+            'sentiment_category': sentiment_category,
+            'news_count': news_count,
+            'sentiment_strength': sentiment_strength,
+            'impact_level': impact_level,
+            'last_updated': datetime.now().isoformat(),
+            'has_recent_news': news_count > 0
+        }
+
+    def get_strategy_based_on_sentiment(self, ticker: str, current_strategy: str = "balanced") -> str:
+        """Выбор стратегии на основе тональности"""
+        try:
+            # Получаем расширенный сентимент
+            sentiment_data = self.get_enhanced_sentiment(ticker)
+            sentiment_category = sentiment_data.get('sentiment_category', 'neutral')
+
+            # Загружаем конфиг стратегий
+            with open('config/strategies.json', 'r', encoding='utf-8') as f:
+                strategies_config = json.load(f)
+
+            # Получаем маппинг стратегий
+            sentiment_config = strategies_config.get('sentiment_integration', {})
+            if not sentiment_config.get('enabled', True):
+                return current_strategy
+
+            strategy_mapping = sentiment_config.get('strategy_mapping', {})
+
+            # Выбираем стратегию по категории сентимента
+            selected_strategy = strategy_mapping.get(sentiment_category, current_strategy)
+
+            # Проверяем, существует ли стратегия
+            available_strategies = strategies_config.get('strategies', {}).keys()
+            if selected_strategy not in available_strategies:
+                selected_strategy = current_strategy
+
+            logger.debug(f"Стратегия для {ticker}: {selected_strategy} (sentiment: {sentiment_category})")
+            return selected_strategy
+
+        except Exception as e:
+            logger.error(f"Ошибка выбора стратегии по сентименту: {e}")
+            return current_strategy
+
     def generate_trading_signals(self, prices: Dict[str, float]) -> List[Dict]:
         """Генерация торговых сигналов на основе новостей"""
         try:
