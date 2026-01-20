@@ -57,6 +57,15 @@
     "exploration_decay_steps": 10000,
     "action_exploration_rate": 0.2
   },
+  "sentiment_integration": {
+  "market_sentiment_weight": 0.3,
+  "ticker_sentiment_weight": 0.4,
+  "reward_sentiment_bonus": 0.5,
+  "min_news_for_market_sentiment": 10,
+  "sentiment_time_decay_hours": 24,
+  "high_impact_multiplier": 2.0,
+  "market_sentiment_cache_minutes": 5
+  },
   "state_parameters": {
     "state_vector_size": 153,
     "news_features_size": 128,

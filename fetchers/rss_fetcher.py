@@ -67,6 +67,15 @@ class RSSFetcher:
 
         return patterns
 
+    def _get_timestamp(self, dt: datetime) -> float:
+        """Безопасное получение timestamp"""
+        import time
+        if dt is None:
+            return time.time()
+        return dt.timestamp()
+
+
+
     def update_all_feeds(self) -> Dict[str, List[Dict]]:
         """Обновление всех RSS-лент"""
         all_news = {}
@@ -215,7 +224,7 @@ class RSSFetcher:
                 'summary': summary[:500] if summary else '',  # Ограничиваем длину
                 'link': link,
                 'published': published.isoformat(),
-                'timestamp': published.timestamp(),
+                'timestamp': self._get_timestamp(published),
                 'author': author,
                 'categories': categories,
                 'source': source['name'],

@@ -5,7 +5,7 @@
 import json
 import time
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone  # ИМПОРТИРУЕМ timezone
 from typing import Dict, List, Optional
 import re
 
@@ -102,7 +102,7 @@ class NewsFetcher:
         return news_items
 
     def _fetch_rss(self, source: Dict) -> List[Dict]:
-        """Парсинг RSS"""
+        """Парсинг RSS с ИСПРАВЛЕННЫМ сравнением дат"""
         try:
             import feedparser
 
@@ -117,7 +117,14 @@ class NewsFetcher:
 
                 # Пропускаем старые новости (старше 3 дней)
                 if published:
-                    age_days = (datetime.now() - published).days
+                    # ИСПРАВЛЕНИЕ: делаем обе даты aware (с часовым поясом)
+                    if published.tzinfo is None:
+                        # Если published naive, делаем его aware в UTC
+                        published = published.replace(tzinfo=timezone.utc)
+
+                    # Текущее время тоже делаем aware в UTC
+                    now_aware = datetime.now(timezone.utc)
+                    age_days = (now_aware - published).days
                     if age_days > 3:
                         continue
 
@@ -126,7 +133,7 @@ class NewsFetcher:
                     'summary': entry.get('summary', '') or entry.get('description', ''),
                     'link': entry.get('link', ''),
                     'published': published.isoformat() if published else '',
-                    'ts': published.timestamp() if published else time.time(),
+                    'ts': self._get_timestamp(published),
                     'source': source['name'],
                     'category': source.get('category', 'general')
                 }
@@ -179,7 +186,7 @@ class NewsFetcher:
                     'summary': summary[:500] if summary else '',  # Ограничиваем длину
                     'link': article.get('url') or article.get('link', ''),
                     'published': published.isoformat(),
-                    'ts': published.timestamp(),
+                    'ts': self._get_timestamp(published),
                     'source': source['name'],
                     'category': source.get('category', 'general')
                 }
@@ -249,7 +256,7 @@ class NewsFetcher:
                             'summary': summary[:300],
                             'link': link,
                             'published': published.isoformat(),
-                            'ts': published.timestamp(),
+                            'ts': self._get_timestamp(published),
                             'source': source['name'],
                             'category': source.get('category', 'general')
                         }
@@ -267,37 +274,61 @@ class NewsFetcher:
             logger.error(f"Ошибка веб-парсинга {source['url']}: {e}")
             return []
 
+    def _get_timestamp(self, dt: datetime) -> float:
+        """Безопасное получение timestamp с учётом часовых поясов"""
+        if dt.tzinfo is not None:
+            # Для aware datetime используем timestamp() (он всегда возвращает UTC timestamp)
+            return dt.timestamp()
+        else:
+            # Для naive datetime создаём aware в локальном поясе, затем получаем UTC timestamp
+            import time
+            local_tz = time.localtime().tm_gmtoff if hasattr(time, 'localtime') else 0
+            return dt.timestamp() + local_tz
+
     def _parse_date(self, date_str: str) -> Optional[datetime]:
-        """Парсинг даты из различных форматов"""
+        """Парсинг даты из различных форматов с ИСПРАВЛЕНИЕМ часовых поясов"""
         try:
+            if not date_str:
+                return None
+
             # Удаляем лишние пробелы
             date_str = date_str.strip()
 
             # Список форматов для попыток парсинга
             formats = [
-                '%a, %d %b %Y %H:%M:%S %z',
-                '%a, %d %b %Y %H:%M:%S %Z',
-                '%Y-%m-%dT%H:%M:%S%z',
-                '%Y-%m-%d %H:%M:%S',
-                '%d.%m.%Y %H:%M',
-                '%d/%m/%Y %H:%M',
-                '%Y-%m-%d',
-                '%d.%m.%Y',
-                '%d/%m/%Y'
+                '%a, %d %b %Y %H:%M:%S %z',    # RSS с часовым поясом
+                '%a, %d %b %Y %H:%M:%S %Z',    # RSS с названием пояса
+                '%Y-%m-%dT%H:%M:%S%z',         # ISO с часовым поясом
+                '%Y-%m-%d %H:%M:%S%z',         # Альтернативный ISO
+                '%Y-%m-%dT%H:%M:%S',           # ISO без пояса
+                '%Y-%m-%d %H:%M:%S',           # Простой формат
+                '%d.%m.%Y %H:%M',              # Российский формат
+                '%d/%m/%Y %H:%M',              # Альтернативный
+                '%Y-%m-%d',                    # Только дата
+                '%d.%m.%Y',                    # Российская дата
+                '%d/%m/%Y'                     # Альтернативная дата
             ]
 
             for fmt in formats:
                 try:
-                    return datetime.strptime(date_str, fmt)
+                    dt = datetime.strptime(date_str, fmt)
+
+                    # Если формат содержит %z (часовой пояс), то dt будет aware
+                    # Если нет - сделаем его aware в UTC
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+
+                    return dt
                 except ValueError:
                     continue
 
-            # Если не удалось распарсить, возвращаем текущую дату
-            logger.warning(f"Не удалось распарсить дату: {date_str}")
-            return datetime.now()
+            # Если не удалось распарсить, возвращаем текущую дату в UTC
+            logger.warning(f"Не удалось распарсить дату: {date_str[:50]}...")
+            return datetime.now(timezone.utc)
 
-        except Exception:
-            return datetime.now()
+        except Exception as e:
+            logger.error(f"Ошибка парсинга даты '{date_str[:50]}...': {e}")
+            return datetime.now(timezone.utc)
 
     def _filter_news_item(self, news_item: Dict) -> bool:
         """Фильтрация новостей по ключевым словам"""
@@ -426,6 +457,43 @@ class NewsFetcher:
         summary['recent_tickers'] = list(summary['recent_tickers'])
 
         return summary
+
+    def get_market_news_summary(self, limit: int = 100) -> Dict:
+        """Сводка рыночных новостей для анализа настроения"""
+        all_news = self.get_last_news(limit=limit)
+
+        # Группировка по категориям
+        categories = {}
+        sources = {}
+
+        for news in all_news:
+            # Категории
+            category = news.get('category', 'unknown')
+            categories[category] = categories.get(category, 0) + 1
+
+            # Источники
+            source = news.get('source', 'unknown')
+            sources[source] = sources.get(source, 0) + 1
+
+        # Поиск ключевых тем
+        import collections
+        word_counter = collections.Counter()
+
+        for news in all_news[:50]:  # Только первые 50
+            title_words = news['title'].lower().split()
+            for word in title_words:
+                if len(word) > 3:  # Игнорируем короткие слова
+                    word_counter[word] += 1
+
+        top_themes = word_counter.most_common(10)
+
+        return {
+            'total_news': len(all_news),
+            'categories': dict(sorted(categories.items(), key=lambda x: x[1], reverse=True)),
+            'sources': dict(sorted(sources.items(), key=lambda x: x[1], reverse=True)),
+            'top_themes': top_themes,
+            'last_update': datetime.now().isoformat()
+        }
 
     def force_refresh(self):
         """Принудительное обновление новостей"""

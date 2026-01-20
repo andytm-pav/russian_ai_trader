@@ -337,6 +337,87 @@ class NewsTraderCore:
             'has_recent_news': news_count > 0
         }
 
+    def get_market_sentiment(self, window_hours: int = 24) -> Dict[str, any]:
+        """Получение агрегированного рыночного настроения"""
+        try:
+            # Сбор свежих новостей
+            all_news = self.fetch_all_news()
+            news_items = []
+            for source_news in all_news.values():
+                news_items.extend(source_news)
+
+            # Фильтрация по времени
+            current_time = time.time()
+            recent_news = []
+            for news in news_items:
+                try:
+                    news_time = datetime.fromisoformat(news['published'].replace('Z', '+00:00')).timestamp()
+                    if current_time - news_time <= window_hours * 3600:
+                        recent_news.append(news)
+                except:
+                    recent_news.append(news)  # Если ошибка парсинга, включаем
+
+            # Анализ тональности
+            if not recent_news:
+                return {
+                    'sentiment': 0.0,
+                    'strength': 0.0,
+                    'news_count': 0,
+                    'sources_count': 0,
+                    'trend': 'neutral',
+                    'timestamp': datetime.now().isoformat()
+                }
+
+            sentiments = self.analyze_news_sentiment(recent_news)
+            market_sentiment = sentiments.get('MARKET', 0.0)
+
+            # Расчет силы настроения
+            sentiment_strength = abs(market_sentiment)
+
+            # Определение тренда
+            if market_sentiment >= 0.3:
+                trend = "bullish"
+            elif market_sentiment >= 0.1:
+                trend = "slightly_bullish"
+            elif market_sentiment >= -0.1:
+                trend = "neutral"
+            elif market_sentiment >= -0.3:
+                trend = "slightly_bearish"
+            else:
+                trend = "bearish"
+
+            # Кэширование
+            if not hasattr(self, 'market_sentiment_cache'):
+                self.market_sentiment_cache = {}
+
+            self.market_sentiment_cache = {
+                'sentiment': market_sentiment,
+                'trend': trend,
+                'news_count': len(recent_news),
+                'sources_count': len(all_news),
+                'timestamp': datetime.now().isoformat()
+            }
+
+            return {
+                'sentiment': market_sentiment,
+                'strength': sentiment_strength,
+                'news_count': len(recent_news),
+                'sources_count': len(all_news),
+                'trend': trend,
+                'timestamp': datetime.now().isoformat(),
+                'cache_key': 'market_sentiment_global'
+            }
+
+        except Exception as e:
+            logger.error(f"Ошибка расчета рыночного сентимента: {e}")
+            return {
+                'sentiment': 0.0,
+                'strength': 0.0,
+                'news_count': 0,
+                'trend': 'neutral',
+                'timestamp': datetime.now().isoformat()
+            }
+
     def get_strategy_based_on_sentiment(self, ticker: str, current_strategy: str = "balanced") -> str:
         """Выбор стратегии на основе тональности"""
         try:

@@ -26,6 +26,7 @@ class SmartPortfolioBroker:
     """Умный брокер с интеграцией всех торговых ядер"""
 
     def __init__(self, settings: Dict):
+        self.rl_config = None
         self.settings = settings
         self.moex = MoexFetcher()
         self.rss_fetcher = RSSFetcher()
@@ -36,9 +37,16 @@ class SmartPortfolioBroker:
         self.portfolio = PortfolioManager()
         self.model = trader_model_instance
 
+
         # ✅ ИНИЦИАЛИЗАЦИЯ НОВЫХ КОНФИГОВ
         self.profit_config = settings.get("profit_optimization", {})
         self.rl_config = self._load_rl_config()
+
+        # ✅ ЗАГРУЖАЕМ КОНФИГИ СЕНТИМЕНТА
+        self.sentiment_config = self.rl_config.get("sentiment_integration", {})
+        self.market_sentiment_weight = self.sentiment_config.get("market_sentiment_weight", 0.3)
+        self.ticker_sentiment_weight = self.sentiment_config.get("ticker_sentiment_weight", 0.4)
+        self.reward_sentiment_bonus = self.sentiment_config.get("reward_sentiment_bonus", 0.5)
 
         # ✅ ИНИЦИАЛИЗАЦИЯ TRAINER (исправление ошибки)
         self.trainer = None
@@ -257,8 +265,10 @@ class SmartPortfolioBroker:
                 # Создаем следующее состояние
                 next_state = self._create_next_state(ticker, exit_price)
 
+
                 # Нормализованный reward
                 reward = self._calculate_reward(pnl, hold_time, exp['strategy'])
+
 
                 # ✅ ИСПРАВЛЕННЫЙ ВЫЗОВ С ПРАВИЛЬНОЙ ПОСЛЕДОВАТЕЛЬНОСТЬЮ
                 self.model.remember_experience(
@@ -270,9 +280,15 @@ class SmartPortfolioBroker:
                     news_features=None,  # ✅ явно указываем None
                 )
 
+
                 # ✅ ДОПОЛНИТЕЛЬНО: обновляем market_conditions в записи модели если нужно
                 if 'sentiment_data' in exp:
-                    # Записываем результат в модель с market_conditions
+
+                    # ✅ ПОЛУЧАЕМ РЫНОЧНЫЙ СЕНТИМЕНТ НА МОМЕНТ СДЕЛКИ
+                    market_sentiment_data = self.news_core.get_market_sentiment()
+                    market_sentiment = market_sentiment_data.get('sentiment', 0.0)
+
+                    # Записываем результат в модель с market_sentiment
                     self.model.record_trade_outcome(
                         ticker=ticker,
                         action='SELL',
@@ -284,9 +300,11 @@ class SmartPortfolioBroker:
                             'strategy': exp['strategy'],
                             'confidence': exp.get('confidence', 0.5),
                             'reward': reward,
-                            'pnl': pnl
+                            'pnl': pnl,
+                            'market_sentiment': market_sentiment  # ✅ ДОБАВЛЯЕМ
                         },
-                        strategy=exp['strategy']
+                        strategy=exp['strategy'],
+                        market_sentiment=market_sentiment  # ✅ ПЕРЕДАЕМ В НОВЫЙ ПАРАМЕТР
                     )
 
                 exp['completed'] = True
@@ -343,7 +361,6 @@ class SmartPortfolioBroker:
         return limited_reward
 
     def _create_initial_state(self, ticker: str, price: float, security_info: Dict) -> torch.Tensor:
-        """Создание начального состояния для RL"""
         # Используем существующий метод модели
         momentum = security_info.get('momentum', 0.0)
         sentiment = self.news_core.get_current_sentiment(ticker)
@@ -356,7 +373,11 @@ class SmartPortfolioBroker:
         news_texts = [n.get('title', '') + ' ' + n.get('summary', '') for n in news_items]
         news_features = self.model.encode_news(news_texts)
 
-        # Строим состояние
+        # ✅ ПОЛУЧАЕМ РЫНОЧНЫЙ СЕНТИМЕНТ
+        market_sentiment_data = self.news_core.get_market_sentiment()
+        market_sentiment = market_sentiment_data.get('sentiment', 0.0)
+
+        # ✅ ЕДИНСТВЕННЫЙ ВЫЗОВ build_state_vector со ВСЕМИ параметрами
         state = self.model.build_state_vector(
             ticker=ticker,
             price=price,
@@ -372,8 +393,13 @@ class SmartPortfolioBroker:
                 'sma_20_ratio': indicators.get('sma_20', price) / price if price > 0 else 1.0,
                 'bb_position': (price - indicators.get('bb_lower', price)) /
                                (indicators.get('bb_upper', price * 1.1) - indicators.get('bb_lower', price * 0.9))
-                if indicators.get('bb_upper', price * 1.1) > indicators.get('bb_lower', price * 0.9) else 0.5
-            }
+                if indicators.get('bb_upper', price * 1.1) > indicators.get('bb_lower', price * 0.9) else 0.5,
+                # ✅ ДОБАВЛЯЕМ недостающие поля из trader_model.py
+                'liquidity': 0.5,  # или расчитать из security_info
+                'market_cap': security_info.get('market_cap', 0),
+                'pe_ratio': security_info.get('pe_ratio', 15)
+            },
+            market_sentiment=market_sentiment  # ✅ ПЕРЕДАЕМ РЫНОЧНЫЙ СЕНТИМЕНТ
         )
 
         return state

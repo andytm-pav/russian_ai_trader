@@ -82,6 +82,11 @@
   },
   "sentiment_integration": {
     "enabled": true,
+    "market_sentiment_aggregation": {
+    "window_hours": 24,
+    "min_sources": 3,
+    "weight_by_source_priority": true
+    },
     "sentiment_thresholds": {
       "very_positive": 0.3,
       "positive": 0.1,
@@ -102,6 +107,10 @@
       "neutral": 1.0,
       "negative": 0.8,
       "very_negative": 0.5
+    },
+    "trading_frequency": {
+    "high_sentiment": {"max_trades_per_hour": 3},
+    "low_sentiment": {"max_trades_per_hour": 1}
     },
     "risk_adjustment": {
       "very_positive": {

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-13T21:59:15.722879",
+  "timestamp": "2026-01-14T23:16:38.450232",
   "state": {
     "error_memory": {
       "ABIO": {
@@ -1925,7 +1925,7 @@
         "last_trade": null
       }
     },
-    "market_sentiment": 0.03769208948112793,
+    "market_sentiment": 0.050494485134145776,
     "sentiment_history": [
       0.0015873015873015873,
       0.0021327967806841048,
@@ -1950,18 +1950,28 @@
       0.04235256009656545,
       0.04299535286739671,
       0.04052508587333997,
-      0.03769208948112793
+      0.03769208948112793,
+      0.03920743337854359,
+      0.0365212579419238,
+      0.036317408009800385,
+      0.03728336835824563,
+      0.040451583246559,
+      0.04502711457707552,
+      0.048389571658693814,
+      0.04910617004837999,
+      0.04919555304354199,
+      0.050494485134145776
     ],
-    "volatility_index": 0.7103987132178974,
+    "volatility_index": 0.7165622170572064,
     "memory_size": 0,
     "total_experiences": 0,
     "strategy_performance": {
       "balanced": {
-        "total_trades": 5,
-        "profitable_trades": 3,
-        "total_pnl": -4.500000000000028,
-        "avg_pnl": -0.9000000000000057,
-        "win_rate": 0.6
+        "total_trades": 19,
+        "profitable_trades": 10,
+        "total_pnl": -24.019999999999968,
+        "avg_pnl": -1.2642105263157877,
+        "win_rate": 0.5263157894736842
       },
       "news_aggressive": {
         "total_trades": 0,
@@ -2013,6 +2023,104 @@
         "pnl": 1.5,
         "hold_time": 35129.70314645767,
         "timestamp": "2026-01-10T00:12:30.351809"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": 8.320000000000007,
+        "hold_time": 0.0010259151458740234,
+        "timestamp": "2026-01-12T14:17:13.843001"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": 4.480000000000004,
+        "hold_time": 0.0011386871337890625,
+        "timestamp": "2026-01-12T14:17:48.973242"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": 1.9200000000000017,
+        "hold_time": 0.0011780261993408203,
+        "timestamp": "2026-01-12T14:18:23.426606"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": 1.2800000000000011,
+        "hold_time": 0.0011298656463623047,
+        "timestamp": "2026-01-12T14:18:56.206505"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": 0.6400000000000006,
+        "hold_time": 0.0013988018035888672,
+        "timestamp": "2026-01-12T14:19:37.995694"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": 0.6400000000000006,
+        "hold_time": 39.34687900543213,
+        "timestamp": "2026-01-12T14:20:17.341171"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": -5.0,
+        "hold_time": 0.0019669532775878906,
+        "timestamp": "2026-01-13T00:13:23.642814"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": -2.5,
+        "hold_time": 0.002452373504638672,
+        "timestamp": "2026-01-13T00:14:00.057592"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": -2.5,
+        "hold_time": 34.0744206905365,
+        "timestamp": "2026-01-13T00:14:34.129555"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": -13.5,
+        "hold_time": 0.002140045166015625,
+        "timestamp": "2026-01-14T19:47:55.819706"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": -13.5,
+        "hold_time": 41.829336166381836,
+        "timestamp": "2026-01-14T19:48:37.646901"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": 9.0,
+        "hold_time": 7430.686838626862,
+        "timestamp": "2026-01-14T22:43:18.651526"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": 0.0,
+        "hold_time": 0.0011124610900878906,
+        "timestamp": "2026-01-14T22:45:30.538196"
+      },
+      {
+        "strategy": "balanced",
+        "action": "SELL",
+        "pnl": -8.799999999999955,
+        "hold_time": 0.0015115737915039062,
+        "timestamp": "2026-01-14T22:58:00.660974"
       }
     ],
     "strategies": {
@@ -2048,7 +2156,7 @@
         "description": "\u0421\u0431\u0430\u043b\u0430\u043d\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u043f\u043e\u0434\u0445\u043e\u0434",
         "news_weight": 0.5,
         "tech_weight": 0.5,
-        "risk_multiplier": 1.0,
+        "risk_multiplier": 0.5,
         "target_hold_time_hours": 6,
         "stop_loss_percent": 2.5,
         "take_profit_percent": 5.0,
@@ -2059,17 +2167,17 @@
         }
       }
     },
-    "save_time": "2026-01-10T12:32:09.045534",
+    "save_time": "2026-01-14T23:12:30.946727",
     "_metadata": {
-      "load_time": "2026-01-13T21:59:15.724527",
-      "seconds_since_save": 293226.67899,
-      "minutes_since_save": 4887.1113165,
-      "hours_since_save": 81.451855275
+      "load_time": "2026-01-14T23:16:38.451434",
+      "seconds_since_save": 247.504703,
+      "minutes_since_save": 4.125078383333333,
+      "hours_since_save": 0.06875130638888889
     }
   },
   "portfolio": {
-    "total_value": 9933.7,
-    "cash": 6965.856000000001,
+    "total_value": 9895.940000000002,
+    "cash": 6411.668000000002,
     "positions": [
       {
         "ticker": "LNZLP",
@@ -2079,25 +2187,11 @@
         "position_value": 745.0
       },
       {
-        "ticker": "KRSB",
-        "quantity": 24,
-        "avg_price": 22.96,
-        "buy_time": 1767605938.178119,
-        "position_value": 551.04
-      },
-      {
         "ticker": "KCHE",
-        "quantity": 1304,
+        "quantity": 652,
         "avg_price": 0.436,
-        "buy_time": 1767611113.1037123,
-        "position_value": 568.544
-      },
-      {
-        "ticker": "HIMCP",
-        "quantity": 27,
-        "avg_price": 22.38,
-        "buy_time": 1767989600.5801587,
-        "position_value": 604.26
+        "buy_time": 1768416330.5370753,
+        "position_value": 284.272
       },
       {
         "ticker": "MFGSP",
@@ -2105,9 +2199,16 @@
         "avg_price": 249.5,
         "buy_time": 1767989600.5822437,
         "position_value": 499.0
+      },
+      {
+        "ticker": "AQUA",
+        "quantity": 4,
+        "avg_price": 489.0,
+        "buy_time": 1768417080.659455,
+        "position_value": 1956.0
       }
     ],
-    "last_update": "2026-01-10T00:30:08.278580",
+    "last_update": "2026-01-14T23:12:30.952118",
     "initial_capital": 10000
   }
 }

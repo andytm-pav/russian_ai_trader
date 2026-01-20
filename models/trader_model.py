@@ -780,7 +780,9 @@ class AdvancedTraderModel:
                            momentum: float,
                            sentiment: float,
                            news_features: torch.Tensor,
-                           market_data: Dict) -> torch.Tensor:
+                           market_data: Dict,
+                           market_sentiment: float = 0.0) -> torch.Tensor:
+
         """Построение вектора состояния"""
 
         # Признаки из новостей
@@ -812,8 +814,8 @@ class AdvancedTraderModel:
             min(avg_hold_time / 24.0, MAX_HOLD_TIME_DAYS),
 
             # Рыночные признаки
-            self.market_sentiment,
-            self.volatility_index,
+            # self.market_sentiment,
+            # self.volatility_index,
 
             # Данные рынка
             market_data.get('volume', 0) / VOLUME_NORMALIZATION,
@@ -835,6 +837,11 @@ class AdvancedTraderModel:
             # Дополнительные
             market_data.get('market_cap', 0) / 1e12,
             market_data.get('pe_ratio', 15) / PE_NORMALIZATION,
+
+            # Рыночные признаки
+            self.market_sentiment,
+            market_sentiment,  # ✅ НОВЫЙ: переданный рыночный сентимент
+            self.volatility_index,
         ]
 
         # Новостные признаки
@@ -1221,7 +1228,9 @@ class AdvancedTraderModel:
                              hold_time: float,
                              news_sentiment: float,
                              market_conditions: Dict,
-                             strategy: str = None) -> Tuple[float, float]:
+                             strategy: str = None,
+                             market_sentiment: float = 0.0) -> Tuple[float, float]:
+
         """Запись результата сделки с УНИВЕРСАЛЬНЫМ PnL РАСЧЕТОМ"""
 
         # ✅ УНИВЕРСАЛЬНЫЙ PnL РАСЧЕТ ДЛЯ ЛЮБОЙ ТОРГОВОЙ ЛОГИКИ
@@ -1322,6 +1331,19 @@ class AdvancedTraderModel:
         if action in ['SELL', 'CLOSE']:
             reward = pnl * REWARD_SCALING
 
+            # ✅ БОНУС ЗА ПРАВИЛЬНУЮ РЕАКЦИЮ НА РЫНОЧНОЕ НАСТРОЕНИЕ
+            # Если позитивная сделка на позитивном рынке - бонус
+            # Если убыточная на негативном рынке - меньший штраф
+            sentiment_alignment_bonus = 0.0
+            if pnl > 0 and market_sentiment > 0.1:
+                sentiment_alignment_bonus = market_sentiment * 0.5
+            elif pnl < 0 and market_sentiment < -0.1:
+                sentiment_alignment_bonus = abs(market_sentiment) * 0.3
+
+            reward += sentiment_alignment_bonus
+
+
+
             # Учитываем стратегию в награде
             if strategy:
                 # Проверяем соответствует ли hold_time целевой стратегии
@@ -1393,7 +1415,7 @@ class AdvancedTraderModel:
                 momentum=momentum,
                 sentiment=sentiment,
                 news_features=news_features,
-                market_data=market_data
+                market_data=market_data,
             )
 
             # Выбор действия

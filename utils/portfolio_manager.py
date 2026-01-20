@@ -404,6 +404,47 @@ class PortfolioManager:
             logger.error(f"Ошибка расчета проектируемого веса для {ticker}: {e}")
             return 0.0
 
+    def calculate_position_weight_with_sentiment(self,
+                                                 ticker: str,
+                                                 quantity: int,
+                                                 price: float,
+                                                 current_prices: Dict[str, float],
+                                                 ticker_sentiment: float,
+                                                 market_sentiment: float) -> Dict:
+        """Расчет веса позиции с учетом тональности"""
+        try:
+            # Базовый расчет веса
+            base_weight = self.calculate_projected_weight(ticker, quantity, price, current_prices)
+
+            # Корректировка на сентимент
+            sentiment_adjustment = 0.0
+
+            # Положительный сентимент тикера увеличивает допустимый вес
+            if ticker_sentiment > 0.3:
+                sentiment_adjustment += 0.1  # +10% к весу
+            elif ticker_sentiment < -0.3:
+                sentiment_adjustment -= 0.1  # -10% к весу
+
+            # Рыночный сентимент влияет на общую агрессивность
+            if market_sentiment > 0.3:
+                sentiment_adjustment += 0.05  # Более агрессивный рынок
+            elif market_sentiment < -0.3:
+                sentiment_adjustment -= 0.05  # Более консервативный рынок
+
+            final_weight = base_weight * (1 + sentiment_adjustment)
+
+            return {
+                'base_weight': base_weight,
+                'sentiment_adjustment': sentiment_adjustment,
+                'final_weight': final_weight,
+                'ticker_sentiment': ticker_sentiment,
+                'market_sentiment': market_sentiment
+            }
+
+        except Exception as e:
+            logger.error(f"Ошибка расчета веса с сентиментом: {e}")
+            return {'base_weight': 0, 'final_weight': 0}
+
     def get_position_details(self, ticker: str) -> Optional[Dict]:
         """Получение деталей по позиции"""
         if ticker not in self.positions:

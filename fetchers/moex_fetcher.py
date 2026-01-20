@@ -622,6 +622,7 @@ class MoexFetcher:
             logger.error(f"Ошибка проверки статуса рынка: {e}")
             return {'is_available': False, 'error': str(e)}
 
+
     def get_cache_stats(self) -> Dict:
         """Получение статистики кэша"""
         total = self.cache_hits + self.cache_misses
