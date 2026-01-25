@@ -71,5 +71,12 @@
     "news_features_size": 128,
     "strategy_params_size": 3,
     "market_features_count": 22
+  },
+  "memory_serialization": {
+    "enable_autosave": true,
+    "autosave_interval": 10,
+    "memory_file": "models/saved_trader/memory_buffer.pkl",
+    "max_memory_to_save": 5000,
+    "compression": true
   }
 }

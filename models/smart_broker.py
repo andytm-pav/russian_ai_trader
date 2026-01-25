@@ -1492,6 +1492,10 @@ class SmartPortfolioBroker:
         """Корректное завершение работы"""
         logger.info("Завершение работы SmartBroker...")
 
+        # Сохраняем память даже если мало опытов
+        if len(self.model.memory) > 0:
+            self.model.save_memory()
+
         # Останавливаем сбор новостей
         self.news_core.stop_continuous_fetching()
 

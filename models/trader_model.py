@@ -237,6 +237,10 @@ class AdvancedTraderModel:
         self.strategy_config = self._load_strategy_config()
         self.strategies = self.strategy_config['strategies']
 
+        # Загрузка конфига сериализации памяти
+        self.memory_serialization_config = self._load_memory_config()
+        print(f"[TraderModel] Конфиг памяти: автосохранение={self.memory_serialization_config['enable_autosave']}")
+
         # ✅Параметры из конфига
         self.exploration_rate = self.strategy_config['strategy_selection'].get(
             'exploration_rate', DEFAULT_EXPLORATION_RATE
@@ -318,6 +322,7 @@ class AdvancedTraderModel:
 
         # Загрузка сохраненной модели
         self.load_model()
+        self.load_memory()
 
         print(f"[TraderModel] Инициализирована на {self.device}")
         print(f"[TraderModel] Статистика: {len(self.error_memory)} тикеров, "
@@ -325,6 +330,7 @@ class AdvancedTraderModel:
         print(f"[TraderModel] Размерность состояния: {self.policy_net.state_dim}")
 
     def _load_strategy_config(self, config_path: str = "config/strategies.json") -> Dict:
+
         """Загрузка конфигурации стратегий"""
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
@@ -375,6 +381,67 @@ class AdvancedTraderModel:
                     'adaptation_rate': 0.1
                 }
             }
+
+    def _load_memory_config(self) -> Dict:
+        """Загрузка конфигурации сериализации памяти"""
+        try:
+            with open('config/rl_config.json', 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                memory_config = config.get('memory_serialization', {})
+
+                # Дефолтные значения
+                defaults = {
+                    'enable_autosave': True,
+                    'autosave_interval': 100,
+                    'memory_file': 'models/saved_trader/memory_buffer.pkl',
+                    'max_memory_to_save': 5000,
+                    'compression': True
+                }
+
+                # Объединяем с дефолтами
+                for key, value in defaults.items():
+                    if key not in memory_config:
+                        memory_config[key] = value
+
+                return memory_config
+
+        except Exception as e:
+            print(f"[TraderModel] Ошибка загрузки конфига памяти: {e}")
+            # Возвращаем дефолты
+            return {
+                'enable_autosave': True,
+                'autosave_interval': 100,
+                'memory_file': 'models/saved_trader/memory_buffer.pkl',
+                'max_memory_to_save': 5000,
+                'compression': True
+            }
+
+    def load_memory(self):
+        """Загрузка сериализованной памяти"""
+        config = self.memory_serialization_config
+        file_path = config['memory_file']
+
+        if not os.path.exists(file_path):
+            print(f"[TraderModel] Файл памяти не найден: {file_path}")
+            return
+
+        try:
+            import pickle
+            import gzip
+
+            if config.get('compression', True):
+                with gzip.open(file_path, 'rb') as f:
+                    loaded_memory = pickle.load(f)
+            else:
+                with open(file_path, 'rb') as f:
+                    loaded_memory = pickle.load(f)
+
+            self.memory.extend(loaded_memory)
+            print(f"[TraderModel] Загружено {len(loaded_memory)} опытов из памяти")
+
+        except Exception as e:
+            print(f"[TraderModel] Ошибка загрузки памяти: {e}")
+
 
     def choose_action_with_strategy(self, state: torch.Tensor, ticker: str,
                                     price: float, market_context: Dict) -> Tuple[int, str, float]:
@@ -960,6 +1027,9 @@ class AdvancedTraderModel:
             'news_features': news_features.cpu() if news_features is not None else None,
             'timestamp': datetime.now().isoformat()
         })
+        if (self.memory_serialization_config['enable_autosave'] and
+                len(self.memory) % self.memory_serialization_config['autosave_interval'] == 0):
+            self.save_memory()
 
     def learn_from_experience(self, batch_size: int = DEFAULT_BATCH_SIZE):
         """Обучение на опыте с БЕЗОПАСНОЙ ОБРАБОТКОЙ ДАННЫХ"""
@@ -1530,6 +1600,39 @@ class AdvancedTraderModel:
 
         return None, 0
 
+
+    def save_memory(self):
+        """Сериализация памяти"""
+        config = self.memory_serialization_config
+
+        if not config['enable_autosave'] or len(self.memory) == 0:
+            return
+
+        try:
+            import pickle
+            import gzip
+
+            # Определяем сколько опытов сохранять
+            max_to_save = min(config['max_memory_to_save'], len(self.memory))
+            memory_to_save = list(self.memory)[-max_to_save:]
+
+            file_path = config['memory_file']
+
+            # Создаем директорию если нет
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+            if config.get('compression', True):
+                with gzip.open(file_path, 'wb') as f:
+                    pickle.dump(memory_to_save, f, protocol=pickle.HIGHEST_PROTOCOL)
+            else:
+                with open(file_path, 'wb') as f:
+                    pickle.dump(memory_to_save, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+            print(f"[TraderModel] Память сохранена: {len(memory_to_save)} опытов в {file_path}")
+
+        except Exception as e:
+            print(f"[TraderModel] Ошибка сохранения памяти: {e}")
+
     def periodic_learning(self):
         """Периодическое обучение"""
         if len(self.memory) > MIN_EXPERIENCES_FOR_LEARNING:
@@ -1544,6 +1647,10 @@ class AdvancedTraderModel:
             if self._learn_steps % AUTO_SAVE_INTERVAL == 0:
                 self.save_model()
                 print(f"[TraderModel] Автосохранение после {self._learn_steps} шагов обучения")
+
+            # Сериализация памяти
+            if self.memory_serialization_config['enable_autosave']:
+                self.save_memory()
 
             return loss
 
