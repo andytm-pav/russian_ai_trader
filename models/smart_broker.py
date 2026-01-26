@@ -95,6 +95,8 @@ class SmartPortfolioBroker:
     def _execute_trading_decisions(self, signals: List[Dict],
                                    prices: Dict[str, float], securities: Dict):
         """Исполнение торговых решений с RL"""
+        logger.debug(f"[DEBUG] Исполнение {len(signals)} сигналов")
+
         executed_count = 0
 
         for signal in signals[:5]:  # Обрабатываем только топ-5 сигналов
@@ -107,6 +109,9 @@ class SmartPortfolioBroker:
 
             price = prices[ticker]
             action_idx = {'BUY': 0, 'HOLD': 1, 'SELL': 2}[action_str]
+
+            # Логируем каждый сигнал
+            logger.debug(f"[DEBUG] Сигнал: {ticker} {action_str} conf={confidence:.2f}")
 
             # 1. Получаем или создаем состояние для тикера
             if ticker in self.ticker_states:
@@ -129,6 +134,8 @@ class SmartPortfolioBroker:
                     stop_loss=stop_loss,
                     confidence=confidence,
                 )
+
+                logger.debug(f"[DEBUG] {ticker}: quantity={quantity}, risk_amount={risk_amount}")
 
                 # Применяем стратегический множитель к результату RiskManager
                 if quantity > 0:
@@ -158,6 +165,8 @@ class SmartPortfolioBroker:
 
                 sentiment_data = self.news_core.get_enhanced_sentiment(ticker)
 
+                logger.debug(f"[DEBUG] {ticker}: cash={self.portfolio.cash}, price={price}, total={quantity * price}")
+
                 if quantity > 0 and self.portfolio.buy(ticker, quantity, price):
                     # 4. Запись RL-опыта с сентиментом
                     self._record_rl_experience(
@@ -177,10 +186,13 @@ class SmartPortfolioBroker:
                     self.portfolio.positions[ticker]['entry_state'] = current_state.cpu().numpy().tolist()
 
                     executed_count += 1
+                    logger.debug(f"[DEBUG] Куплено: {ticker} {quantity} @ {price:.2f}")
+
 
             elif action_str == 'SELL':
                 if ticker in self.portfolio.positions:
                     # 6. Продажа - завершение RL-опыта
+                    logger.debug(f"[DEBUG] Продажа {ticker}, есть позиция")
                     self._complete_rl_experience(ticker, price)
 
                     # Исполнение продажи
@@ -190,6 +202,8 @@ class SmartPortfolioBroker:
                     if qty > 0 and self.portfolio.sell(ticker, qty, price):
                         # Обновляем стратегию
                         strategy = pos.get('strategy', 'balanced')
+                        executed_count += 1
+                        logger.debug(f"[DEBUG] Продано: {ticker} {qty} @ {price:.2f}")
 
                         # Записываем результат стратегии
                         if hasattr(self.model, 'record_strategy_outcome'):
@@ -199,8 +213,8 @@ class SmartPortfolioBroker:
                                 pnl=(price - pos['avg_price']) * qty,
                                 hold_time=time.time() - pos.get('buy_time', time.time())
                             )
-
-                        executed_count += 1
+        logger.debug(f"[DEBUG] Всего исполнено сделок: {executed_count}")
+        return executed_count
 
     def _record_rl_experience(self, ticker: str, state: torch.Tensor,
                               action: int, strategy: str, price: float,
@@ -255,6 +269,8 @@ class SmartPortfolioBroker:
 
     def _complete_rl_experience(self, ticker: str, exit_price: float):
         """Завершение RL-опыта при продаже С ИСПРАВЛЕНИЕМ АРГУМЕНТОВ"""
+        logger.debug (f"[DEBUG] Завершение RL опыта для {ticker} @ {exit_price}")
+        logger.debug (f"[DEBUG] pending_experiences: {len(self.pending_experiences)}")
         # Находим незавершенный опыт для этого тикера
         for exp in self.pending_experiences:
             if exp['ticker'] == ticker and not exp['completed']:

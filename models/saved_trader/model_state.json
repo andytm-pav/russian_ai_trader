@@ -1923,7 +1923,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": 0.0439885047710741,
+  "market_sentiment": 0.04294788687961688,
   "sentiment_history": [
     0.0015873015873015873,
     0.0021327967806841048,
@@ -1977,18 +1977,21 @@
     0.045260771100315046,
     0.0435802224455681,
     0.044777755756566846,
-    0.0439885047710741
+    0.0439885047710741,
+    0.04327817888413062,
+    0.04129195879186081,
+    0.04294788687961688
   ],
-  "volatility_index": 0.7032269509825455,
+  "volatility_index": 0.7048691992650553,
   "memory_size": 0,
   "total_experiences": 0,
   "strategy_performance": {
     "balanced": {
-      "total_trades": 155,
-      "profitable_trades": 93,
-      "total_pnl": 633.9720000000001,
-      "avg_pnl": 4.090141935483872,
-      "win_rate": 0.6
+      "total_trades": 160,
+      "profitable_trades": 97,
+      "total_pnl": 651.7719999999999,
+      "avg_pnl": 4.073575,
+      "win_rate": 0.60625
     },
     "news_aggressive": {
       "total_trades": 5,
@@ -3125,6 +3128,41 @@
       "pnl": 59.0,
       "hold_time": 305.58057737350464,
       "timestamp": "2026-01-24T12:46:57.285619"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 0.0,
+      "hold_time": 0.0013415813446044922,
+      "timestamp": "2026-01-26T12:42:06.829937"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 1.0,
+      "hold_time": 364.9389932155609,
+      "timestamp": "2026-01-26T12:48:11.767590"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 9.599999999999909,
+      "hold_time": 0.00177001953125,
+      "timestamp": "2026-01-26T15:22:50.018071"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 4.7999999999999545,
+      "hold_time": 0.002164125442504883,
+      "timestamp": "2026-01-26T15:23:54.501730"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 2.3999999999999773,
+      "hold_time": 0.002345561981201172,
+      "timestamp": "2026-01-26T15:24:46.590244"
     }
   ],
   "strategies": {
@@ -3171,5 +3209,5 @@
       }
     }
   },
-  "save_time": "2026-01-25T22:31:55.689811"
+  "save_time": "2026-01-26T21:21:18.625260"
 }
