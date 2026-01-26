@@ -40,7 +40,7 @@
     14,
     16
   ],
-  "logging_level": "INFO",
+  "logging_level": "DEBUG",
   "simulation_mode": true,
   "paper_trading": true,
 

@@ -17,10 +17,11 @@ from core.trading_hours_scheduler import TradingScheduler
 from fetchers.moex_fetcher import MoexFetcher
 from fetchers.rss_fetcher import RSSFetcher
 from utils.portfolio_manager import PortfolioManager
-from utils.logger import logger
+from utils.logger import setup_logger
+
 from models.trader_model import trader_model_instance
 from models.trader_model import MIN_EXPERIENCES_FOR_LEARNING
-
+logger = None
 
 class SmartPortfolioBroker:
     """Умный брокер с интеграцией всех торговых ядер"""
@@ -36,6 +37,13 @@ class SmartPortfolioBroker:
         self.scheduler = TradingScheduler()
         self.portfolio = PortfolioManager()
         self.model = trader_model_instance
+
+        global logger
+        # Инициализируем глобальный логгер с настройками
+        logger = setup_logger(
+            'SMART_BROKER',
+            log_level=settings.get("logging_level", "DEBUG")
+        )
 
 
         # ✅ ИНИЦИАЛИЗАЦИЯ НОВЫХ КОНФИГОВ

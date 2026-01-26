@@ -1923,7 +1923,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": 0.04294788687961688,
+  "market_sentiment": 0.05319425543688004,
   "sentiment_history": [
     0.0015873015873015873,
     0.0021327967806841048,
@@ -1980,18 +1980,21 @@
     0.0439885047710741,
     0.04327817888413062,
     0.04129195879186081,
-    0.04294788687961688
+    0.04294788687961688,
+    0.0468498195031306,
+    0.049541886733145406,
+    0.05319425543688004
   ],
-  "volatility_index": 0.7048691992650553,
+  "volatility_index": 0.7100872519326376,
   "memory_size": 0,
   "total_experiences": 0,
   "strategy_performance": {
     "balanced": {
-      "total_trades": 160,
-      "profitable_trades": 97,
-      "total_pnl": 651.7719999999999,
-      "avg_pnl": 4.073575,
-      "win_rate": 0.60625
+      "total_trades": 161,
+      "profitable_trades": 98,
+      "total_pnl": 657.372,
+      "avg_pnl": 4.083055900621118,
+      "win_rate": 0.6086956521739131
     },
     "news_aggressive": {
       "total_trades": 5,
@@ -3163,6 +3166,13 @@
       "pnl": 2.3999999999999773,
       "hold_time": 0.002345561981201172,
       "timestamp": "2026-01-26T15:24:46.590244"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 5.600000000000023,
+      "hold_time": 21617.300680160522,
+      "timestamp": "2026-01-26T21:25:03.888578"
     }
   ],
   "strategies": {
@@ -3209,5 +3219,5 @@
       }
     }
   },
-  "save_time": "2026-01-26T21:21:18.625260"
+  "save_time": "2026-01-26T22:56:52.619829"
 }
