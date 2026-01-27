@@ -10,9 +10,9 @@ from typing import Dict, List, Tuple, Optional
 import numpy as np
 from collections import deque
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 
-logger = setup_logger("RISK_MANAGER")
+logger = get_logger('RISK_MANAGER')
 
 
 class RiskManager:
@@ -31,6 +31,9 @@ class RiskManager:
         self.max_daily_drawdown = 0.0  # Положительное число: максимальная просадка от максимума
         self.daily_high_watermark = self.portfolio_state.get('total_value', 0)
         self.trade_history = deque(maxlen=1000)  # Используем deque для фиксированного размера
+
+
+
 
         logger.info(f"Инициализирован Risk Manager (риск на сделку: {self.config['risk_per_trade_percent']}%)")
 

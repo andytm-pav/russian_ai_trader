@@ -9,9 +9,9 @@ from typing import Dict, List, Optional, Tuple
 import talib
 import json
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 
-logger = setup_logger("TECH_CORE")
+logger = get_logger("TECH_CORE")
 
 
 class TechnicalTraderCore:
@@ -20,6 +20,8 @@ class TechnicalTraderCore:
     def __init__(self):
         self.price_history = {}
         self.indicators_cache = {}
+
+
         logger.info("Инициализировано ядро технического анализа")
 
     def update_price_data(self, ticker: str, price: float, volume: int = 0):

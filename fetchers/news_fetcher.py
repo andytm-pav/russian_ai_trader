@@ -9,9 +9,9 @@ from datetime import datetime, timedelta, timezone  # ИМПОРТИРУЕМ tim
 from typing import Dict, List, Optional
 import re
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 
-logger = setup_logger("NEWS_FETCHER")
+logger = get_logger("NEWS_FETCHER")
 
 
 class NewsFetcher:

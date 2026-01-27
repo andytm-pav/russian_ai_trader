@@ -11,10 +11,10 @@ from typing import List, Dict, Tuple, Optional
 from collections import defaultdict
 import re
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 from models.trader_model import trader_model_instance
 
-logger = setup_logger("NEWS_CORE")
+logger = get_logger("NEWS_CORE")
 
 
 class NewsTraderCore:

@@ -11,10 +11,10 @@ import numpy as np
 import pandas as pd
 import torch
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 from models.trader_model import trader_model_instance
 
-logger = setup_logger("TRAINER")
+logger = None
 
 
 class ModelTrainer:
@@ -27,6 +27,8 @@ class ModelTrainer:
                  save_interval: int = 10,
                  enable_priority_training: bool = False):  # НОВЫЙ ПАРАМЕТР
 
+        global logger
+        logger = get_logger("TRAINER")
         self.model = model or trader_model_instance
         self.training_interval = training_interval
         self.batch_size = batch_size

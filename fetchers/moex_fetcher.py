@@ -9,9 +9,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 import pandas as pd
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 
-logger = setup_logger("MOEX_FETCHER")
+logger = get_logger("MOEX_FETCHER")
 
 
 class MoexFetcher:

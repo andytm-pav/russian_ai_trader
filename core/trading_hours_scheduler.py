@@ -9,9 +9,9 @@ from typing import Dict, List, Optional, Tuple
 import schedule
 import time as ttime
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 
-logger = setup_logger("SCHEDULER")
+logger = get_logger("SCHEDULER")
 
 
 class TradingScheduler:
@@ -22,6 +22,12 @@ class TradingScheduler:
         self.moscow_tz = pytz.timezone('Europe/Moscow')
         self.today_cache = None
         self.is_trading_day_cache = None
+
+
+
+
+
+
 
         logger.info("Инициализирован планировщик торговых сессий")
 

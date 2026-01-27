@@ -12,9 +12,9 @@ import threading
 from core.trading_hours_scheduler import TradingScheduler
 from models.smart_broker import SmartPortfolioBroker
 from web.app import run_web_server
-from utils.logger import setup_logger
+from utils.logger import get_logger
 
-logger = setup_logger("MAIN")
+logger = get_logger("MAIN")
 stop_event = threading.Event()
 
 

@@ -8,9 +8,9 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any
 from collections import defaultdict
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 
-logger = setup_logger("PORTFOLIO")
+logger = get_logger("PORTFOLIO")
 
 
 class PortfolioManager:

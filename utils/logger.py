@@ -263,8 +263,27 @@ def setup_logger(name: str,
     return _loggers[name]
 
 
-# Стандартный логгер
-logger = setup_logger('SYSTEM')
+def get_logger(name: str, settings_path: str = "config/settings.json") -> TradeLogger:
+    """Умный логгер, автоматически загружающий уровень из settings.json"""
+    log_level = "INFO"  # Значение по умолчанию
+
+    try:
+        # Пробуем загрузить настройки из settings.json
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+                log_level = settings.get("logging_level", "INFO")
+        else:
+            print(f"⚠ Файл настроек не найден: {settings_path}")
+    except Exception as e:
+        print(f"⚠ Ошибка загрузки настроек логирования: {e}")
+
+    print(f"📝 Логгер '{name}' инициализирован с уровнем: {log_level}")
+    return setup_logger(name, log_level=log_level)
+
+
+# Глобальный логгер с автоматической загрузкой настроек
+logger = get_logger('SYSTEM')  # ← ЭТО ЕДИНСТВЕННАЯ СТРОКА создания глобального логгера!
 
 
 def get_all_loggers() -> Dict[str, TradeLogger]:

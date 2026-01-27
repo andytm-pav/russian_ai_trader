@@ -9,9 +9,9 @@ from typing import Dict, List, Optional, Set
 import re
 from collections import defaultdict
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 
-logger = setup_logger("RSS_FETCHER")
+logger = get_logger("RSS_FETCHER")
 
 
 class RSSFetcher:
