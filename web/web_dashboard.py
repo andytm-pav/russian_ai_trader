@@ -479,8 +479,7 @@ class DashboardVisualizer:
                     cmax=1,
                     showscale=True,
                     colorbar=dict(
-                        title="Сентимент",
-                        titleside="right",
+                        title=dict(text="Сентимент", side="right"),
                         tickvals=[-1, -0.5, 0, 0.5, 1],
                         ticktext=["Очень негат.", "Негат.", "Нейтр.", "Позит.", "Очень позит."]
                     )

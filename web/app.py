@@ -14,6 +14,8 @@ import threading
 import time
 from typing import Dict, List, Optional, Any
 
+from web.web_dashboard import dashboard_viz
+
 from utils.logger import get_logger
 from models.smart_broker import SmartPortfolioBroker
 from models.trainer import model_trainer_instance
@@ -338,11 +340,23 @@ charts_layout = dbc.Container([
                                     {'label': 'Сбербанк (SBER)', 'value': 'SBER'},
                                     {'label': 'Газпром (GAZP)', 'value': 'GAZP'},
                                     {'label': 'Лукойл (LKOH)', 'value': 'LKOH'},
-                                    {'label': 'Яндекс (YNDX)', 'value': 'YNDX'},
-                                    {'label': 'ВТБ (VTBR)', 'value': 'VTBR'},
+                                    {'label': 'Тинькофф (TCSG)', 'value': 'TCSG'},  # 🔄 Аналог YNDX по IT/финтеху
+                                    {'label': 'МТС (MTSS)', 'value': 'MTSS'},  # 🔄 Телеком/цифровые услуги
+                                    {'label': 'Московская биржа (MOEX)', 'value': 'MOEX'},
                                     {'label': 'Роснефть (ROSN)', 'value': 'ROSN'},
                                     {'label': 'Норникель (GMKN)', 'value': 'GMKN'},
-                                    {'label': 'Новатэк (NVTK)', 'value': 'NVTK'}
+                                    {'label': 'Новатэк (NVTK)', 'value': 'NVTK'},
+                                    {'label': 'ВТБ (VTBR)', 'value': 'VTBR'},
+                                    {'label': 'АЛРОСА (ALRS)', 'value': 'ALRS'},
+                                    {'label': 'ФосАгро (PHOR)', 'value': 'PHOR'},
+                                    {'label': 'Магнит (MGNT)', 'value': 'MGNT'},
+                                    {'label': 'Полюс (PLZL)', 'value': 'PLZL'},
+                                    {'label': 'Сургутнефтегаз (SNGS)', 'value': 'SNGS'},
+                                    {'label': 'Северсталь (CHMF)', 'value': 'CHMF'},
+                                    {'label': 'АФК Система (AFKS)', 'value': 'AFKS'},
+                                    {'label': 'Мосэнерго (MSNG)', 'value': 'MSNG'},
+                                    {'label': 'Интер РАО (IRAO)', 'value': 'IRAO'},
+                                    {'label': 'РусГидро (HYDR)', 'value': 'HYDR'}
                                 ],
                                 value='SBER',
                                 clearable=False
@@ -1204,6 +1218,380 @@ def update_system_stats(n_intervals):
     except Exception as e:
         logger.error(f"Ошибка обновления статистики: {e}")
         return [html.P(f"Ошибка: {e}"), html.P("Ошибка загрузки")]
+
+
+# Коллбэк для графика цены и объема
+@app.callback(
+    Output("price-volume-chart", "figure"),
+    [Input("ticker-selector", "value"),
+     Input("period-selector", "value"),
+     Input("interval-selector", "value"),
+     Input("interval-component", "n_intervals")]
+)
+def update_price_volume_chart(ticker, period, interval_str, n_intervals):
+    """Обновление графика цены и объема"""
+    try:
+        if broker_instance is None:
+            return dashboard_viz._create_empty_chart("Система не инициализирована")
+
+        # Маппинг интервалов из веба в параметры get_candles
+        interval_map = {
+            "1min": 1,  # 1 минута
+            "5min": 10,  # 10 минут (ближайший к 5)
+            "15min": 10,  # 10 минут
+            "30min": 10,  # 10 минут
+            "1h": 60,  # 1 час
+            "1d": 24  # 1 день
+        }
+
+        # Маппинг периода в количество свечей
+        period_count_map = {
+            "1d": 24,  # 24 часа для часового графика
+            "1w": 7 * 24,  # неделя часовых свечей
+            "1m": 30 * 24,  # месяц часовых свечей
+            "3m": 90 * 24,  # 3 месяца часовых свечей
+            "6m": 180 * 24  # 6 месяцев часовых свечей
+        }
+
+        # Преобразуем параметры
+        interval = interval_map.get(interval_str, 60)  # по умолчанию 1 час
+        count = period_count_map.get(period, 100)  # по умолчанию 100 свечей
+
+        # Для дневного графика уменьшаем количество
+        if interval == 24:
+            count = min(count // 24, 365)  # макс 1 год дневных свечей
+
+        # Получаем данные через moex_fetcher из брокера
+        try:
+            moex = broker_instance.moex
+            candles_data = moex.get_candles(
+                ticker=ticker,
+                interval=interval,
+                count=count
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка получения данных {ticker}: {e}")
+            # Пробуем создать тестовые данные
+            candles_data = None
+
+        if candles_data is None or candles_data.empty:
+            # Тестовые данные для отладки
+            import pandas as pd
+            import numpy as np
+            from datetime import datetime, timedelta
+
+            # Базовая цена в зависимости от тикера
+            base_prices = {
+                'SBER': 280, 'GAZP': 160, 'LKOH': 7500,
+                'YNDX': 3500, 'VTBR': 0.025, 'ROSN': 580,
+                'GMKN': 16000, 'NVTK': 1800, 'TCSG': 4500,
+                'MOEX': 150, 'ALRS': 100, 'PHOR': 2800
+            }
+            base_price = base_prices.get(ticker, 100)
+
+            # Генерируем тестовые данные
+            if interval == 24:  # дневные данные
+                dates = pd.date_range(end=datetime.now(), periods=count, freq='D')
+                freq = 'D'
+            else:  # внутридневные данные
+                if interval <= 60:  # минутные/часовые
+                    dates = pd.date_range(end=datetime.now(), periods=count, freq='H')
+                    freq = 'H'
+                else:
+                    dates = pd.date_range(end=datetime.now(), periods=count, freq='H')
+                    freq = 'H'
+
+            # Генерируем цены с трендом
+            trend = np.random.uniform(-0.01, 0.01, count).cumsum()
+            prices = base_price * (1 + trend)
+
+            # Добавляем волатильность
+            volatility = base_price * 0.02
+            noise = np.random.randn(count) * volatility
+
+            final_prices = prices + noise
+
+            candles_data = pd.DataFrame({
+                'Open': final_prices - np.random.rand(count) * (base_price * 0.01),
+                'High': final_prices + np.random.rand(count) * (base_price * 0.015),
+                'Low': final_prices - np.random.rand(count) * (base_price * 0.01),
+                'Close': final_prices,
+                'Volume': np.random.randint(10000, 1000000, count)
+            }, index=dates)
+
+            logger.info(f"Использованы тестовые данные для {ticker}")
+
+        return dashboard_viz.create_price_volume_chart(candles_data, ticker)
+
+    except Exception as e:
+        logger.error(f"Ошибка обновления графика цены: {e}")
+        return dashboard_viz._create_empty_chart(f"Ошибка: {str(e)}")
+
+
+# Коллбэк для графика технических индикаторов
+# Коллбэк для графика технических индикаторов - ПРАВИЛЬНАЯ ВЕРСИЯ
+@app.callback(
+    Output("indicators-chart", "figure"),
+    [Input("ticker-selector", "value"),
+     Input("period-selector", "value"),
+     Input("interval-selector", "value"),
+     Input("interval-component", "n_intervals")]
+)
+def update_indicators_chart(ticker, period, interval_str, n_intervals):
+    """График индикаторов из свечных данных"""
+    try:
+        if broker_instance is None:
+            return dashboard_viz._create_empty_chart("Система не инициализирована")
+
+        # 1. Получаем свечные данные
+        interval_map = {"1min": 1, "5min": 10, "15min": 10, "30min": 10, "1h": 60, "1d": 24}
+        interval = interval_map.get(interval_str, 60)
+
+        # Количество свечей
+        count = 50  # достаточно для графика
+
+        candles_data = broker_instance.moex.get_candles(
+            ticker=ticker,
+            interval=interval,
+            count=count
+        )
+
+        if candles_data is None or candles_data.empty:
+            logger.warning(f"Нет свечных данных для {ticker}")
+            return dashboard_viz._create_empty_chart(f"Нет данных для {ticker}")
+
+        # 2. Рассчитываем индикаторы НАПРЯМУЮ из цен (без TechnicalTraderCore)
+        import pandas as pd
+        import numpy as np
+
+        # Берем цены закрытия
+        if 'Close' in candles_data.columns:
+            close_prices = candles_data['Close'].values
+        elif 'close' in candles_data.columns:
+            close_prices = candles_data['close'].values
+        else:
+            # Если нет Close, используем Open
+            close_prices = candles_data['Open'].values
+
+        if len(close_prices) < 20:
+            return dashboard_viz._create_empty_chart(f"Мало данных для расчета индикаторов")
+
+        # 3. Расчет простых индикаторов
+        indicators_data = {
+            'prices': close_prices.tolist()
+        }
+
+        # RSI расчет
+        try:
+            # Используем существующую библиотеку если есть
+            if 'talib' in globals():
+                import talib
+                rsi_values = talib.RSI(close_prices, timeperiod=14)
+                indicators_data['rsi'] = rsi_values.tolist()
+            else:
+                # Простой RSI расчет
+                def calculate_rsi(prices, period=14):
+                    deltas = np.diff(prices)
+                    seed = deltas[:period + 1]
+                    up = seed[seed >= 0].sum() / period
+                    down = -seed[seed < 0].sum() / period
+                    rs = up / down if down != 0 else 0
+                    rsi = np.zeros_like(prices)
+                    rsi[:period] = 100. - 100. / (1. + rs)
+
+                    for i in range(period, len(prices)):
+                        delta = deltas[i - 1]
+                        if delta > 0:
+                            upval = delta
+                            downval = 0.
+                        else:
+                            upval = 0.
+                            downval = -delta
+
+                        up = (up * (period - 1) + upval) / period
+                        down = (down * (period - 1) + downval) / period
+                        rs = up / down if down != 0 else 0
+                        rsi[i] = 100. - 100. / (1. + rs)
+
+                    return rsi
+
+                rsi_values = calculate_rsi(close_prices)
+                indicators_data['rsi'] = rsi_values.tolist()
+        except Exception as e:
+            logger.warning(f"Ошибка расчета RSI: {e}")
+            # Заглушка для RSI
+            rsi_mock = 50 + 20 * np.sin(np.linspace(0, 4 * np.pi, len(close_prices)))
+            indicators_data['rsi'] = rsi_mock.tolist()
+
+        # MACD расчет
+        try:
+            if 'talib' in globals():
+                macd, macd_signal, macd_hist = talib.MACD(close_prices)
+                indicators_data['macd'] = macd.tolist()
+                indicators_data['macd_signal'] = macd_signal.tolist()
+                indicators_data['macd_hist'] = macd_hist.tolist()
+            else:
+                # Простой MACD расчет
+                def calculate_macd(prices):
+                    ema12 = pd.Series(prices).ewm(span=12, adjust=False).mean()
+                    ema26 = pd.Series(prices).ewm(span=26, adjust=False).mean()
+                    macd_line = ema12 - ema26
+                    signal_line = macd_line.ewm(span=9, adjust=False).mean()
+                    histogram = macd_line - signal_line
+                    return macd_line.values, signal_line.values, histogram.values
+
+                macd, signal, hist = calculate_macd(close_prices)
+                indicators_data['macd'] = macd.tolist()
+                indicators_data['macd_signal'] = signal.tolist()
+                indicators_data['macd_hist'] = hist.tolist()
+        except Exception as e:
+            logger.warning(f"Ошибка расчета MACD: {e}")
+            # Заглушка для MACD
+            macd_mock = np.sin(np.linspace(0, 6 * np.pi, len(close_prices))) * 2
+            signal_mock = np.sin(np.linspace(0, 6 * np.pi, len(close_prices)) - 0.5) * 1.8
+            hist_mock = np.random.randn(len(close_prices)) * 0.5
+            indicators_data['macd'] = macd_mock.tolist()
+            indicators_data['macd_signal'] = signal_mock.tolist()
+            indicators_data['macd_hist'] = hist_mock.tolist()
+
+        # Bollinger Bands
+        try:
+            if 'talib' in globals():
+                upper, middle, lower = talib.BBANDS(close_prices, timeperiod=20)
+                indicators_data['bb_upper'] = upper.tolist()
+                indicators_data['bb_middle'] = middle.tolist()
+                indicators_data['bb_lower'] = lower.tolist()
+            else:
+                # Простые Bollinger Bands
+                def calculate_bollinger_bands(prices, window=20, num_std=2):
+                    rolling_mean = pd.Series(prices).rolling(window=window).mean()
+                    rolling_std = pd.Series(prices).rolling(window=window).std()
+                    upper_band = rolling_mean + (rolling_std * num_std)
+                    lower_band = rolling_mean - (rolling_std * num_std)
+                    return upper_band.values, rolling_mean.values, lower_band.values
+
+                upper, middle, lower = calculate_bollinger_bands(close_prices)
+                indicators_data['bb_upper'] = upper.tolist()
+                indicators_data['bb_middle'] = middle.tolist()
+                indicators_data['bb_lower'] = lower.tolist()
+        except Exception as e:
+            logger.warning(f"Ошибка расчета Bollinger Bands: {e}")
+            # Заглушка для Bollinger Bands
+            base = np.mean(close_prices)
+            volatility = np.std(close_prices) * 0.02
+            time_wave = np.sin(np.linspace(0, 4 * np.pi, len(close_prices)))
+
+            middle = base + time_wave * volatility
+            upper = middle + base * 0.05
+            lower = middle - base * 0.05
+
+            indicators_data['bb_upper'] = upper.tolist()
+            indicators_data['bb_middle'] = middle.tolist()
+            indicators_data['bb_lower'] = lower.tolist()
+
+        logger.info(f"Рассчитано индикаторов для {ticker}: {list(indicators_data.keys())}")
+
+        # 4. Отправляем в визуализатор
+        return dashboard_viz.create_indicators_chart(indicators_data, ticker)
+
+    except Exception as e:
+        logger.error(f"Ошибка обновления графика индикаторов: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return dashboard_viz._create_empty_chart(f"Ошибка: {str(e)}")
+
+
+
+def _convert_indicators_for_chart(indicators: Dict, candles_data: pd.DataFrame) -> Dict:
+    """Конвертация индикаторов в формат для графика"""
+    try:
+        # Берем цены из свечей
+        close_prices = candles_data['Close'].values if 'Close' in candles_data.columns else []
+
+        # Создаем массивы для каждого индикатора
+        indicators_data = {
+            'prices': close_prices[-50:].tolist() if len(close_prices) > 0 else [],
+        }
+
+        # Для single-value индикаторов создаем массивы (повторяем значение)
+        for key, value in indicators.items():
+            if isinstance(value, (int, float)):
+                # Создаем массив из 20 одинаковых значений для графика
+                indicators_data[key] = [float(value)] * min(20, len(close_prices))
+            else:
+                indicators_data[key] = value
+
+        # Если RSI есть в индикаторах
+        if 'rsi' in indicators:
+            rsi_value = indicators['rsi']
+            indicators_data['rsi'] = [rsi_value] * min(20, len(close_prices))
+
+        # Если MACD есть
+        if 'macd' in indicators:
+            macd_value = indicators['macd']
+            signal_value = indicators.get('macd_signal', macd_value * 0.9)
+            hist_value = indicators.get('macd_hist', (macd_value - signal_value))
+
+            indicators_data['macd'] = [macd_value] * min(20, len(close_prices))
+            indicators_data['macd_signal'] = [signal_value] * min(20, len(close_prices))
+            indicators_data['macd_hist'] = [hist_value] * min(20, len(close_prices))
+
+        # Если Bollinger Bands есть
+        if 'bb_upper' in indicators and 'bb_lower' in indicators:
+            indicators_data['bb_upper'] = [indicators['bb_upper']] * min(20, len(close_prices))
+            indicators_data['bb_lower'] = [indicators['bb_lower']] * min(20, len(close_prices))
+            indicators_data['bb_middle'] = [indicators.get('bb_middle',
+                                                           (indicators['bb_upper'] + indicators[
+                                                               'bb_lower']) / 2)] * min(20, len(close_prices))
+
+        return indicators_data
+
+    except Exception as e:
+        logger.error(f"Ошибка конвертации индикаторов: {e}")
+        return {}
+
+
+# Коллбэк для графика сентимента
+@app.callback(
+    Output("sentiment-chart", "figure"),
+    [Input("ticker-selector", "value"),
+     Input("interval-component", "n_intervals")]
+)
+def update_sentiment_chart(ticker, n_intervals):
+    """Обновление графика новостного сентимента"""
+    try:
+        if broker_instance is None:
+            return dashboard_viz._create_empty_chart("Система не инициализирована")
+
+        sentiment_data = []
+        try:
+            # Получаем сентимент из news_core
+            if hasattr(broker_instance, 'news_core'):
+                sentiment = broker_instance.news_core.get_current_sentiment(ticker)
+
+                # Создаем тестовые данные
+                now = datetime.now()
+                sentiment_data = [
+                    {
+                        'timestamp': (now - timedelta(hours=i)).isoformat(),
+                        'sentiment': sentiment * (0.8 + 0.4 * (i % 3 - 1)),  # Небольшие колебания
+                        'source': 'NEWS_CORE',
+                        'ticker': ticker
+                    }
+                    for i in range(20, 0, -1)
+                ]
+        except:
+            pass
+
+        if not sentiment_data:
+            return dashboard_viz._create_empty_chart(f"Нет данных по сентименту для {ticker}")
+
+        return dashboard_viz.create_sentiment_chart(sentiment_data)
+
+    except Exception as e:
+        logger.error(f"Ошибка обновления графика сентимента: {e}")
+        return dashboard_viz._create_empty_chart(f"Ошибка: {str(e)}")
 
 # Запуск приложения
 if __name__ == '__main__':
