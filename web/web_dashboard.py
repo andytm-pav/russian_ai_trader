@@ -10,9 +10,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 import json
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 
-logger = setup_logger("DASHBOARD")
+logger = get_logger("DASHBOARD")
 
 
 class DashboardVisualizer:

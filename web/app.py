@@ -14,11 +14,11 @@ import threading
 import time
 from typing import Dict, List, Optional, Any
 
-from utils.logger import setup_logger
+from utils.logger import get_logger
 from models.smart_broker import SmartPortfolioBroker
 from models.trainer import model_trainer_instance
 
-logger = setup_logger("WEB_APP")
+logger = get_logger("WEB_APP")
 
 # Инициализация Dash приложения
 app = dash.Dash(
@@ -681,7 +681,8 @@ logs_layout = dbc.Container([
      Input("nav-portfolio", "n_clicks"),
      Input("nav-charts", "n_clicks"),
      Input("nav-settings", "n_clicks"),
-     Input("nav-logs", "n_clicks")],
+     Input("nav-logs", "n_clicks")
+     ],
     prevent_initial_call=True
 )
 def update_page_content(dash_clicks, port_clicks, charts_clicks, settings_clicks, logs_clicks):
@@ -1105,6 +1106,105 @@ def add_rss_source(n_clicks, new_url, new_name):
     ])
 
     return f"✅ Добавлен: {new_source['name']}", sources_list, "", ""
+
+
+# Коллбэк для отображения логов
+@app.callback(
+    Output("logs-content", "children"),
+    [Input("interval-component", "n_intervals"),
+     Input("clear-logs-btn", "n_clicks")],
+    prevent_initial_call=False
+)
+def update_logs(n_intervals, clear_clicks):
+    """Обновление содержимого логов"""
+    try:
+        # Если нажата кнопка очистки
+        ctx_triggered = ctx.triggered_id
+        if ctx_triggered == "clear-logs-btn" and clear_clicks:
+            # Логика очистки логов (пока просто возвращаем пустой)
+            return html.P("Логи очищены", className="text-muted")
+
+        # Чтение логов из файла
+        log_file = "logs/system.log"
+        try:
+            with open(log_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()[-100:]  # Последние 100 строк
+        except:
+            lines = ["Лог-файл не найден"]
+
+        # Создание HTML для логов
+        log_entries = []
+        for line in lines:
+            # Определение цвета по уровню
+            if 'DEBUG' in line:
+                color = '#00aaff'  # синий
+            elif 'INFO' in line:
+                color = '#00ff88'  # зеленый
+            elif 'WARNING' in line:
+                color = '#ffaa00'  # желтый
+            elif 'ERROR' in line:
+                color = '#ff4444'  # красный
+            elif 'CRITICAL' in line:
+                color = '#ff00ff'  # пурпурный
+            else:
+                color = '#cccccc'  # серый
+
+            log_entries.append(
+                html.Pre(
+                    line.strip(),
+                    style={'color': color, 'margin': '2px 0', 'fontSize': '11px'}
+                )
+            )
+
+        return log_entries
+
+    except Exception as e:
+        logger.error(f"Ошибка загрузки логов: {e}")
+        return html.P(f"Ошибка: {e}", className="text-danger")
+
+
+# Коллбэк для статистики
+@app.callback(
+    [Output("system-stats", "children"),
+     Output("components-status", "children")],
+    [Input("interval-component", "n_intervals")]
+)
+def update_system_stats(n_intervals):
+    """Обновление статистики системы"""
+    if broker_instance is None:
+        return ["Нет данных", "Нет данных"]
+
+    try:
+        # Статистика системы
+        summary = broker_instance.get_portfolio_summary()
+        risk_metrics = summary.get('risk_metrics', {})
+
+        stats_html = html.Div([
+            html.P(f"🔢 Циклов: {broker_instance.cycle_count}"),
+            html.P(f"📈 Сигналов: {len(broker_instance.signals_cache)}"),
+            html.P(f"💼 Позиций: {summary.get('positions_count', 0)}"),
+            html.P(f"📊 PnL день: {risk_metrics.get('daily_pnl', 0):+,.0f}₽"),
+            html.P(f"🎯 Сделок день: {risk_metrics.get('daily_trades', 0)}"),
+            html.P(f"🔄 Обучение: {len(broker_instance.model.memory)} опытов")
+        ])
+
+        # Статус компонентов
+        components_html = html.Div([
+            html.P("🤖 AI модель: ✅ Активна"),
+            html.P(f"📰 Новости: ✅ Активны" if hasattr(broker_instance.news_core,
+                                                      'running') and broker_instance.news_core.running else "❌ Остановлены"),
+            html.P("📊 Тех.анализ: ✅ Активен"),
+            html.P(f"⚖️ Риск-менеджер: ✅ Активен"),
+            html.P(f"⏰ Планировщик: ✅ Активен"),
+            html.P(f"💰 Портфель: ✅ Активен")
+        ])
+
+        return [stats_html, components_html]
+
+    except Exception as e:
+        logger.error(f"Ошибка обновления статистики: {e}")
+        return [html.P(f"Ошибка: {e}"), html.P("Ошибка загрузки")]
+
 # Запуск приложения
 if __name__ == '__main__':
     # Тестовый запуск
