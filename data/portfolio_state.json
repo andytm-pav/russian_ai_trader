@@ -1,30 +1,12 @@
 {
-  "total_value": 10247.744000000002,
-  "cash": 1230.5240000000022,
+  "total_value": 10335.739000000001,
+  "cash": 2814.014000000001,
   "positions": {
-    "LNZLP": {
-      "qty": 1,
-      "avg_price": 745.0,
-      "buy_time": 1767605750.364675,
-      "total_cost": 745.0
-    },
     "MFGSP": {
-      "qty": 2,
-      "avg_price": 252.5,
-      "buy_time": 1768806580.328927,
-      "total_cost": 505.0
-    },
-    "MFGS": {
       "qty": 1,
-      "avg_price": 390.0,
-      "buy_time": 1768821153.5919297,
-      "total_cost": 390.0
-    },
-    "MAGE": {
-      "qty": 179,
-      "avg_price": 3.18,
-      "buy_time": 1768910336.7441778,
-      "total_cost": 569.22
+      "avg_price": 252.5,
+      "buy_time": 1769454009.8788123,
+      "total_cost": 505.0
     },
     "DIAS": {
       "qty": 4,
@@ -186,8 +168,20 @@
         0.0,
         0.0
       ]
+    },
+    "MGKL": {
+      "qty": 85,
+      "avg_price": 2.855,
+      "buy_time": 1769488972.1070282,
+      "total_cost": 242.675
+    },
+    "LPSB": {
+      "qty": 3,
+      "avg_price": 72.85,
+      "buy_time": 1769488972.1086364,
+      "total_cost": 218.54999999999998
     }
   },
-  "last_update": "2026-01-26T22:56:52.627420",
+  "last_update": "2026-01-27T20:06:27.490625",
   "initial_capital": 10000
 }
