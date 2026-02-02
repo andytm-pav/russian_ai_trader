@@ -777,6 +777,12 @@ def update_dashboard(n_intervals, refresh_clicks):
         # Сигналы
         signals_list = create_signals_list(summary.get('current_signals', []))
 
+        # Сохраняем историю каждые 5 обновлений (примерно каждые 25 секунд)
+        if n_intervals and n_intervals % 5 == 0:
+            save_portfolio_history()
+
+
+
         return [
             system_status,
             market_status,
@@ -1593,6 +1599,702 @@ def update_sentiment_chart(ticker, n_intervals):
         logger.error(f"Ошибка обновления графика сентимента: {e}")
         return dashboard_viz._create_empty_chart(f"Ошибка: {str(e)}")
 
+
+# Коллбэки для страницы портфеля - РЕАЛЬНЫЕ ДАННЫЕ
+@app.callback(
+    [Output("detailed-positions-table", "children"),
+     Output("sector-pie-chart", "figure"),
+     Output("portfolio-value-chart", "figure"),
+     Output("trade-history-table", "children")],
+    [Input("interval-component", "n_intervals"),
+     Input("nav-portfolio", "n_clicks")]
+)
+def update_portfolio_page(n_intervals, nav_clicks):
+    """Обновление данных на странице портфеля с реальными данными проекта"""
+    if broker_instance is None:
+        empty_chart = dashboard_viz._create_empty_chart("Система не инициализирована")
+        return ["Нет данных", empty_chart, empty_chart, "Нет данных"]
+
+    try:
+        # 1. Получаем РЕАЛЬНЫЕ данные портфеля из smart_broker
+        summary = get_portfolio_summary_safe()
+        positions = summary.get('positions', [])
+
+        # 2. Подробная таблица позиций с реальными данными
+        positions_table = create_real_positions_table(positions)
+
+        # 3. График распределения по секторам с реальными секторами
+        sector_chart = create_real_sector_chart(positions)
+
+        # 4. График стоимости портфеля с реальной историей
+        value_chart = create_real_portfolio_value_chart(summary)
+
+        # 5. История сделок из portfolio_manager
+        trade_history = get_real_trade_history()
+        trade_table = create_real_trade_history_table(trade_history)
+
+        return [positions_table, sector_chart, value_chart, trade_table]
+
+    except Exception as e:
+        logger.error(f"Ошибка обновления страницы портфеля: {e}")
+        empty_chart = dashboard_viz._create_empty_chart(f"Ошибка загрузки")
+        return ["Ошибка загрузки", empty_chart, empty_chart, "Ошибка загрузки"]
+
+
+def get_portfolio_summary_safe():
+    """Безопасное получение сводки портфеля из smart_broker"""
+    try:
+        if broker_instance and hasattr(broker_instance, 'get_portfolio_summary'):
+            return broker_instance.get_portfolio_summary()
+
+        # Если метода нет, собираем данные вручную
+        return get_portfolio_summary_fallback()
+    except Exception as e:
+        logger.error(f"Ошибка получения сводки портфеля: {e}")
+        return get_portfolio_summary_fallback()
+
+
+def get_portfolio_summary_fallback():
+    """Резервный метод получения сводки портфеля"""
+    try:
+        portfolio = broker_instance.portfolio if broker_instance else None
+        if not portfolio:
+            return {"positions": []}
+
+        # Получаем текущие цены
+        prices = broker_instance._get_current_prices() if hasattr(broker_instance, '_get_current_prices') else {}
+
+        # Собираем позиции вручную
+        positions_detail = []
+        total_value = 0
+
+        for ticker, pos in portfolio.positions.items():
+            current_price = prices.get(ticker, pos.get('avg_price', 0))
+            quantity = pos.get('qty', 0)
+            avg_price = pos.get('avg_price', 0)
+            position_value = quantity * current_price
+            total_value += position_value
+
+            positions_detail.append({
+                'ticker': ticker,
+                'quantity': quantity,
+                'avg_price': avg_price,
+                'current_price': current_price,
+                'position_value': position_value,
+                'pnl': (current_price - avg_price) * quantity,
+                'pnl_percent': ((current_price / avg_price) - 1) * 100 if avg_price > 0 else 0,
+                'weight': (position_value / total_value * 100) if total_value > 0 else 0,
+                'buy_time': pos.get('buy_time'),
+                'strategy': pos.get('strategy', 'unknown')
+            })
+
+        return {
+            'positions': positions_detail,
+            'total_value': total_value + (portfolio.cash if hasattr(portfolio, 'cash') else 0),
+            'cash': portfolio.cash if hasattr(portfolio, 'cash') else 0,
+            'positions_count': len(portfolio.positions),
+            'initial_capital': portfolio.initial_capital if hasattr(portfolio, 'initial_capital') else 10000
+        }
+    except Exception as e:
+        logger.error(f"Ошибка в fallback методе: {e}")
+        return {"positions": []}
+
+
+def create_real_positions_table(positions):
+    """Создание таблицы позиций с реальными данными"""
+    if not positions:
+        return html.Div([
+            html.P("Нет открытых позиций", className="text-muted text-center"),
+            html.Small("Система ожидает торговых сигналов", className="text-muted d-block text-center")
+        ], className="p-4")
+
+    # Сортируем по стоимости позиции
+    positions_sorted = sorted(positions, key=lambda x: x.get('position_value', 0), reverse=True)
+
+    header = html.Thead(html.Tr([
+        html.Th("Тикер"),
+        html.Th("Стратегия"),
+        html.Th("Кол-во"),
+        html.Th("Ср. цена"),
+        html.Th("Тек. цена"),
+        html.Th("Стоимость"),
+        html.Th("PnL ₽"),
+        html.Th("PnL %"),
+        html.Th("Вес"),
+        html.Th("Дней")
+    ]))
+
+    rows = []
+    for pos in positions_sorted:
+        ticker = pos.get('ticker', 'N/A')
+        strategy = pos.get('strategy', 'unknown')
+
+        # Расчет дней удержания
+        days_held = 0
+        buy_time = pos.get('buy_time')
+        if buy_time:
+            try:
+                if isinstance(buy_time, (int, float)):
+                    buy_dt = datetime.fromtimestamp(buy_time)
+                elif isinstance(buy_time, str):
+                    buy_dt = datetime.fromisoformat(buy_time.replace('Z', '+00:00'))
+                else:
+                    buy_dt = datetime.now()
+                days_held = max(0, (datetime.now() - buy_dt).days)
+            except:
+                days_held = 0
+
+        # PnL расчет
+        pnl = pos.get('pnl', 0)
+        pnl_percent = pos.get('pnl_percent', 0)
+        pnl_class = "text-success" if pnl >= 0 else "text-danger"
+        pnl_percent_class = "text-success" if pnl_percent >= 0 else "text-danger"
+
+        # Определяем цвет стратегии
+        strategy_colors = {
+            'news_aggressive': 'badge bg-danger',
+            'momentum': 'badge bg-warning',
+            'mean_reversion': 'badge bg-info',
+            'balanced': 'badge bg-primary',
+            'conservative': 'badge bg-success',
+            'unknown': 'badge bg-secondary'
+        }
+        strategy_class = strategy_colors.get(strategy, 'badge bg-secondary')
+
+        rows.append(html.Tr([
+            html.Td(html.Strong(ticker)),
+            html.Td(html.Span(strategy, className=f"{strategy_class} badge-sm")),
+            html.Td(f"{pos.get('quantity', 0):,}"),
+            html.Td(f"{pos.get('avg_price', 0):.2f}"),
+            html.Td(f"{pos.get('current_price', 0):.2f}"),
+            html.Td(f"{pos.get('position_value', 0):,.0f} ₽"),
+            html.Td(html.Span(f"{pnl:+,.0f} ₽", className=pnl_class)),
+            html.Td(html.Span(f"{pnl_percent:+.1f}%", className=pnl_percent_class)),
+            html.Td(f"{pos.get('weight', 0):.1f}%"),
+            html.Td(f"{days_held}")
+        ]))
+
+    table = html.Table([header, html.Tbody(rows)],
+                       className="table table-sm table-hover table-striped")
+
+    # Итоговая статистика
+    total_positions_value = sum(p.get('position_value', 0) for p in positions_sorted)
+    total_pnl = sum(p.get('pnl', 0) for p in positions_sorted)
+    total_pnl_class = "text-success" if total_pnl >= 0 else "text-danger"
+
+    summary = html.Div([
+        html.Hr(),
+        html.Div([
+            html.Span("Всего позиций: ", className="text-muted"),
+            html.Strong(f"{len(positions)}", className="ms-2"),
+            html.Span("Общая стоимость: ", className="text-muted ms-4"),
+            html.Strong(f"{total_positions_value:,.0f} ₽", className="ms-2"),
+            html.Span("Общий PnL: ", className="text-muted ms-4"),
+            html.Strong(f"{total_pnl:+,.0f} ₽", className=f"ms-2 {total_pnl_class}")
+        ], className="d-flex justify-content-between")
+    ])
+
+    return html.Div([table, summary], className="table-responsive")
+
+
+def create_real_sector_chart(positions):
+    """График распределения по секторам с реальными секторами из конфига"""
+    if not positions:
+        return dashboard_viz._create_empty_chart("Нет открытых позиций")
+
+    try:
+        # Загружаем сектора из конфига
+        sector_info = load_sector_info()
+
+        # Группируем по секторам
+        sector_values = {}
+        unknown_value = 0
+
+        for pos in positions:
+            ticker = pos.get('ticker', '')
+            position_value = pos.get('position_value', 0)
+
+            # Получаем сектор из конфига
+            sector = sector_info['sectors'].get(ticker, 'Не определен')
+
+            if sector not in sector_values:
+                sector_values[sector] = 0
+            sector_values[sector] += position_value
+
+        # Фильтруем слишком маленькие сектора (<1%)
+        total_value = sum(sector_values.values())
+        filtered_sectors = {}
+        other_value = 0
+
+        for sector, value in sector_values.items():
+            if total_value > 0 and (value / total_value) >= 0.01:
+                filtered_sectors[sector] = value
+            else:
+                other_value += value
+
+        if other_value > 0:
+            filtered_sectors['Другое'] = other_value
+
+        if not filtered_sectors:
+            return dashboard_viz._create_empty_chart("Недостаточно данных по секторам")
+
+        # Подготовка данных для графика
+        sectors = list(filtered_sectors.keys())
+        values = list(filtered_sectors.values())
+
+        # Получаем цвета из конфига
+        sector_colors = sector_info['sector_colors']
+        colors = [sector_colors.get(s, '#cccccc') for s in sectors]
+
+        # Создаем диаграмму
+        fig = go.Figure(data=[go.Pie(
+            labels=sectors,
+            values=values,
+            hole=0.4,
+            marker=dict(colors=colors),
+            textinfo='label+percent',
+            textposition='inside',
+            hovertemplate="<b>%{label}</b><br>" +
+                          "Стоимость: %{value:,.0f}₽<br>" +
+                          "Доля: %{percent}<extra></extra>",
+            pull=[0.05 if s == 'Финансы' else 0 for s in sectors]  # Выделяем финансовый сектор
+        )])
+
+        # Настройки
+        fig.update_layout(
+            title=dict(
+                text='📊 Распределение по секторам',
+                font=dict(size=16, color='white')
+            ),
+            template='plotly_dark',
+            height=400,
+            margin=dict(l=20, r=20, t=60, b=20),
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.2,
+                xanchor="center",
+                x=0.5
+            )
+        )
+
+        return fig
+
+    except Exception as e:
+        logger.error(f"Ошибка создания графика секторов: {e}")
+        return dashboard_viz._create_empty_chart("Ошибка загрузки секторов")
+
+
+def load_sector_info():
+    """Загрузка информации о секторах из конфига"""
+    default_sectors = {
+        'sectors': {
+            'SBER': 'Финансы', 'VTBR': 'Финансы', 'TCSG': 'Финансы',
+            'GAZP': 'Нефть и газ', 'LKOH': 'Нефть и газ', 'ROSN': 'Нефть и газ',
+            'GMKN': 'Металлургия', 'ALRS': 'Металлургия', 'MTSS': 'Телеком',
+            'MGNT': 'Потребительские товары', 'PHOR': 'Химия', 'IRAO': 'Энергетика'
+        },
+        'sector_colors': {
+            'Финансы': '#00ff88',
+            'Нефть и газ': '#0088ff',
+            'Металлургия': '#ff4444',
+            'Телеком': '#ffaa00',
+            'Потребительские товары': '#00cc66',
+            'Химия': '#00aaff',
+            'Энергетика': '#ff8800',
+            'Не определен': '#cccccc',
+            'Другое': '#999999'
+        }
+    }
+
+    try:
+        with open('config/ticker_sectors.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return default_sectors
+
+
+def create_real_portfolio_value_chart(summary):
+    """График стоимости портфеля с реальной историей"""
+    try:
+        # Пробуем загрузить историю из файла
+        history_data = load_portfolio_history()
+
+        if not history_data:
+            # Если нет истории, создаем точку из текущего состояния
+            history_data = [{
+                'timestamp': datetime.now().isoformat(),
+                'total_value': summary.get('total_value', 0),
+                'cash': summary.get('cash', 0),
+                'positions_value': summary.get('total_value', 0) - summary.get('cash', 0)
+            }]
+
+        # Подготовка данных
+        dates = []
+        total_values = []
+        cash_values = []
+        positions_values = []
+
+        for point in history_data[-30:]:  # Последние 30 точек
+            try:
+                if 'timestamp' in point:
+                    dates.append(datetime.fromisoformat(point['timestamp'].replace('Z', '+00:00')))
+                else:
+                    dates.append(datetime.now())
+
+                total_values.append(point.get('total_value', 0))
+                cash_values.append(point.get('cash', 0))
+                positions_values.append(point.get('positions_value', 0))
+            except:
+                continue
+
+        if not dates:
+            return dashboard_viz._create_empty_chart("Нет исторических данных")
+
+        # Создаем график
+        fig = go.Figure()
+
+        # Общая стоимость
+        fig.add_trace(go.Scatter(
+            x=dates,
+            y=total_values,
+            mode='lines+markers',
+            name='Общая стоимость',
+            line=dict(color='#00ff88', width=3),
+            marker=dict(size=6)
+        ))
+
+        # Стоимость позиций
+        if any(v > 0 for v in positions_values):
+            fig.add_trace(go.Scatter(
+                x=dates,
+                y=positions_values,
+                mode='lines',
+                name='Стоимость позиций',
+                line=dict(color='#0088ff', width=2, dash='dash'),
+                fill='tonexty',
+                fillcolor='rgba(0, 136, 255, 0.1)'
+            ))
+
+        # Кэш
+        if any(v > 0 for v in cash_values):
+            fig.add_trace(go.Scatter(
+                x=dates,
+                y=cash_values,
+                mode='lines',
+                name='Кэш',
+                line=dict(color='#ffaa00', width=2, dash='dot'),
+                fill='tonexty',
+                fillcolor='rgba(255, 170, 0, 0.1)'
+            ))
+
+        # Настройки
+        initial_capital = summary.get('initial_capital', total_values[0] if total_values else 0)
+
+        fig.update_layout(
+            title=dict(
+                text=f'📈 Динамика стоимости портфеля',
+                font=dict(size=16, color='white')
+            ),
+            xaxis_title="Дата",
+            yaxis_title="Стоимость, ₽",
+            template='plotly_dark',
+            hovermode='x unified',
+            showlegend=True,
+            height=400,
+            margin=dict(l=40, r=40, t=60, b=40),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5
+            )
+        )
+
+        # Линия начального капитала
+        if initial_capital > 0:
+            fig.add_hline(
+                y=initial_capital,
+                line_dash="dash",
+                line_color="#ff4444",
+                annotation_text=f"Начальный капитал: {initial_capital:,.0f}₽",
+                annotation_position="bottom right",
+                annotation_font=dict(size=10)
+            )
+
+        # Текущая стоимость
+        current_value = total_values[-1] if total_values else 0
+        fig.add_hline(
+            y=current_value,
+            line_dash="dot",
+            line_color="#00ff88",
+            annotation_text=f"Текущая: {current_value:,.0f}₽",
+            annotation_position="top right",
+            annotation_font=dict(size=10)
+        )
+
+        fig.update_yaxes(tickprefix="₽", tickformat=",")
+        fig.update_xaxes(tickformat="%d.%m")
+
+        return fig
+
+    except Exception as e:
+        logger.error(f"Ошибка создания графика стоимости: {e}")
+        return dashboard_viz._create_empty_chart("Ошибка создания графика")
+
+
+def load_portfolio_history():
+    """Загрузка истории портфеля"""
+    try:
+        # Пробуем загрузить из разных источников
+        history_files = [
+            'data/portfolio_history.json',
+            'data/daily_report.json',
+            'logs/portfolio_history.log'
+        ]
+
+        for file_path in history_files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        return data
+                    elif 'history' in data:
+                        return data['history']
+            except:
+                continue
+
+        # Если файлов нет, пробуем создать из истории сделок
+        return create_history_from_trades()
+
+    except:
+        return []
+
+
+def create_history_from_trades():
+    """Создание истории из сделок"""
+    try:
+        if not broker_instance or not hasattr(broker_instance.portfolio, 'trade_history'):
+            return []
+
+        trades = broker_instance.portfolio.trade_history
+        if not trades:
+            return []
+
+        # Группируем сделки по дням и восстанавливаем историю стоимости
+        history = []
+        current_cash = broker_instance.portfolio.initial_capital
+        positions_value = 0
+
+        # Сортируем сделки по времени
+        sorted_trades = sorted(trades, key=lambda x: x.get('timestamp', ''))
+
+        for trade in sorted_trades:
+            timestamp = trade.get('timestamp', '')
+            if not timestamp:
+                continue
+
+            # Упрощенный расчет стоимости после сделки
+            if trade.get('action') == 'BUY':
+                current_cash -= trade.get('cost', 0)
+                positions_value += trade.get('cost', 0)
+            elif trade.get('action') == 'SELL':
+                current_cash += trade.get('revenue', 0)
+                positions_value -= trade.get('revenue', 0)
+
+            history.append({
+                'timestamp': timestamp,
+                'total_value': current_cash + positions_value,
+                'cash': current_cash,
+                'positions_value': positions_value
+            })
+
+        return history[-30:]  # Возвращаем последние 30 точек
+
+    except Exception as e:
+        logger.error(f"Ошибка создания истории из сделок: {e}")
+        return []
+
+
+def get_real_trade_history():
+    """Получение реальной истории сделок"""
+    try:
+        if broker_instance and hasattr(broker_instance.portfolio, 'trade_history'):
+            return broker_instance.portfolio.trade_history[-50:]  # Последние 50 сделок
+        elif broker_instance and hasattr(broker_instance.portfolio, 'get_trade_history_summary'):
+            return broker_instance.portfolio.get_trade_history_summary(limit=50)
+        else:
+            # Пробуем загрузить из файла
+            try:
+                with open('data/portfolio_state.json', 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data.get('trade_history', [])[-50:]
+            except:
+                return []
+    except Exception as e:
+        logger.error(f"Ошибка получения истории сделок: {e}")
+        return []
+
+
+def create_real_trade_history_table(trades):
+    """Создание таблицы истории сделок с реальными данными"""
+    if not trades:
+        return html.Div([
+            html.P("Нет истории сделок", className="text-muted text-center"),
+            html.Small("Сделки появятся после начала торговли", className="text-muted d-block text-center")
+        ], className="p-4")
+
+    # Сортируем по времени (новые сверху)
+    trades_sorted = sorted(trades,
+                           key=lambda x: x.get('timestamp', ''),
+                           reverse=True)
+
+    header = html.Thead(html.Tr([
+        html.Th("Время"),
+        html.Th("Тикер"),
+        html.Th("Действие"),
+        html.Th("Кол-во"),
+        html.Th("Цена"),
+        html.Th("Сумма"),
+        html.Th("PnL"),
+        html.Th("Стратегия")
+    ]))
+
+    rows = []
+    for trade in trades_sorted[:20]:  # Показываем последние 20 сделок
+        # Форматирование времени
+        timestamp = trade.get('timestamp', '')
+        time_str = ''
+        if timestamp:
+            try:
+                if isinstance(timestamp, (int, float)):
+                    dt = datetime.fromtimestamp(timestamp)
+                elif isinstance(timestamp, str):
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                else:
+                    dt = datetime.now()
+                time_str = dt.strftime('%d.%m %H:%M')
+            except:
+                time_str = str(timestamp)[:16]
+
+        # Действие и цвет
+        action = trade.get('action', '')
+        if action == 'BUY':
+            action_class = "badge bg-success"
+            action_icon = "↗"
+        elif action == 'SELL':
+            action_class = "badge bg-danger"
+            action_icon = "↘"
+        elif action == 'STOP_LOSS':
+            action_class = "badge bg-warning"
+            action_icon = "⛔"
+        elif action == 'TAKE_PROFIT':
+            action_class = "badge bg-info"
+            action_icon = "✅"
+        else:
+            action_class = "badge bg-secondary"
+            action_icon = "➡"
+
+        # PnL
+        pnl = trade.get('pnl', 0)
+        pnl_class = "text-success" if pnl >= 0 else "text-danger"
+        pnl_text = f"{pnl:+,.0f} ₽" if pnl != 0 else "-"
+
+        # Сумма
+        amount = trade.get('cost', trade.get('revenue', 0))
+
+        # Стратегия
+        strategy = trade.get('strategy', 'unknown')
+        strategy_colors = {
+            'news_aggressive': 'badge-sm bg-danger',
+            'momentum': 'badge-sm bg-warning',
+            'mean_reversion': 'badge-sm bg-info',
+            'balanced': 'badge-sm bg-primary',
+            'conservative': 'badge-sm bg-success',
+            'unknown': 'badge-sm bg-secondary'
+        }
+        strategy_class = strategy_colors.get(strategy, 'badge-sm bg-secondary')
+
+        rows.append(html.Tr([
+            html.Td(time_str),
+            html.Td(html.Strong(trade.get('ticker', ''))),
+            html.Td(html.Span(f"{action_icon} {action}", className=f"{action_class}")),
+            html.Td(f"{trade.get('quantity', 0):,}"),
+            html.Td(f"{trade.get('price', 0):.2f}"),
+            html.Td(f"{amount:,.0f} ₽"),
+            html.Td(html.Span(pnl_text, className=pnl_class)),
+            html.Td(html.Span(strategy, className=f"{strategy_class}"))
+        ]))
+
+    table = html.Table([header, html.Tbody(rows)],
+                       className="table table-sm table-hover table-striped")
+
+    # Статистика по сделкам
+    buy_count = sum(1 for t in trades_sorted if t.get('action') == 'BUY')
+    sell_count = sum(1 for t in trades_sorted if t.get('action') == 'SELL')
+    total_pnl = sum(t.get('pnl', 0) for t in trades_sorted)
+    total_pnl_class = "text-success" if total_pnl >= 0 else "text-danger"
+
+    summary = html.Div([
+        html.Hr(),
+        html.Div([
+            html.Span("Всего сделок: ", className="text-muted"),
+            html.Strong(f"{len(trades_sorted)}", className="ms-2"),
+            html.Span("Покупки: ", className="text-muted ms-4"),
+            html.Strong(f"{buy_count}", className="ms-2 text-success"),
+            html.Span("Продажи: ", className="text-muted ms-4"),
+            html.Strong(f"{sell_count}", className="ms-2 text-danger"),
+            html.Span("Общий PnL: ", className="text-muted ms-4"),
+            html.Strong(f"{total_pnl:+,.0f} ₽", className=f"ms-2 {total_pnl_class}")
+        ], className="d-flex justify-content-between flex-wrap")
+    ])
+
+    return html.Div([table, summary], className="table-responsive")
+
+
+def save_portfolio_history():
+    """Сохранение текущего состояния портфеля в историю"""
+    if broker_instance is None:
+        return
+
+    try:
+        history_file = 'data/portfolio_history.json'
+        history_data = []
+
+        # Загружаем существующую историю
+        try:
+            with open(history_file, 'r', encoding='utf-8') as f:
+                history_data = json.load(f)
+                if not isinstance(history_data, list):
+                    history_data = []
+        except:
+            history_data = []
+
+        # Получаем текущее состояние
+        summary = get_portfolio_summary_safe()
+
+        # Добавляем новую запись
+        history_data.append({
+            'timestamp': datetime.now().isoformat(),
+            'total_value': summary.get('total_value', 0),
+            'cash': summary.get('cash', 0),
+            'positions_value': summary.get('total_value', 0) - summary.get('cash', 0),
+            'positions_count': summary.get('positions_count', 0),
+            'pnl_total': summary.get('total_value', 0) - summary.get('initial_capital', 0)
+        })
+
+        # Сохраняем только последние 100 записей
+        history_data = history_data[-100:]
+
+        with open(history_file, 'w', encoding='utf-8') as f:
+            json.dump(history_data, f, indent=2, default=str)
+
+        logger.debug(f"История портфеля сохранена ({len(history_data)} записей)")
+
+    except Exception as e:
+        logger.error(f"Ошибка сохранения истории портфеля: {e}")
 # Запуск приложения
 if __name__ == '__main__':
     # Тестовый запуск
