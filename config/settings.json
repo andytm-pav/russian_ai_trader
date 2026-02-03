@@ -1,7 +1,7 @@
 {
   "initial_capital_rub": 10000,
   "max_positions": 10,
-  "max_position_weight_percent": 60,
+  "max_position_weight_percent": 30,
   "risk_per_trade_percent": 3.0,
   "daily_loss_limit_percent": 5,
   "trading_hours": {

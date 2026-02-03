@@ -54,6 +54,36 @@
             "name": "Р_Г",
             "enabled": true,
             "update_interval": 300
+        },
+        {
+            "url": "https://www.kommersant.ru/RSS/money.xml",
+            "name": "Коммерсантъ Деньги",
+            "enabled": true,
+            "update_interval": 300
+        },
+        {
+            "url": "https://www.kommersant.ru/rss/section-economics.xml",
+            "name": "Коммерсантъ Экономика",
+            "enabled": true,
+            "update_interval": 300
+        },
+        {
+            "url": "https://www.kommersant.ru/RSS/section-market.xml",
+            "name": "Коммерсантъ Потребительский рынок",
+            "enabled": true,
+            "update_interval": 300
+        },
+        {
+            "url": "https://russian.rt.com/rss",
+            "name": "Новости RT на русском",
+            "enabled": true,
+            "update_interval": 300
+        },
+        {
+            "url": "https://tass.ru/rss/v2.xml",
+            "name": "ИНФОРМАЦИОННОЕ АГЕНТСТВО РОССИИ ТАСС",
+            "enabled": true,
+            "update_interval": 300
         }
     ],
     "update_interval_minutes": 5,

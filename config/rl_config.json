@@ -39,7 +39,7 @@
     "aggressive_decrease_factor": 0.7
   },
   "learning": {
-    "min_experiences_for_learning": 100,
+    "min_experiences_for_learning": 25,
     "batch_size": 32,
     "target_update_interval": 10,
     "gamma": 0.95,
