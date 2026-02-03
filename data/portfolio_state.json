@@ -1,6 +1,6 @@
 {
-  "total_value": 10269.624000000003,
-  "cash": 8510.784000000003,
+  "total_value": 10349.604000000003,
+  "cash": 8578.344000000003,
   "positions": {
     "LPSB": {
       "qty": 3,
@@ -14,19 +14,25 @@
       "buy_time": 1769764800.5209916,
       "total_cost": 366.0
     },
-    "JNOSP": {
-      "qty": 55,
-      "avg_price": 11.3,
-      "buy_time": 1769764800.5225189,
-      "total_cost": 621.5
-    },
     "FLOT": {
       "qty": 7,
       "avg_price": 78.97,
       "buy_time": 1769769585.7834678,
       "total_cost": 552.79
+    },
+    "JNOSP": {
+      "qty": 1,
+      "avg_price": 12.0,
+      "buy_time": 1770103004.799798,
+      "total_cost": 684.0
+    },
+    "KLSB": {
+      "qty": 26,
+      "avg_price": 23.92,
+      "buy_time": 1770094204.6405764,
+      "total_cost": 621.9200000000001
     }
   },
-  "last_update": "2026-02-02T18:50:03.856574",
+  "last_update": "2026-02-03T12:59:35.956518",
   "initial_capital": 10000
 }
