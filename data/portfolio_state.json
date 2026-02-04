@@ -1,6 +1,6 @@
 {
-  "total_value": 10328.904000000002,
-  "cash": 8772.354000000003,
+  "total_value": 10377.374000000007,
+  "cash": 9423.754000000006,
   "positions": {
     "LPSB": {
       "qty": 3,
@@ -8,16 +8,10 @@
       "buy_time": 1769488972.1086364,
       "total_cost": 218.54999999999998
     },
-    "MFGS": {
-      "qty": 1,
-      "avg_price": 366.0,
-      "buy_time": 1769764800.5209916,
-      "total_cost": 366.0
-    },
     "FLOT": {
-      "qty": 4,
+      "qty": 1,
       "avg_price": 78.97,
-      "buy_time": 1770130197.8272028,
+      "buy_time": 1770179358.4581363,
       "total_cost": 552.79
     },
     "KMAZ": {
@@ -26,13 +20,13 @@
       "buy_time": 1770116140.6299286,
       "total_cost": 644.0
     },
-    "JNOSP": {
+    "DIOD": {
       "qty": 1,
-      "avg_price": 12.12,
-      "buy_time": 1770135474.886379,
-      "total_cost": 630.24
+      "avg_price": 12.1,
+      "buy_time": 1770207171.6413188,
+      "total_cost": 701.8
     }
   },
-  "last_update": "2026-02-03T22:18:28.444517",
+  "last_update": "2026-02-04T16:22:05.305968",
   "initial_capital": 10000
 }
