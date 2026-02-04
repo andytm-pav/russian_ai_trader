@@ -3,92 +3,128 @@
     {
       "ticker": "SBER",
       "name": "Сбербанк",
+      "full_name": "Сбербанк России ПАО ао",
       "sector": "финансы",
-      "lot_size": 10,
-      "min_step": 0.01,
-      "avg_daily_volume": 50000000,
-      "priority": 10
-    },
-    {
-      "ticker": "GAZP",
-      "name": "Газпром",
-      "sector": "нефтегаз",
-      "lot_size": 10,
-      "min_step": 0.01,
-      "avg_daily_volume": 40000000,
-      "priority": 9
-    },
-    {
-      "ticker": "LKOH",
-      "name": "Лукойл",
-      "sector": "нефтегаз",
       "lot_size": 1,
-      "min_step": 1,
+      "min_step": 0.01,
       "avg_daily_volume": 1000000,
       "priority": 9
     },
     {
-      "ticker": "YNDX",
-      "name": "Яндекс",
-      "sector": "IT",
+      "ticker": "VTBR",
+      "name": "ВТБ ао",
+      "full_name": "ао ПАО Банк ВТБ",
+      "sector": "финансы",
       "lot_size": 1,
-      "min_step": 0.02,
-      "avg_daily_volume": 2000000,
+      "min_step": 0.005,
+      "avg_daily_volume": 1000000,
+      "priority": 9
+    },
+    {
+      "ticker": "GAZP",
+      "name": "ГАЗПРОМ ао",
+      "full_name": "\"Газпром\" (ПАО) ао",
+      "sector": "нефтегаз",
+      "lot_size": 10,
+      "min_step": 0.01,
+      "avg_daily_volume": 1000000,
       "priority": 8
     },
     {
-      "ticker": "VTBR",
-      "name": "ВТБ",
-      "sector": "финансы",
-      "lot_size": 10000,
-      "min_step": 0.00005,
-      "avg_daily_volume": 1000000000,
+      "ticker": "LKOH",
+      "name": "ЛУКОЙЛ",
+      "full_name": "НК ЛУКОЙЛ (ПАО) - ао",
+      "sector": "нефтегаз",
+      "lot_size": 1,
+      "min_step": 0.5,
+      "avg_daily_volume": 1000000,
+      "priority": 8
+    },
+    {
+      "ticker": "NVTK",
+      "name": "Новатэк ао",
+      "full_name": "ПАО \"НОВАТЭК\" ао",
+      "sector": "нефтегаз",
+      "lot_size": 1,
+      "min_step": 0.1,
+      "avg_daily_volume": 1000000,
       "priority": 8
     },
     {
       "ticker": "ROSN",
       "name": "Роснефть",
+      "full_name": "ПАО НК Роснефть",
       "sector": "нефтегаз",
-      "lot_size": 10,
-      "min_step": 0.01,
-      "avg_daily_volume": 20000000,
-      "priority": 7
-    },
-    {
-      "ticker": "POLY",
-      "name": "Polymetal",
-      "sector": "металлы",
       "lot_size": 1,
-      "min_step": 0.01,
-      "avg_daily_volume": 2000000,
-      "priority": 6
+      "min_step": 0.05,
+      "avg_daily_volume": 1000000,
+      "priority": 8
     },
     {
       "ticker": "GMKN",
-      "name": "Норникель",
+      "name": "ГМКНорНик",
+      "full_name": "ГМК \"Нор.Никель\" ПАО ао",
       "sector": "металлы",
-      "lot_size": 1,
-      "min_step": 1,
-      "avg_daily_volume": 300000,
-      "priority": 7
-    },
-    {
-      "ticker": "NVTK",
-      "name": "Новатэк",
-      "sector": "нефтегаз",
-      "lot_size": 1,
-      "min_step": 0.1,
-      "avg_daily_volume": 500000,
+      "lot_size": 10,
+      "min_step": 0.02,
+      "avg_daily_volume": 1000000,
       "priority": 7
     },
     {
       "ticker": "PLZL",
       "name": "Полюс",
+      "full_name": "Полюс ПАО ао",
       "sector": "металлы",
       "lot_size": 1,
-      "min_step": 1,
-      "avg_daily_volume": 400000,
+      "min_step": 0.2,
+      "avg_daily_volume": 1000000,
+      "priority": 7
+    },
+    {
+      "ticker": "MTSS",
+      "name": "МТС-ао",
+      "full_name": "Мобильные ТелеСистемы ПАО ао",
+      "sector": "телеком",
+      "lot_size": 10,
+      "min_step": 0.05,
+      "avg_daily_volume": 1000000,
       "priority": 6
+    },
+    {
+      "ticker": "YNDX",
+      "name": "YNDX",
+      "full_name": "YNDX",
+      "sector": "other",
+      "lot_size": 1,
+      "min_step": 0.01,
+      "avg_daily_volume": 1000000,
+      "priority": 5,
+      "current_price": 0,
+      "market_data": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "volume_today": 0,
+        "value_today": 0
+      }
+    },
+    {
+      "ticker": "POLY",
+      "name": "POLY",
+      "full_name": "POLY",
+      "sector": "other",
+      "lot_size": 1,
+      "min_step": 0.01,
+      "avg_daily_volume": 1000000,
+      "priority": 5,
+      "current_price": 0,
+      "market_data": {
+        "open": 0,
+        "high": 0,
+        "low": 0,
+        "volume_today": 0,
+        "value_today": 0
+      }
     }
   ],
   "sector_limits": {
@@ -96,6 +132,7 @@
     "нефтегаз": 30,
     "металлы": 20,
     "IT": 15,
+    "телеком": 15,
     "other": 10
   },
   "liquidity_filter": {
@@ -107,5 +144,18 @@
     "max_position_per_ticker_percent": 25,
     "min_hold_period_hours": 4,
     "cooldown_period_hours": 2
+  },
+  "metadata": {
+    "created": "2026-02-04T19:01:26.416560",
+    "total_tickers": 11,
+    "sectors": [
+      "other",
+      "телеком",
+      "нефтегаз",
+      "финансы",
+      "металлы"
+    ],
+    "source": "MOEX ISS API",
+    "note": "Создано автоматически. Тикеры: SBER, GAZP, LKOH, YNDX, VTBR, ROSN, GMKN, NVTK, PLZL, POLY, MTSS"
   }
 }
