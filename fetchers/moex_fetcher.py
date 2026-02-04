@@ -148,7 +148,7 @@ class MoexFetcher:
             params = {
                 'iss.meta': 'off',
                 'iss.only': 'securities',
-                'securities.columns': 'SECID,SHORTNAME,SECNAME,LOTSIZE,PREVPRICE',
+                'securities.columns': 'SECID,SHORTNAME,SECNAME,LOTSIZE,MINSTEP,PREVPRICE',
                 'limit': 100
             }
 
@@ -175,7 +175,24 @@ class MoexFetcher:
                     ticker = row[columns.index('SECID')]
                     name = row[columns.index('SHORTNAME')]
 
-                    tickers.append(ticker)
+                    # ✅ ДОБАВЛЯЕМ: Получение лотности и шага цены
+                    lot_size = row[columns.index('LOTSIZE')] if 'LOTSIZE' in columns else 1
+                    min_step = row[columns.index('MINSTEP')] if 'MINSTEP' in columns else 0.01
+
+                    # Преобразование типов
+                    try:
+                        lot_size = int(lot_size)
+                    except:
+                        lot_size = 1
+
+                    try:
+                        min_step = float(min_step)
+                    except:
+                        min_step = 0.01
+
+
+
+
 
                     # Безопасное получение PREVPRICE
                     prev_price = 0
@@ -187,12 +204,16 @@ class MoexFetcher:
                             except (ValueError, TypeError):
                                 prev_price = 0
 
+                    tickers.append(ticker)
+
                     sec_dict[ticker] = {
                         'name': name,
                         'full_name': row[columns.index('SECNAME')] if 'SECNAME' in columns else name,
-                        'lot_size': row[columns.index('LOTSIZE')] if 'LOTSIZE' in columns else 1,
+                        'lot_size': lot_size,  # ✅ ДОБАВЛЯЕМ
+                        'min_step': min_step,  # ✅ ДОБАВЛЯЕМ
                         'prev_price': prev_price
                     }
+
                 except (IndexError, ValueError) as e:
                     logger.debug(f"Ошибка обработки строки для {ticker}: {e}")
                     continue
@@ -269,6 +290,7 @@ class MoexFetcher:
                         'name': base_data['name'],
                         'full_name': base_data['full_name'],
                         'lot_size': base_data['lot_size'],
+                        'min_step': base_data['min_step'],
                         'price': current_price,
                         'prev_price': prev_price,
                         'volume': 0,  # Можно добавить отдельным запросом VALTODAY

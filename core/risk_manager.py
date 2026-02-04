@@ -132,9 +132,11 @@ class RiskManager:
                                 atr: float = None,
                                 confidence: float = 0.5,
                                 adv: float = None,
-                                sector: str = None) -> Tuple[int, float]:
-        """
-        Расчет размера позиции на основе риска - УЛУЧШЕННАЯ ВЕРСИЯ
+                                sector: str = None,
+                                lot_size: int = 1) -> Tuple[int, float]:
+
+
+        """        Расчет размера позиции на основе риска - УЛУЧШЕННАЯ ВЕРСИЯ
 
         Параметры:
         - atr: Average True Range (для волатильностных стопов)
@@ -215,6 +217,36 @@ class RiskManager:
                 else:
                     quantity = quantity_by_risk
                     actual_risk_rub = quantity * risk_per_share
+
+
+                    # ✅ ДОБАВЛЯЕМ: Корректировка на лотность
+                    if lot_size > 1:
+                        # Округляем до ближайшего кратного lot_size
+                        quantity_by_lot = (quantity_by_risk // lot_size) * lot_size
+
+                        # Если после округления получился 0, берем минимум 1 лот
+                        if quantity_by_lot == 0 and quantity_by_risk >= lot_size / 2:
+                            quantity_by_lot = lot_size
+                        elif quantity_by_lot == 0:
+                            logger.debug(f"Рассчитанное количество {quantity_by_risk} меньше половины лота {lot_size}")
+                            return 0, 0
+
+                        quantity = quantity_by_lot
+                        logger.debug(f"Корректировка по лотности: {quantity_by_risk} → {quantity} (лот: {lot_size})")
+                    else:
+                        quantity = quantity_by_risk
+
+                    # ✅ ДОБАВЛЯЕМ: Проверка минимального количества
+                    if quantity < lot_size:
+                        logger.debug(f"Количество {quantity} меньше размера лота {lot_size}")
+                        # Пробуем взять 1 лот если это не превышает риск
+                        if lot_size * price <= self.portfolio_value * max_risk_pct * 1.5:  # +50% допуск
+                            quantity = lot_size
+                            logger.debug(f"Установлено минимальное количество: {quantity} (1 лот)")
+                        else:
+                            logger.warning(f"1 лот {ticker} превышает лимит риска")
+                            return 0, 0
+
 
                 # 7. ПРОВЕРКА ДИВЕРСИФИКАЦИИ С УЧЕТОМ СЕКТОРА
                 if not self.check_diversification(ticker, quantity * price, sector):

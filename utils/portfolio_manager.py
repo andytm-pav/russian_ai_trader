@@ -73,9 +73,34 @@ class PortfolioManager:
         self.cash = 10000.0  # Начальный капитал по умолчанию
         self.initial_capital = self.cash
         self.trade_history = []
+        self.strategy_positions = defaultdict(list)
+
+        # ✅ ДОБАВЛЯЕМ: Загрузка справочника лотностей из конфига
+        self.lot_size_directory = self._load_lot_size_directory()
 
         self.save_portfolio()
+
         logger.info(f"Создан начальный портфель с капиталом {self.cash:,.0f}₽")
+
+    def _load_lot_size_directory(self) -> Dict[str, Dict]:
+        """Загрузка справочника лотностей из tickers.json"""
+        try:
+            with open('config/tickers.json', 'r', encoding='utf-8') as f:
+                tickers_config = json.load(f)
+
+            directory = {}
+            for item in tickers_config.get('watchlist', []):
+                directory[item['ticker']] = {
+                    'lot_size': item.get('lot_size', 1),
+                    'min_step': item.get('min_step', 0.01)
+                }
+
+            logger.info(f"Загружен справочник лотностей: {len(directory)} тикеров")
+            return directory
+
+        except Exception as e:
+            logger.error(f"Ошибка загрузки справочника лотностей: {e}")
+            return {}
 
     def save_portfolio(self):
         """Сохранение состояния портфеля в файл"""
@@ -111,9 +136,34 @@ class PortfolioManager:
         """Покупка акций с указанием стратегии"""
 
         try:
+            # ✅ ДОБАВЛЯЕМ: Получение информации о бумаге
+            lot_size = kwargs.get('lot_size', 1)  # Размер лота
+            min_step = kwargs.get('min_step', 0.01)  # Минимальный шаг цены
+
+            # ✅ ДОБАВЛЯЕМ: Проверка кратности цены
+            if min_step > 0 and price % min_step != 0:
+                logger.warning(f"Цена {ticker} не кратна минимальному шагу {min_step}: {price}")
+                # Округляем до ближайшей допустимой цены
+                price = round(price / min_step) * min_step
+                logger.info(f"Цена скорректирована до {price:.4f}")
+
+            # ✅ ДОБАВЛЯЕМ: Проверка лотности количества
+            if lot_size > 1:
+                if quantity % lot_size != 0:
+                    logger.warning(f"Количество {ticker} не кратно размеру лота {lot_size}: {quantity}")
+                    # Округляем до ближайшего допустимого количества
+                    quantity = max(lot_size, (quantity // lot_size) * lot_size)
+                    logger.info(f"Количество скорректировано до {quantity}")
+
+
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
                 logger.error(f"Некорректные данные для покупки {ticker}: qty={quantity}, price={price}")
+                return False
+
+            # ✅ ДОБАВЛЯЕМ: Проверка минимального количества (не менее 1 лота)
+            if quantity < lot_size:
+                logger.error(f"Количество меньше размера лота {lot_size}: {quantity}")
                 return False
 
             # Расчет стоимости покупки
@@ -206,6 +256,21 @@ class PortfolioManager:
     def sell(self, ticker: str, quantity: int, price: float) -> bool:
         """Продажа акций"""
         try:
+            # ✅ ДОБАВЛЯЕМ: Получение информации о бумаге из позиции
+            pos = self.positions[ticker]
+            lot_size = pos.get('lot_size', 1)
+
+            # ✅ ДОБАВЛЯЕМ: Проверка лотности количества
+            if lot_size > 1 and quantity % lot_size != 0:
+                logger.warning(f"Количество {ticker} не кратно размеру лота {lot_size}: {quantity}")
+                # Округляем в меньшую сторону до кратного лотности
+                quantity = (quantity // lot_size) * lot_size
+                if quantity == 0:
+                    logger.error(f"После округления количество стало нулевым")
+                    return False
+                logger.info(f"Количество скорректировано до {quantity}")
+
+
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
                 logger.error(f"Некорректные данные для продажи {ticker}: qty={quantity}, price={price}")
@@ -374,7 +439,8 @@ class PortfolioManager:
                                    ticker: str,
                                    quantity: int,
                                    price: float,
-                                   current_prices: Dict[str, float]) -> float:
+                                   current_prices: Dict[str, float],
+                                   lot_size: int = 1) -> float:
         """Расчет проектируемого веса позиции в портфеле"""
         try:
             # Текущая стоимость портфеля
@@ -382,6 +448,14 @@ class PortfolioManager:
 
             if current_value <= 0:
                 return 0.0
+
+            # ✅ ДОБАВЛЯЕМ: Корректировка количества по лотности
+            if lot_size > 1 and quantity % lot_size != 0:
+                # Округляем до ближайшего кратного
+                quantity = (quantity // lot_size) * lot_size
+                if quantity == 0:
+                    quantity = lot_size  # Минимум 1 лот
+
 
             # Стоимость новой позиции
             new_position_value = quantity * price
