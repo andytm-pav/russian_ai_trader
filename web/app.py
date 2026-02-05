@@ -1145,7 +1145,7 @@ def update_logs(n_intervals, clear_clicks):
             return html.P("Логи очищены", className="text-muted")
 
         # Чтение логов из файла
-        log_file = "logs/system.log"
+        log_file = "logs/smart_broker.log"
         try:
             with open(log_file, 'r', encoding='utf-8') as f:
                 lines = f.readlines()[-100:]  # Последние 100 строк

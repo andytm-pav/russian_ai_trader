@@ -1,189 +1,5 @@
 [
   {
-    "timestamp": "2026-02-04T17:06:15.064025",
-    "total_value": 10383.080000000005,
-    "cash": 8086.2640000000065,
-    "positions_value": 2296.815999999999,
-    "positions_count": 5,
-    "pnl_total": 383.0800000000054
-  },
-  {
-    "timestamp": "2026-02-04T17:08:18.090767",
-    "total_value": 10383.080000000005,
-    "cash": 8086.2640000000065,
-    "positions_value": 2296.815999999999,
-    "positions_count": 5,
-    "pnl_total": 383.0800000000054
-  },
-  {
-    "timestamp": "2026-02-04T17:11:16.183134",
-    "total_value": 10382.776000000005,
-    "cash": 8086.2640000000065,
-    "positions_value": 2296.511999999999,
-    "positions_count": 5,
-    "pnl_total": 382.7760000000053
-  },
-  {
-    "timestamp": "2026-02-04T17:13:18.074345",
-    "total_value": 10382.776000000005,
-    "cash": 8086.2640000000065,
-    "positions_value": 2296.511999999999,
-    "positions_count": 5,
-    "pnl_total": 382.7760000000053
-  },
-  {
-    "timestamp": "2026-02-04T17:16:15.215222",
-    "total_value": 10382.776000000005,
-    "cash": 8086.2640000000065,
-    "positions_value": 2296.511999999999,
-    "positions_count": 5,
-    "pnl_total": 382.7760000000053
-  },
-  {
-    "timestamp": "2026-02-04T17:18:18.117031",
-    "total_value": 10380.506000000007,
-    "cash": 8086.2640000000065,
-    "positions_value": 2294.242,
-    "positions_count": 5,
-    "pnl_total": 380.5060000000067
-  },
-  {
-    "timestamp": "2026-02-04T17:21:15.074752",
-    "total_value": 10380.506000000007,
-    "cash": 8086.2640000000065,
-    "positions_value": 2294.242,
-    "positions_count": 5,
-    "pnl_total": 380.5060000000067
-  },
-  {
-    "timestamp": "2026-02-04T17:23:18.082129",
-    "total_value": 10380.364000000007,
-    "cash": 8086.2640000000065,
-    "positions_value": 2294.1000000000004,
-    "positions_count": 5,
-    "pnl_total": 380.36400000000685
-  },
-  {
-    "timestamp": "2026-02-04T17:26:15.077421",
-    "total_value": 10380.364000000007,
-    "cash": 8086.2640000000065,
-    "positions_value": 2294.1000000000004,
-    "positions_count": 5,
-    "pnl_total": 380.36400000000685
-  },
-  {
-    "timestamp": "2026-02-04T18:25:01.296667",
-    "total_value": 10378.922000000004,
-    "cash": 8782.684000000005,
-    "positions_value": 1596.2379999999994,
-    "positions_count": 4,
-    "pnl_total": 378.9220000000041
-  },
-  {
-    "timestamp": "2026-02-04T18:25:51.301787",
-    "total_value": 10378.922000000004,
-    "cash": 8782.684000000005,
-    "positions_value": 1596.2379999999994,
-    "positions_count": 4,
-    "pnl_total": 378.9220000000041
-  },
-  {
-    "timestamp": "2026-02-04T18:27:00.237594",
-    "total_value": 10378.922000000004,
-    "cash": 8782.684000000005,
-    "positions_value": 1596.2379999999994,
-    "positions_count": 4,
-    "pnl_total": 378.9220000000041
-  },
-  {
-    "timestamp": "2026-02-04T18:27:50.298563",
-    "total_value": 10378.922000000004,
-    "cash": 8782.684000000005,
-    "positions_value": 1596.2379999999994,
-    "positions_count": 4,
-    "pnl_total": 378.9220000000041
-  },
-  {
-    "timestamp": "2026-02-04T18:28:40.263034",
-    "total_value": 10378.922000000004,
-    "cash": 8782.684000000005,
-    "positions_value": 1596.2379999999994,
-    "positions_count": 4,
-    "pnl_total": 378.9220000000041
-  },
-  {
-    "timestamp": "2026-02-04T18:29:30.486971",
-    "total_value": 10380.536000000006,
-    "cash": 8782.684000000005,
-    "positions_value": 1597.8520000000008,
-    "positions_count": 4,
-    "pnl_total": 380.5360000000055
-  },
-  {
-    "timestamp": "2026-02-04T18:30:20.221055",
-    "total_value": 10380.536000000006,
-    "cash": 8782.684000000005,
-    "positions_value": 1597.8520000000008,
-    "positions_count": 4,
-    "pnl_total": 380.5360000000055
-  },
-  {
-    "timestamp": "2026-02-04T18:31:10.260531",
-    "total_value": 10380.536000000006,
-    "cash": 8782.684000000005,
-    "positions_value": 1597.8520000000008,
-    "positions_count": 4,
-    "pnl_total": 380.5360000000055
-  },
-  {
-    "timestamp": "2026-02-04T18:32:00.213120",
-    "total_value": 10380.536000000006,
-    "cash": 8782.684000000005,
-    "positions_value": 1597.8520000000008,
-    "positions_count": 4,
-    "pnl_total": 380.5360000000055
-  },
-  {
-    "timestamp": "2026-02-04T18:32:50.241178",
-    "total_value": 10382.970000000005,
-    "cash": 8782.684000000005,
-    "positions_value": 1600.286,
-    "positions_count": 4,
-    "pnl_total": 382.9700000000048
-  },
-  {
-    "timestamp": "2026-02-04T18:33:40.228105",
-    "total_value": 10382.970000000005,
-    "cash": 8782.684000000005,
-    "positions_value": 1600.286,
-    "positions_count": 4,
-    "pnl_total": 382.9700000000048
-  },
-  {
-    "timestamp": "2026-02-04T18:34:30.246152",
-    "total_value": 10382.970000000005,
-    "cash": 8782.684000000005,
-    "positions_value": 1600.286,
-    "positions_count": 4,
-    "pnl_total": 382.9700000000048
-  },
-  {
-    "timestamp": "2026-02-04T18:35:20.217965",
-    "total_value": 10382.970000000005,
-    "cash": 8782.684000000005,
-    "positions_value": 1600.286,
-    "positions_count": 4,
-    "pnl_total": 382.9700000000048
-  },
-  {
-    "timestamp": "2026-02-04T18:36:12.074305",
-    "total_value": 10382.970000000005,
-    "cash": 8782.684000000005,
-    "positions_value": 1600.286,
-    "positions_count": 4,
-    "pnl_total": 382.9700000000048
-  },
-  {
     "timestamp": "2026-02-04T18:43:41.435406",
     "total_value": 10382.350000000004,
     "cash": 8782.684000000005,
@@ -798,5 +614,189 @@
     "positions_value": 9393.234,
     "positions_count": 8,
     "pnl_total": 172.54800000000614
+  },
+  {
+    "timestamp": "2026-02-05T16:44:48.085821",
+    "total_value": 10166.424000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9559.91,
+    "positions_count": 9,
+    "pnl_total": 166.42400000000634
+  },
+  {
+    "timestamp": "2026-02-05T16:45:43.052827",
+    "total_value": 10166.424000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9559.91,
+    "positions_count": 9,
+    "pnl_total": 166.42400000000634
+  },
+  {
+    "timestamp": "2026-02-05T16:46:29.639278",
+    "total_value": 10156.312000000005,
+    "cash": 606.5140000000056,
+    "positions_value": 9549.797999999999,
+    "positions_count": 9,
+    "pnl_total": 156.31200000000536
+  },
+  {
+    "timestamp": "2026-02-05T16:47:17.389929",
+    "total_value": 10156.312000000005,
+    "cash": 606.5140000000056,
+    "positions_value": 9549.797999999999,
+    "positions_count": 9,
+    "pnl_total": 156.31200000000536
+  },
+  {
+    "timestamp": "2026-02-05T16:50:04.161424",
+    "total_value": 10156.312000000005,
+    "cash": 606.5140000000056,
+    "positions_value": 9549.797999999999,
+    "positions_count": 9,
+    "pnl_total": 156.31200000000536
+  },
+  {
+    "timestamp": "2026-02-05T16:50:57.093056",
+    "total_value": 10156.312000000005,
+    "cash": 606.5140000000056,
+    "positions_value": 9549.797999999999,
+    "positions_count": 9,
+    "pnl_total": 156.31200000000536
+  },
+  {
+    "timestamp": "2026-02-05T16:53:15.084953",
+    "total_value": 10153.092000000004,
+    "cash": 606.5140000000056,
+    "positions_value": 9546.577999999998,
+    "positions_count": 9,
+    "pnl_total": 153.0920000000042
+  },
+  {
+    "timestamp": "2026-02-05T16:55:18.072481",
+    "total_value": 10153.092000000004,
+    "cash": 606.5140000000056,
+    "positions_value": 9546.577999999998,
+    "positions_count": 9,
+    "pnl_total": 153.0920000000042
+  },
+  {
+    "timestamp": "2026-02-05T16:58:15.080126",
+    "total_value": 10160.150000000005,
+    "cash": 606.5140000000056,
+    "positions_value": 9553.635999999999,
+    "positions_count": 9,
+    "pnl_total": 160.1500000000051
+  },
+  {
+    "timestamp": "2026-02-05T17:00:18.076118",
+    "total_value": 10160.150000000005,
+    "cash": 606.5140000000056,
+    "positions_value": 9553.635999999999,
+    "positions_count": 9,
+    "pnl_total": 160.1500000000051
+  },
+  {
+    "timestamp": "2026-02-05T17:03:17.003873",
+    "total_value": 10161.746000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9555.232,
+    "positions_count": 9,
+    "pnl_total": 161.74600000000646
+  },
+  {
+    "timestamp": "2026-02-05T17:05:18.102625",
+    "total_value": 10161.746000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9555.232,
+    "positions_count": 9,
+    "pnl_total": 161.74600000000646
+  },
+  {
+    "timestamp": "2026-02-05T17:08:15.086648",
+    "total_value": 10161.746000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9555.232,
+    "positions_count": 9,
+    "pnl_total": 161.74600000000646
+  },
+  {
+    "timestamp": "2026-02-05T17:09:05.442181",
+    "total_value": 10163.278000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9556.764,
+    "positions_count": 9,
+    "pnl_total": 163.2780000000057
+  },
+  {
+    "timestamp": "2026-02-05T17:09:30.436959",
+    "total_value": 10163.278000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9556.764,
+    "positions_count": 9,
+    "pnl_total": 163.2780000000057
+  },
+  {
+    "timestamp": "2026-02-05T17:09:55.453803",
+    "total_value": 10163.278000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9556.764,
+    "positions_count": 9,
+    "pnl_total": 163.2780000000057
+  },
+  {
+    "timestamp": "2026-02-05T17:10:20.447496",
+    "total_value": 10163.278000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9556.764,
+    "positions_count": 9,
+    "pnl_total": 163.2780000000057
+  },
+  {
+    "timestamp": "2026-02-05T17:10:47.087036",
+    "total_value": 10163.278000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9556.764,
+    "positions_count": 9,
+    "pnl_total": 163.2780000000057
+  },
+  {
+    "timestamp": "2026-02-05T17:11:12.108849",
+    "total_value": 10163.278000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9556.764,
+    "positions_count": 9,
+    "pnl_total": 163.2780000000057
+  },
+  {
+    "timestamp": "2026-02-05T17:11:37.116178",
+    "total_value": 10163.278000000006,
+    "cash": 606.5140000000056,
+    "positions_value": 9556.764,
+    "positions_count": 9,
+    "pnl_total": 163.2780000000057
+  },
+  {
+    "timestamp": "2026-02-05T17:29:54.702480",
+    "total_value": 10163.562000000005,
+    "cash": 606.5140000000056,
+    "positions_value": 9557.047999999999,
+    "positions_count": 9,
+    "pnl_total": 163.56200000000536
+  },
+  {
+    "timestamp": "2026-02-05T17:30:44.671750",
+    "total_value": 10150.480000000003,
+    "cash": 606.5140000000056,
+    "positions_value": 9543.965999999997,
+    "positions_count": 9,
+    "pnl_total": 150.4800000000032
+  },
+  {
+    "timestamp": "2026-02-05T17:48:12.098976",
+    "total_value": 10137.118000000006,
+    "cash": 400.66400000000556,
+    "positions_value": 9736.454,
+    "positions_count": 9,
+    "pnl_total": 137.11800000000585
   }
 ]
