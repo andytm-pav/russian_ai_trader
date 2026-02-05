@@ -2019,18 +2019,18 @@
   "total_experiences": 0,
   "strategy_performance": {
     "balanced": {
-      "total_trades": 229,
+      "total_trades": 230,
       "profitable_trades": 139,
       "total_pnl": 795.4470000000002,
-      "avg_pnl": 3.473567685589521,
-      "win_rate": 0.6069868995633187
+      "avg_pnl": 3.4584652173913053,
+      "win_rate": 0.6043478260869565
     },
     "news_aggressive": {
-      "total_trades": 9,
+      "total_trades": 10,
       "profitable_trades": 2,
-      "total_pnl": -48.60000000000076,
-      "avg_pnl": -5.400000000000085,
-      "win_rate": 0.2222222222222222
+      "total_pnl": -52.400000000000716,
+      "avg_pnl": -5.240000000000071,
+      "win_rate": 0.2
     },
     "tech_conservative": {
       "total_trades": 6,
@@ -3748,6 +3748,20 @@
       "pnl": 2.999999999999936,
       "hold_time": 189.09848141670227,
       "timestamp": "2026-02-05T12:12:40.322615"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -3.7999999999999545,
+      "hold_time": 54553.43526530266,
+      "timestamp": "2026-02-05T13:06:52.164366"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 0.0,
+      "hold_time": 4555.622432470322,
+      "timestamp": "2026-02-05T13:18:05.977442"
     }
   ],
   "strategies": {
@@ -3794,5 +3808,5 @@
       }
     }
   },
-  "save_time": "2026-02-05T13:03:03.042736"
+  "save_time": "2026-02-05T13:24:50.058504"
 }
