@@ -145,6 +145,7 @@ class MoexFetcher:
         try:
             # 1. Получаем список бумаг (securities)
             url = f"{self.base_url}/engines/stock/markets/shares/boards/TQBR/securities.json"
+            logger.debug(f"Загружен securities.json")
             params = {
                 'iss.meta': 'off',
                 'iss.only': 'securities',

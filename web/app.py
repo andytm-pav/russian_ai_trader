@@ -11,7 +11,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import json
 import threading
-import time
+import os
 from typing import Dict, List, Optional, Any
 
 from web.web_dashboard import dashboard_viz
@@ -21,6 +21,30 @@ from models.smart_broker import SmartPortfolioBroker
 from models.trainer import model_trainer_instance
 
 logger = get_logger("WEB_APP")
+
+
+def get_portfolio_tickers():
+    """Получаем тикеры из текущего портфеля"""
+    try:
+        portfolio_path = 'data/portfolio_state.json'
+        if os.path.exists(portfolio_path):
+            with open(portfolio_path, 'r', encoding='utf-8') as f:
+                portfolio = json.load(f)
+
+            # Получаем тикеры из positions (словарь, не список)
+            positions = portfolio.get('positions', {})
+            portfolio_tickers = list(positions.keys())
+
+            # Всегда добавляем MOEX
+            if 'MOEX' not in portfolio_tickers:
+                portfolio_tickers.append('MOEX')
+
+            return portfolio_tickers
+    except Exception as e:
+        logger.error(f"Ошибка загрузки портфеля: {e}")
+
+    # Fallback: основные тикеры + MOEX
+    return ['SBER', 'GAZP', 'LKOH', 'MOEX']
 
 # Инициализация Dash приложения
 app = dash.Dash(
@@ -336,29 +360,8 @@ charts_layout = dbc.Container([
                             html.Label("Тикер:", className="form-label"),
                             dcc.Dropdown(
                                 id="ticker-selector",
-                                options=[
-                                    {'label': 'Сбербанк (SBER)', 'value': 'SBER'},
-                                    {'label': 'Газпром (GAZP)', 'value': 'GAZP'},
-                                    {'label': 'Лукойл (LKOH)', 'value': 'LKOH'},
-                                    {'label': 'Тинькофф (TCSG)', 'value': 'TCSG'},  # 🔄 Аналог YNDX по IT/финтеху
-                                    {'label': 'МТС (MTSS)', 'value': 'MTSS'},  # 🔄 Телеком/цифровые услуги
-                                    {'label': 'Московская биржа (MOEX)', 'value': 'MOEX'},
-                                    {'label': 'Роснефть (ROSN)', 'value': 'ROSN'},
-                                    {'label': 'Норникель (GMKN)', 'value': 'GMKN'},
-                                    {'label': 'Новатэк (NVTK)', 'value': 'NVTK'},
-                                    {'label': 'ВТБ (VTBR)', 'value': 'VTBR'},
-                                    {'label': 'АЛРОСА (ALRS)', 'value': 'ALRS'},
-                                    {'label': 'ФосАгро (PHOR)', 'value': 'PHOR'},
-                                    {'label': 'Магнит (MGNT)', 'value': 'MGNT'},
-                                    {'label': 'Полюс (PLZL)', 'value': 'PLZL'},
-                                    {'label': 'Сургутнефтегаз (SNGS)', 'value': 'SNGS'},
-                                    {'label': 'Северсталь (CHMF)', 'value': 'CHMF'},
-                                    {'label': 'АФК Система (AFKS)', 'value': 'AFKS'},
-                                    {'label': 'Мосэнерго (MSNG)', 'value': 'MSNG'},
-                                    {'label': 'Интер РАО (IRAO)', 'value': 'IRAO'},
-                                    {'label': 'РусГидро (HYDR)', 'value': 'HYDR'}
-                                ],
-                                value='SBER',
+                                options=[],  # Теперь пустой список, будет заполняться динамически
+                                value='MOEX',  # MOEX всегда по умолчанию
                                 clearable=False
                             )
                         ], width=4),
@@ -2295,6 +2298,36 @@ def save_portfolio_history():
 
     except Exception as e:
         logger.error(f"Ошибка сохранения истории портфеля: {e}")
+
+
+@app.callback(
+    Output("ticker-selector", "options"),
+    [Input("interval-component", "n_intervals")],
+    prevent_initial_call=False
+)
+def update_ticker_dropdown_simple(n_intervals):
+    """Обновление выпадающего списка тикеров - простой вариант"""
+    try:
+        portfolio_tickers = get_portfolio_tickers()
+
+        if not portfolio_tickers:
+            default_tickers = ['SBER', 'GAZP', 'LKOH', 'MOEX', 'VTBR', 'ROSN', 'GMKN']
+            return [{'label': f"{ticker}", 'value': ticker} for ticker in default_tickers]
+
+        options = []
+        for ticker in sorted(portfolio_tickers):
+            if ticker == 'MOEX':
+                options.append({'label': "MOEX (Московская биржа)", 'value': ticker})
+            else:
+                options.append({'label': f"{ticker} (в портфеле)", 'value': ticker})
+
+        return options
+
+    except Exception as e:
+        logger.error(f"Ошибка обновления списка тикеров: {e}")
+        return [{'label': 'SBER (Сбербанк)', 'value': 'SBER'}]
+
+
 # Запуск приложения
 if __name__ == '__main__':
     # Тестовый запуск
