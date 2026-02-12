@@ -181,6 +181,45 @@ class TradingScheduler:
         except:
             return datetime.strptime('09:00', '%H:%M').time()
 
+    def _time_in_range(self, start: str, end: str, current: time) -> bool:
+        """Проверка, находится ли текущее время в диапазоне"""
+        start_time = self._parse_time(start)
+        end_time = self._parse_time(end)
+
+        if start_time <= end_time:
+            return start_time <= current <= end_time
+        else:  # Диапазон переходит через полночь
+            return current >= start_time or current <= end_time
+
+    def get_current_moex_period(self) -> str:
+        """Определение текущего периода торгов MOEX"""
+        if not self.is_trading_time():
+            return "closed"
+
+        now = datetime.now(self.moscow_tz).time()
+        # Используем существующий settings.json
+        try:
+            with open("config/settings.json", "r") as f:
+                settings = json.load(f)
+                periods = settings["moex_schedule"]["periods"]
+        except:
+            return "continuous_trading"  # fallback
+
+        for period_name, times in periods.items():
+            if self._time_in_range(times["start"], times["end"], now):
+                return period_name
+        return "continuous_trading"
+
+    def can_trade_now(self) -> Dict[str, bool]:
+        """Проверка доступности торговых операций"""
+        period = self.get_current_moex_period()
+        return {
+            'can_place_orders': period in ['auction_open', 'continuous_trading', 'auction_close'],
+            'can_cancel_orders': period in ['auction_open', 'continuous_trading', 'auction_close'],
+            'can_modify_orders': period == 'continuous_trading',
+            'current_period': period
+        }
+
     def get_next_session_start(self) -> Optional[datetime]:
         """Получение времени начала следующей сессии"""
         now = datetime.now(self.moscow_tz)

@@ -35,6 +35,7 @@ class SmartPortfolioBroker:
         self.technical_core = TechnicalTraderCore()
         self.risk_manager = RiskManager()
         self.scheduler = TradingScheduler()
+        self.auction_mode = False
         self.portfolio = PortfolioManager()
         self.model = trader_model_instance
 
@@ -969,6 +970,17 @@ class SmartPortfolioBroker:
     def run_cycle(self):
         """Основной торговый цикл"""
         if not self.trading_enabled or not self.scheduler.is_trading_time():
+            return
+
+        period_info = self.scheduler.can_trade_now()
+        self.auction_mode = period_info['current_period'] in ['auction_open', 'auction_close']
+
+        if self.cycle_count % 10 == 0:  # Каждые 10 циклов
+            logger.info(f"Текущий период MOEX: {period_info['current_period']}, "
+                        f"аукцион: {self.auction_mode}")
+
+        if not period_info['can_place_orders']:
+            logger.debug(f"Торговля недоступна: период {period_info['current_period']}")
             return
 
         cycle_start = time.time()

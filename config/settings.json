@@ -43,15 +43,44 @@
   "logging_level": "DEBUG",
   "simulation_mode": true,
   "paper_trading": true,
-
   "profit_optimization": {
-  "extreme_pnl_threshold": 0.08,
-  "max_reward": 1000.0,
-  "min_reward": -1000.0,
-  "reward_scaling_profit": 100.0,
-  "fast_learning_cycles": 5,
-  "strategy_adaptation_cycles": 20,
-  "enable_extreme_learning": true,
-  "enable_aggressive_adaptation": true
-}
+    "extreme_pnl_threshold": 0.08,
+    "max_reward": 1000.0,
+    "min_reward": -1000.0,
+    "reward_scaling_profit": 100.0,
+    "fast_learning_cycles": 5,
+    "strategy_adaptation_cycles": 20,
+    "enable_extreme_learning": true,
+    "enable_aggressive_adaptation": true
+  },
+
+  "moex_schedule": {
+    "periods": {
+      "auction_open": {"start": "09:50", "end": "09:59"},
+      "continuous_trading": {"start": "10:00", "end": "18:40"},
+      "auction_close": {"start": "18:40", "end": "18:50"}
+    },
+    "clearing": {
+      "fixation_time": "16:00",
+      "clearing_17": "17:00",
+      "clearing_19": "19:00",
+      "settlement_17": "18:00",
+      "settlement_19": "20:00",
+      "deadlines": {
+        "z0": "16:50",
+        "t0_rb": "17:00",
+        "limits_securities": "16:00",
+        "limits_cash": "16:45"
+      }
+    },
+    "commission": {
+      "charge_time": "19:00",
+      "charge_day": "T+0"
+    },
+    "corporate_actions": {
+      "dividends_transfer": false,
+      "coupons_transfer": false,
+      "voting_rights_transfer": false
+    }
+  }
 }

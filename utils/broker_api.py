@@ -109,6 +109,25 @@ class BrokerAPI:
             'is_connected': self.check_connection()
         }
 
+    def check_market_permission(self, operation: str = "place_order") -> Tuple[bool, str]:
+        """Проверка доступности операции по времени"""
+        # Ленивый импорт для избежания циклических зависимостей
+        from core.trading_hours_scheduler import TradingScheduler
+
+        scheduler = TradingScheduler()
+        period_info = scheduler.can_trade_now()
+
+        permissions = {
+            "place_order": period_info['can_place_orders'],
+            "cancel_order": period_info['can_cancel_orders'],
+            "modify_order": period_info['can_modify_orders']
+        }
+
+        if not permissions.get(operation, True):
+            return False, f"Операция недоступна в период: {period_info['current_period']}"
+
+        return True, "ok"
+
     def check_connection(self) -> bool:
         """Проверка соединения с брокером"""
         try:
