@@ -22,10 +22,10 @@ class ModelTrainer:
 
     def __init__(self,
                  model=None,
-                 training_interval: int = 600,  # Увеличен с 300 до 600 секунд (10 минут)
-                 batch_size: int = 64,  # Увеличен с 32 до 64
+                 training_interval: int = 300,  # Увеличен с 300 до 600 секунд (10 минут)
+                 batch_size: int = 32,  # Увеличен с 32 до 64
                  save_interval: int = 10,
-                 enable_priority_training: bool = False):  # НОВЫЙ ПАРАМЕТР
+                 enable_priority_training: bool = True):  # НОВЫЙ ПАРАМЕТР
 
         global logger
         logger = get_logger("TRAINER")
@@ -34,6 +34,7 @@ class ModelTrainer:
         self.batch_size = batch_size
         self.save_interval = save_interval
         self.enable_priority_training = enable_priority_training  # НОВЫЙ ПАРАМЕТР
+        self.load_memory()
 
         self.training_enabled = True
         self.training_thread = None
@@ -56,6 +57,48 @@ class ModelTrainer:
                     f"(интервал: {training_interval}с, "
                     f"batch_size: {batch_size}, "
                     f"приоритетное обучение: {'вкл' if enable_priority_training else 'выкл'})")
+
+    def save_memory(self):  # ← без underscore
+        """Сохранение памяти модели"""
+        try:
+            mem_config = self.model.rl_config.get("memory_persistence", {})
+            if not mem_config.get("enable_memory_save", True):
+                return
+
+            mem_file = mem_config.get("memory_file", "models/saved_trader/memory_buffer.pkl")
+            max_save = mem_config.get("max_memory_to_save", 5000)
+
+            import pickle
+            from pathlib import Path
+
+            Path(mem_file).parent.mkdir(parents=True, exist_ok=True)
+
+            memory_to_save = list(self.model.memory)[-max_save:]
+            with open(mem_file, 'wb') as f:
+                pickle.dump(memory_to_save, f)
+            logger.debug(f"Сохранена память: {len(memory_to_save)} опытов")
+        except Exception as e:
+            logger.error(f"Ошибка сохранения памяти: {e}")
+
+    def load_memory(self):  # ← без underscore
+        """Загрузка памяти модели"""
+        try:
+            mem_config = self.model.rl_config.get("memory_persistence", {})
+            if not mem_config.get("enable_memory_save", True):
+                return
+
+            mem_file = mem_config.get("memory_file", "models/saved_trader/memory_buffer.pkl")
+            import pickle
+            from pathlib import Path
+
+            if Path(mem_file).exists():
+                with open(mem_file, 'rb') as f:
+                    saved = pickle.load(f)
+                    self.model.memory.clear()
+                    self.model.memory.extend(saved)
+                logger.info(f"Загружена память: {len(saved)} опытов")
+        except Exception as e:
+            logger.warning(f"Не удалось загрузить память: {e}")
 
     def start_background_training(self):
         """Запуск фонового обучения"""
@@ -119,6 +162,7 @@ class ModelTrainer:
                     # Периодическое сохранение
                     if training_counter % self.save_interval == 0:
                         self.model.save_model()
+                        self.save_memory()
                         logger.info(f"Модель сохранена после {training_counter} обучений")
 
                 # Очистка старой памяти (если слишком много)
@@ -395,4 +439,8 @@ class ModelTrainer:
 
 
 # Глобальный экземпляр
-model_trainer_instance = ModelTrainer()
+model_trainer_instance = ModelTrainer(
+    training_interval=300,
+    batch_size=32,
+    enable_priority_training=True
+)

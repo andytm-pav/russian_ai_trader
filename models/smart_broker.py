@@ -277,6 +277,7 @@ class SmartPortfolioBroker:
             'completed': False,
             'is_priority': self._is_priority_experience(sentiment_data)  # Новое поле
         }
+        self.pending_experiences.append(experience)
 
         # Также отправляем в trainer если это приоритетный опыт
         if hasattr(self, 'trainer') and experience['is_priority']:
@@ -371,6 +372,7 @@ class SmartPortfolioBroker:
                 exp['completed'] = True
                 logger.debug(f"RL опыт завершен: {ticker}, reward={reward:.3f}, pnl={pnl:.2f}")
                 break
+        self.pending_experiences = [exp for exp in self.pending_experiences if not exp['completed']]
 
     def _calculate_reward(self, pnl: float, hold_time: float, strategy: str) -> float:
         """Расчет награды ОПТИМИЗИРОВАННЫЙ ДЛЯ МАКСИМАЛЬНОЙ ПРИБЫЛИ"""
@@ -1599,6 +1601,8 @@ class SmartPortfolioBroker:
         # Сохраняем память даже если мало опытов
         if len(self.model.memory) > 0:
             self.model.save_memory()
+            if hasattr(self, 'trainer') and self.trainer:
+                self.trainer.save_memory()  # ← без underscore
 
         # Останавливаем сбор новостей
         self.news_core.stop_continuous_fetching()
