@@ -324,6 +324,10 @@ class AdvancedTraderModel:
         self.load_model()
         self.load_memory()
 
+        # ✅ Загрузка RL конфига
+        self.rl_config = self._load_rl_config()
+
+
         print(f"[TraderModel] Инициализирована на {self.device}")
         print(f"[TraderModel] Статистика: {len(self.error_memory)} тикеров, "
               f"{len(self.memory)} опытов, sentiment={self.market_sentiment:.3f}")
@@ -381,6 +385,16 @@ class AdvancedTraderModel:
                     'adaptation_rate': 0.1
                 }
             }
+
+    def _load_rl_config(self) -> Dict:
+        """Загрузка RL конфига"""
+        try:
+            with open("config/rl_config.json", "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[TraderModel] ⚠ Ошибка загрузки RL конфига: {e}")
+            return {}
+
 
     def _load_memory_config(self) -> Dict:
         """Загрузка конфигурации сериализации памяти"""
