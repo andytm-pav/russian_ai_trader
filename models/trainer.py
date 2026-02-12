@@ -34,7 +34,7 @@ class ModelTrainer:
         self.batch_size = batch_size
         self.save_interval = save_interval
         self.enable_priority_training = enable_priority_training  # НОВЫЙ ПАРАМЕТР
-        self.load_memory()
+
 
         self.training_enabled = True
         self.training_thread = None
@@ -52,6 +52,8 @@ class ModelTrainer:
             logger.info(f"Приоритетное обучение ВКЛЮЧЕНО (лимит: {self.priority_memory.maxlen} записей)")
         else:
             self.priority_memory = None
+
+        self.load_memory()
 
         logger.info(f"Инициализирован ModelTrainer "
                     f"(интервал: {training_interval}с, "
