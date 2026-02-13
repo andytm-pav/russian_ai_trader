@@ -4,6 +4,7 @@
   "max_position_weight_percent": 30,
   "risk_per_trade_percent": 3.0,
   "daily_loss_limit_percent": 5,
+
   "trading_hours": {
     "main_session": "06:50-18:50",
     "evening_session": "19:00-23:50",
