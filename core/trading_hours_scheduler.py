@@ -209,7 +209,9 @@ class TradingScheduler:
             periods = {
                 "auction_open": {"start": "09:50", "end": "09:59"},
                 "continuous_trading": {"start": "10:00", "end": "18:40"},
-                "auction_close": {"start": "18:40", "end": "18:50"}
+                "auction_close": {"start": "18:40", "end": "18:50"},
+                "evening_auction_open": {"start": "19:00", "end": "19:05"},
+                "evening_continuous": {"start": "19:05", "end": "23:50"}
             }
 
         for period_name, times in periods.items():
@@ -221,10 +223,12 @@ class TradingScheduler:
     def can_trade_now(self) -> Dict[str, bool]:
         """Проверка доступности торговых операций"""
         period = self.get_current_moex_period()
+
+
         return {
-            'can_place_orders': period in ['auction_open', 'continuous_trading', 'auction_close'],
-            'can_cancel_orders': period in ['auction_open', 'continuous_trading', 'auction_close'],
-            'can_modify_orders': period == 'continuous_trading',
+            'can_place_orders': period in ['auction_open', 'continuous_trading', 'auction_close', 'evening_auction_open', 'evening_continuous'],
+            'can_cancel_orders': period in ['auction_open', 'continuous_trading', 'auction_close','evening_auction_open', 'evening_continuous'],
+            'can_modify_orders': period in ['continuous_trading', 'evening_continuous'],
             'current_period': period
         }
 
