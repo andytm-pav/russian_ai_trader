@@ -1923,7 +1923,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": 0.038156384468296584,
+  "market_sentiment": 0.033074223540386,
   "sentiment_history": [
     0.0015873015873015873,
     0.0021327967806841048,
@@ -2034,32 +2034,34 @@
     0.041988440364977515,
     0.04074526135311031,
     0.039920735217799284,
-    0.038156384468296584
+    0.038156384468296584,
+    0.036568468793744154,
+    0.033074223540386
   ],
-  "volatility_index": 0.705014560532517,
+  "volatility_index": 0.7084617051845041,
   "memory_size": 10,
   "total_experiences": 0,
   "strategy_performance": {
     "balanced": {
-      "total_trades": 312,
+      "total_trades": 314,
       "profitable_trades": 207,
-      "total_pnl": 903.5193084158813,
-      "avg_pnl": 2.8958952192816705,
-      "win_rate": 0.6634615384615384
+      "total_pnl": 895.0193084158813,
+      "avg_pnl": 2.850379963107902,
+      "win_rate": 0.6592356687898089
     },
     "news_aggressive": {
-      "total_trades": 29,
+      "total_trades": 32,
       "profitable_trades": 15,
-      "total_pnl": -43.18518055443587,
-      "avg_pnl": -1.4891441570495128,
-      "win_rate": 0.5172413793103449
+      "total_pnl": -44.6091805544359,
+      "avg_pnl": -1.394036892326122,
+      "win_rate": 0.46875
     },
     "tech_conservative": {
-      "total_trades": 220,
-      "profitable_trades": 162,
-      "total_pnl": 356.92543207327407,
-      "avg_pnl": 1.622388327605791,
-      "win_rate": 0.7363636363636363
+      "total_trades": 225,
+      "profitable_trades": 164,
+      "total_pnl": 359.02543207327415,
+      "avg_pnl": 1.5956685869923295,
+      "win_rate": 0.7288888888888889
     }
   },
   "strategy_memory": [
@@ -5989,6 +5991,76 @@
       "pnl": 1.900000000000034,
       "hold_time": 38.118661403656006,
       "timestamp": "2026-02-13T15:02:47.904175"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": -4.249999999999998,
+      "hold_time": 0.004431009292602539,
+      "timestamp": "2026-02-13T17:42:07.031264"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": -4.249999999999998,
+      "hold_time": 50.885658502578735,
+      "timestamp": "2026-02-13T17:42:57.912489"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -0.8900000000000219,
+      "hold_time": 0.004715442657470703,
+      "timestamp": "2026-02-13T17:48:49.289142"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -0.35600000000000875,
+      "hold_time": 0.00511479377746582,
+      "timestamp": "2026-02-13T17:49:34.741809"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -0.17800000000000438,
+      "hold_time": 0.005694866180419922,
+      "timestamp": "2026-02-13T17:50:25.353349"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.6999999999999895,
+      "hold_time": 12146.93201828003,
+      "timestamp": "2026-02-13T17:56:24.062558"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.1999999999999602,
+      "hold_time": 9971.076318025589,
+      "timestamp": "2026-02-13T18:14:27.418200"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -1.0,
+      "hold_time": 8702.777570009232,
+      "timestamp": "2026-02-13T18:16:00.446642"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 2.0,
+      "hold_time": 0.004104137420654297,
+      "timestamp": "2026-02-13T19:34:17.599550"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 2.0,
+      "hold_time": 84.4290223121643,
+      "timestamp": "2026-02-13T19:35:42.024468"
     }
   ],
   "strategies": {
@@ -6035,5 +6107,5 @@
       }
     }
   },
-  "save_time": "2026-02-13T17:02:59.374041"
+  "save_time": "2026-02-13T19:52:19.517757"
 }

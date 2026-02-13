@@ -428,6 +428,7 @@ class TradingScheduler:
                 charge_time = commission.get("charge_time", "19:00")
 
         except Exception as e:
+            # Fallback - ПОЛНАЯ СОВМЕСТИМОСТЬ
             logger.warning(f"Не удалось загрузить конфиг, использую fallback: {e}")
             pre_market = "06:30"
             market_open = "10:00"
