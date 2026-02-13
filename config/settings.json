@@ -12,6 +12,55 @@
     "trade_on_weekend": true,
     "force_247": false
   },
+
+  "moex_schedule": {
+    "periods": {
+      "auction_open": {"start": "09:50", "end": "09:59"},
+      "continuous_trading": {"start": "10:00", "end": "18:40"},
+      "auction_close": {"start": "18:40", "end": "18:50"}
+    },
+    "pre_market_start": "06:30",
+    "post_market_start": "19:00",
+
+    "clearing": {
+      "fixation_time": "16:00",
+      "clearing_17": "17:00",
+      "clearing_19": "19:00",
+      "settlement_17": "18:00",
+      "settlement_19": "20:00",
+      "deadlines": {
+        "z0": "16:50",
+        "t0_rb": "17:00",
+        "limits_securities": "16:00",
+        "limits_cash": "16:45"
+      }
+    },
+
+    "commission": {
+      "charge_time": "19:00",
+      "charge_day": "T+0",
+      "rate_percent": 0.05,
+      "rate_decimal": 0.0005
+    },
+
+    "corporate_actions": {
+      "dividends_transfer": false,
+      "coupons_transfer": false,
+      "voting_rights_transfer": false
+    }
+  },
+
+  "back_office": {
+    "enable_auto_liquidity_check": true,
+    "min_liquidity_ratio": 0.2,
+    "auto_close_positions_at_deadline": false,
+    "max_position_close_percent": 50,
+    "commission_account": "commission",
+    "alert_email": "backoffice@example.com",
+    "alert_on_low_liquidity": true,
+    "daily_report_enabled": true
+  },
+
   "use_atr_for_stops": true,
   "atr_multiplier": 2.0,
   "max_adv_percent": 5.0,
@@ -36,14 +85,11 @@
   "model_confidence_threshold": 0.65,
   "rss_update_interval_seconds": 60,
   "price_update_interval_seconds": 30,
-  "portfolio_rebalance_hours": [
-    10,
-    14,
-    16
-  ],
+  "portfolio_rebalance_hours": [10, 14, 16],
   "logging_level": "DEBUG",
   "simulation_mode": true,
   "paper_trading": true,
+
   "profit_optimization": {
     "extreme_pnl_threshold": 0.08,
     "max_reward": 1000.0,
@@ -53,35 +99,5 @@
     "strategy_adaptation_cycles": 20,
     "enable_extreme_learning": true,
     "enable_aggressive_adaptation": true
-  },
-
-  "moex_schedule": {
-    "periods": {
-      "auction_open": {"start": "09:50", "end": "09:59"},
-      "continuous_trading": {"start": "10:00", "end": "18:40"},
-      "auction_close": {"start": "18:40", "end": "18:50"}
-    },
-    "clearing": {
-      "fixation_time": "16:00",
-      "clearing_17": "17:00",
-      "clearing_19": "19:00",
-      "settlement_17": "18:00",
-      "settlement_19": "20:00",
-      "deadlines": {
-        "z0": "16:50",
-        "t0_rb": "17:00",
-        "limits_securities": "16:00",
-        "limits_cash": "16:45"
-      }
-    },
-    "commission": {
-      "charge_time": "19:00",
-      "charge_day": "T+0"
-    },
-    "corporate_actions": {
-      "dividends_transfer": false,
-      "coupons_transfer": false,
-      "voting_rights_transfer": false
-    }
   }
 }

@@ -24,6 +24,18 @@ class PortfolioManager:
         self.initial_capital = 0.0
         self.strategy_positions = defaultdict(list)  # Позиции по стратегиям
 
+        self.daily_trades = []
+        self.daily_reset_time = "19:00"  # fallback
+
+        try:
+            with open("config/settings.json", "r") as f:
+                settings = json.load(f)
+                moex = settings.get("moex_schedule", {})
+                commission = moex.get("commission", {})
+                self.daily_reset_time = commission.get("charge_time", "19:00")
+        except:
+            pass
+
         # Загрузка состояния
         self.load_portfolio()
 
@@ -241,6 +253,16 @@ class PortfolioManager:
 
             self.trade_history.append(trade_record)
 
+            self.daily_trades.append({
+                'timestamp': datetime.now().isoformat(),
+                'ticker': ticker,
+                'action': 'BUY',
+                'quantity': quantity,
+                'price': price,
+                'value': quantity * price,
+                'strategy': strategy
+            })
+
             # Сохранение
             self.save_portfolio()
 
@@ -335,6 +357,17 @@ class PortfolioManager:
             }
 
             self.trade_history.append(trade_record)
+
+            self.daily_trades.append({
+                'timestamp': datetime.now().isoformat(),
+                'ticker': ticker,
+                'action': 'SELL',
+                'quantity': quantity,
+                'price': price,
+                'value': quantity * price,
+                'pnl': pnl,
+                'strategy': strategy
+            })
 
             # Сохранение
             self.save_portfolio()
@@ -706,6 +739,12 @@ class PortfolioManager:
         except Exception as e:
             logger.error(f"Ошибка экспорта отчета: {e}")
             return False
+
+    def reset_daily_trades(self):
+        """Сброс дневной статистики (вызывать в 19:00)"""
+        self.daily_trades = []
+        logger.debug(f"Дневная статистика сделок сброшена (время: {self.daily_reset_time})")
+
 
     def remove_strategy_from_tracker(self, ticker: str, strategy: str):
         """Удаление позиции из трекера стратегий"""

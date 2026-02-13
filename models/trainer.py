@@ -60,7 +60,7 @@ class ModelTrainer:
                     f"batch_size: {batch_size}, "
                     f"приоритетное обучение: {'вкл' if enable_priority_training else 'выкл'})")
 
-    def save_memory(self):  # ← без underscore
+    def save_memory(self):
         """Сохранение памяти модели"""
         try:
             mem_config = self.model.rl_config.get("memory_persistence", {})
@@ -69,21 +69,30 @@ class ModelTrainer:
 
             mem_file = mem_config.get("memory_file", "models/saved_trader/memory_buffer.pkl")
             max_save = mem_config.get("max_memory_to_save", 5000)
+            compress = mem_config.get("compress", True)
 
             import pickle
+            import gzip
             from pathlib import Path
 
             Path(mem_file).parent.mkdir(parents=True, exist_ok=True)
 
             memory_to_save = list(self.model.memory)[-max_save:]
-            with open(mem_file, 'wb') as f:
-                pickle.dump(memory_to_save, f)
+
+            if compress:
+                with gzip.open(mem_file, 'wb') as f:
+                    pickle.dump(memory_to_save, f)
+            else:
+                with open(mem_file, 'wb') as f:
+                    pickle.dump(memory_to_save, f)
+
             logger.debug(f"Сохранена память: {len(memory_to_save)} опытов")
+
         except Exception as e:
             logger.error(f"Ошибка сохранения памяти: {e}")
 
-    def load_memory(self):  # ← без underscore
-        """Загрузка памяти модели"""
+    def load_memory(self):
+        """Загрузка памяти модели с поддержкой сжатых и несжатых файлов"""
         try:
             mem_config = self.model.rl_config.get("memory_persistence", {})
             if not mem_config.get("enable_memory_save", True):
@@ -91,16 +100,47 @@ class ModelTrainer:
 
             mem_file = mem_config.get("memory_file", "models/saved_trader/memory_buffer.pkl")
             import pickle
+            import gzip
             from pathlib import Path
 
-            if Path(mem_file).exists():
-                with open(mem_file, 'rb') as f:
+            mem_path = Path(mem_file)
+            if not mem_path.exists():
+                return
+
+            # Пробуем сначала как обычный pickle
+            try:
+                with open(mem_path, 'rb') as f:
                     saved = pickle.load(f)
-                    self.model.memory.clear()
-                    self.model.memory.extend(saved)
-                logger.info(f"Загружена память: {len(saved)} опытов")
+            except Exception:
+                # Если не получилось, пробуем как gzip
+                with gzip.open(mem_path, 'rb') as f:
+                    saved = pickle.load(f)
+
+            self.model.memory.clear()
+            self.model.memory.extend(saved)
+            logger.info(f"Загружена память: {len(saved)} опытов")
+
         except Exception as e:
             logger.warning(f"Не удалось загрузить память: {e}")
+            # Создаём бэкап повреждённого файла
+            self._backup_corrupted_memory()
+
+    def _backup_corrupted_memory(self):
+        """Создание бэкапа повреждённого файла памяти"""
+        try:
+            mem_file = self.model.rl_config.get("memory_persistence", {}).get("memory_file",
+                                                                              "models/saved_trader/memory_buffer.pkl")
+            from pathlib import Path
+            import shutil
+            from datetime import datetime
+
+            mem_path = Path(mem_file)
+            if mem_path.exists():
+                backup_name = f"{mem_path}.corrupted.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                shutil.move(mem_path, backup_name)
+                logger.info(f"Повреждённый файл памяти сохранён как {backup_name}")
+        except Exception as e:
+            logger.error(f"Не удалось создать бэкап: {e}")
 
     def start_background_training(self):
         """Запуск фонового обучения"""

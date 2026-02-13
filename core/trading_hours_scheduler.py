@@ -4,10 +4,11 @@
 
 import json
 import pytz
+import threading  # ✅ ДОБАВЛЕНО
+import time as ttime
+import schedule
 from datetime import datetime, time, timedelta
 from typing import Dict, List, Optional, Tuple
-import schedule
-import time as ttime
 
 from utils.logger import get_logger
 
@@ -22,12 +23,9 @@ class TradingScheduler:
         self.moscow_tz = pytz.timezone('Europe/Moscow')
         self.today_cache = None
         self.is_trading_day_cache = None
-
-
-
-
-
-
+        # ✅ ДОБАВЛЕНО
+        self.scheduler_thread = None
+        self.scheduler_running = False
 
         logger.info("Инициализирован планировщик торговых сессий")
 
@@ -181,6 +179,7 @@ class TradingScheduler:
         except:
             return datetime.strptime('09:00', '%H:%M').time()
 
+    # ✅ НОВЫЙ МЕТОД
     def _time_in_range(self, start: str, end: str, current: time) -> bool:
         """Проверка, находится ли текущее время в диапазоне"""
         start_time = self._parse_time(start)
@@ -191,25 +190,34 @@ class TradingScheduler:
         else:  # Диапазон переходит через полночь
             return current >= start_time or current <= end_time
 
+    # ✅ НОВЫЙ МЕТОД
     def get_current_moex_period(self) -> str:
         """Определение текущего периода торгов MOEX"""
         if not self.is_trading_time():
             return "closed"
 
         now = datetime.now(self.moscow_tz).time()
-        # Используем существующий settings.json
+
+        # Используем settings.json для получения периодов
         try:
             with open("config/settings.json", "r") as f:
                 settings = json.load(f)
-                periods = settings["moex_schedule"]["periods"]
+                moex = settings.get("moex_schedule", {})
+                periods = moex.get("periods", {})
         except:
-            return "continuous_trading"  # fallback
+            # Fallback - стандартные периоды MOEX
+            periods = {
+                "auction_open": {"start": "09:50", "end": "09:59"},
+                "continuous_trading": {"start": "10:00", "end": "18:40"},
+                "auction_close": {"start": "18:40", "end": "18:50"}
+            }
 
         for period_name, times in periods.items():
             if self._time_in_range(times["start"], times["end"], now):
                 return period_name
         return "continuous_trading"
 
+    # ✅ НОВЫЙ МЕТОД
     def can_trade_now(self) -> Dict[str, bool]:
         """Проверка доступности торговых операций"""
         period = self.get_current_moex_period()
@@ -325,37 +333,153 @@ class TradingScheduler:
 
         return info
 
+    # ============================================
+    # ✅ НОВЫЕ МЕТОДЫ ДЛЯ ПЛАНИРОВЩИКА
+    # ============================================
+
+    def _execute_with_context(self, callback, context: str):
+        """Выполнение callback с обработкой ошибок"""
+        try:
+            logger.info(f"🔔 ВЫПОЛНЕНИЕ: {context}")
+            result = callback()
+            logger.info(f"✅ Завершено: {context} -> {result}")
+            return result
+        except Exception as e:
+            logger.error(f"❌ Ошибка в {context}: {e}")
+            return False
+
+    def _log_clearing_fixation(self):
+        """16:00 - Фиксация обязательств Т+"""
+        logger.info("🔔 MOEX: 16:00 - Фиксация обязательств Т+")
+        return True
+
+    def _log_z0_deadline(self):
+        """16:50 - Дедлайн сделок Z0"""
+        logger.info("🔔 MOEX: 16:50 - Дедлайн Z0 (РПС/РЕПО)")
+        return True
+
+    def _log_commission_charge(self):
+        """19:00 - Списание комиссий"""
+        logger.info("🔔 MOEX: 19:00 - Списание комиссий Т+0")
+        return True
+
+    def _start_scheduler(self):
+        """Запуск планировщика в отдельном потоке"""
+        if self.scheduler_running:
+            return
+
+        def schedule_runner():
+            self.scheduler_running = True
+            while self.scheduler_running:
+                try:
+                    schedule.run_pending()
+                    ttime.sleep(1)
+                except Exception as e:
+                    logger.error(f"Ошибка в планировщике: {e}")
+                    ttime.sleep(5)
+
+        self.scheduler_thread = threading.Thread(target=schedule_runner, daemon=True)
+        self.scheduler_thread.start()
+        logger.info("Планировщик задач запущен")
+
+    def stop_scheduler(self):
+        """Остановка планировщика"""
+        self.scheduler_running = False
+        if self.scheduler_thread:
+            self.scheduler_thread.join(timeout=5)
+        logger.info("Планировщик задач остановлен")
+
+    # ✅ ИСПРАВЛЕННЫЙ МЕТОД schedule_daily_tasks
     def schedule_daily_tasks(self,
                              pre_market_callback,
                              market_open_callback,
                              market_close_callback,
-                             post_market_callback):
+                             post_market_callback,
+                             clearing_liquidity_callback=None,
+                             z0_deadline_callback=None,
+                             clearing_17_callback=None,
+                             clearing_19_callback=None):
         """Планирование ежедневных задач"""
 
-        # Предрыночный анализ (06:30)
-        schedule.every().day.at("06:30").do(pre_market_callback)
-        logger.info("Запланирован предрыночный анализ на 06:30")
+        # Читаем времена из конфига
+        try:
+            with open("config/settings.json", "r") as f:
+                settings = json.load(f)
+                moex = settings.get("moex_schedule", {})
+                periods = moex.get("periods", {})
+                clearing = moex.get("clearing", {})
+                deadlines = clearing.get("deadlines", {})
+                commission = moex.get("commission", {})
 
-        # Открытие рынка (06:50)
-        schedule.every().day.at("06:50").do(market_open_callback)
-        logger.info("Запланировано открытие рынка на 06:50")
+                # Времена из конфига
+                pre_market = moex.get("pre_market_start", "06:30")
+                market_open = periods.get("continuous_trading", {}).get("start", "10:00")
+                market_close = periods.get("continuous_trading", {}).get("end", "18:40")
+                post_market = moex.get("post_market_start", "19:00")
 
-        # Закрытие рынка (18:50)
-        schedule.every().day.at("18:50").do(market_close_callback)
-        logger.info("Запланировано закрытие рынка на 18:50")
+                fixation = clearing.get("fixation_time", "16:00")
+                z0_cutoff = deadlines.get("z0", "16:50")
+                clearing_17_time = clearing.get("clearing_17", "17:00")
+                clearing_19_time = clearing.get("clearing_19", "19:00")
+                charge_time = commission.get("charge_time", "19:00")
 
-        # Послерыночный анализ (19:00)
-        schedule.every().day.at("19:00").do(post_market_callback)
-        logger.info("Запланирован послерыночный анализ на 19:00")
+        except Exception as e:
+            logger.warning(f"Не удалось загрузить конфиг, использую fallback: {e}")
+            pre_market = "06:30"
+            market_open = "10:00"
+            market_close = "18:40"
+            post_market = "19:00"
+            fixation = "16:00"
+            z0_cutoff = "16:50"
+            clearing_17_time = "17:00"
+            clearing_19_time = "19:00"
+            charge_time = "19:00"
 
-        # Запуск планировщика в отдельном потоке
-        import threading
+        # Очищаем существующие задачи
+        schedule.clear()
 
-        def schedule_runner():
-            while True:
-                schedule.run_pending()
-                ttime.sleep(60)
+        # Планирование основных задач
+        schedule.every().day.at(pre_market).do(pre_market_callback)
+        logger.info(f"✅ Запланирован предрыночный анализ на {pre_market}")
 
-        scheduler_thread = threading.Thread(target=schedule_runner, daemon=True)
-        scheduler_thread.start()
-        logger.info("Планировщик задач запущен")
+        schedule.every().day.at(market_open).do(market_open_callback)
+        logger.info(f"✅ Запланировано открытие рынка на {market_open}")
+
+        schedule.every().day.at(market_close).do(market_close_callback)
+        logger.info(f"✅ Запланировано закрытие рынка на {market_close}")
+
+        schedule.every().day.at(post_market).do(post_market_callback)
+        logger.info(f"✅ Запланирован послерыночный анализ на {post_market}")
+
+        # Планирование задач бэкофиса
+        if clearing_liquidity_callback:
+            schedule.every().day.at(fixation).do(
+                lambda: self._execute_with_context(clearing_liquidity_callback, "fixation")
+            )
+            logger.info(f"✅ Запланирована проверка ликвидности на {fixation}")
+
+        if z0_deadline_callback:
+            schedule.every().day.at(z0_cutoff).do(
+                lambda: self._execute_with_context(z0_deadline_callback, "z0")
+            )
+            logger.info(f"✅ Запланирован дедлайн Z0 на {z0_cutoff}")
+
+        if clearing_17_callback:
+            schedule.every().day.at(clearing_17_time).do(
+                lambda: self._execute_with_context(clearing_17_callback, "clearing_17")
+            )
+            logger.info(f"✅ Запланирован клиринг 17:00 на {clearing_17_time}")
+
+        if clearing_19_callback:
+            schedule.every().day.at(clearing_19_time).do(
+                lambda: self._execute_with_context(clearing_19_callback, "clearing_19")
+            )
+            logger.info(f"✅ Запланирован клиринг 19:00 на {clearing_19_time}")
+
+        # Планирование логирования
+        schedule.every().day.at(fixation).do(self._log_clearing_fixation)
+        schedule.every().day.at(z0_cutoff).do(self._log_z0_deadline)
+        schedule.every().day.at(charge_time).do(self._log_commission_charge)
+
+        # Запуск планировщика
+        self._start_scheduler()

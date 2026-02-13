@@ -36,8 +36,11 @@ class SmartPortfolioBroker:
         self.risk_manager = RiskManager()
         self.scheduler = TradingScheduler()
         self.auction_mode = False
+
+        self.auction_mode = False
         self.portfolio = PortfolioManager()
         self.model = trader_model_instance
+        self.model.market_period = "closed"
 
         global logger
         # Инициализируем глобальный логгер с настройками
@@ -865,7 +868,11 @@ class SmartPortfolioBroker:
             pre_market_callback=self.pre_session_analysis,
             market_open_callback=self.on_market_open,
             market_close_callback=self.on_market_close,
-            post_market_callback=self.post_session_analysis
+            post_market_callback=self.post_session_analysis,
+            clearing_liquidity_callback=self.check_clearing_liquidity,
+            z0_deadline_callback=self.execute_z0_deadline,
+            clearing_17_callback=self.process_clearing_17,
+            clearing_19_callback=self.process_clearing_19
         )
 
         logger.info("SmartBroker: все компоненты инициализированы")
@@ -974,6 +981,9 @@ class SmartPortfolioBroker:
 
         period_info = self.scheduler.can_trade_now()
         self.auction_mode = period_info['current_period'] in ['auction_open', 'auction_close']
+
+        if hasattr(self, 'model') and self.model:
+            self.model.market_period = period_info['current_period']
 
         if self.cycle_count % 10 == 0:  # Каждые 10 циклов
             logger.info(f"Текущий период MOEX: {period_info['current_period']}, "
@@ -1605,6 +1615,249 @@ class SmartPortfolioBroker:
 
         except Exception as e:
             logger.error(f"Ошибка обновления настроек брокера: {e}")
+
+    # ============================================
+    # БЭКОФИС ФУНКЦИИ - ВСТАВИТЬ В КОНЕЦ КЛАССА
+    # ============================================
+
+    def check_clearing_liquidity(self):
+        """16:00 - Проверка ликвидности перед клирингом"""
+        logger.info("=" * 60)
+        logger.info("🔰 БЭКОФИС: ПРОВЕРКА ЛИКВИДНОСТИ (16:00)")
+        logger.info("=" * 60)
+
+        try:
+            prices = self._get_current_prices()
+
+            total_exposure = 0
+            positions_detail = []
+
+            for ticker, pos in self.portfolio.positions.items():
+                current_price = prices.get(ticker, pos['avg_price'])
+                position_value = pos['qty'] * current_price
+                total_exposure += position_value
+
+                positions_detail.append({
+                    'ticker': ticker,
+                    'value': position_value,
+                    'qty': pos['qty'],
+                    'price': current_price
+                })
+
+            liquidity_ratio = self.portfolio.cash / total_exposure if total_exposure > 0 else 1.0
+            min_ratio = self.settings.get('back_office', {}).get('min_liquidity_ratio', 0.2)
+
+            report = {
+                'timestamp': datetime.now().isoformat(),
+                'cash': self.portfolio.cash,
+                'total_exposure': total_exposure,
+                'liquidity_ratio': liquidity_ratio,
+                'min_required_ratio': min_ratio,
+                'is_sufficient': liquidity_ratio >= min_ratio,
+                'positions_count': len(self.portfolio.positions),
+                'positions': positions_detail
+            }
+
+            logger.info(f"💰 Кэш: {self.portfolio.cash:,.0f}₽")
+            logger.info(f"📊 Обязательства: {total_exposure:,.0f}₽")
+            logger.info(f"⚖ Коэффициент ликвидности: {liquidity_ratio:.2%} (мин: {min_ratio:.2%})")
+
+            if liquidity_ratio < min_ratio:
+                logger.warning(f"⚠ КРИТИЧЕСКИ НИЗКАЯ ЛИКВИДНОСТЬ!")
+                self._send_liquidity_alert(report)
+            else:
+                logger.info(f"✅ Ликвидность достаточная")
+
+            self._save_liquidity_report(report)
+            return report
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка проверки ликвидности: {e}")
+            return {'error': str(e)}
+
+    def execute_z0_deadline(self):
+        """16:50 - Дедлайн сделок Z0"""
+        logger.info("=" * 60)
+        logger.info("🔰 БЭКОФИС: ДЕДЛАЙН Z0 (16:50)")
+        logger.info("=" * 60)
+
+        try:
+            back_config = self.settings.get('back_office', {})
+            auto_close = back_config.get('auto_close_positions_at_deadline', False)
+
+            if not auto_close:
+                logger.info("⏸ Автоматическое закрытие позиций отключено")
+                return {'action': 'skipped', 'reason': 'auto_close_disabled'}
+
+            liquidity = self.check_clearing_liquidity()
+
+            if liquidity.get('is_sufficient', True):
+                logger.info("✅ Ликвидность достаточная, закрытие не требуется")
+                return {'action': 'none', 'liquidity': liquidity}
+
+            max_close_percent = back_config.get('max_position_close_percent', 50)
+            closed_positions = []
+
+            prices = self._get_current_prices()
+
+            for ticker, pos in list(self.portfolio.positions.items()):
+                if ticker not in prices:
+                    continue
+
+                qty_to_sell = int(pos['qty'] * max_close_percent / 100)
+                lot_size = pos.get('lot_size', 1)
+
+                if lot_size > 1:
+                    qty_to_sell = (qty_to_sell // lot_size) * lot_size
+
+                if qty_to_sell >= lot_size:
+                    if self.portfolio.sell(ticker, qty_to_sell, prices[ticker]):
+                        closed_positions.append({
+                            'ticker': ticker,
+                            'qty': qty_to_sell,
+                            'price': prices[ticker]
+                        })
+                        logger.info(f"📉 Частично закрыта {ticker}: {qty_to_sell} @ {prices[ticker]:.2f}")
+
+            result = {
+                'action': 'partial_close',
+                'closed_positions': closed_positions,
+                'cash_after': self.portfolio.cash
+            }
+
+            logger.info(f"✅ Дедлайн Z0 выполнен, закрыто {len(closed_positions)} позиций")
+            return result
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка выполнения дедлайна Z0: {e}")
+            return {'error': str(e)}
+
+    def process_clearing_17(self):
+        """17:00 - Первый клиринг"""
+        logger.info("=" * 60)
+        logger.info("🔰 БЭКОФИС: КЛИРИНГ 17:00")
+        logger.info("=" * 60)
+
+        try:
+            prices = self._get_current_prices()
+            portfolio_value = self.portfolio.get_total_value(prices)
+
+            state = {
+                'timestamp': datetime.now().isoformat(),
+                'clearing': '17:00',
+                'portfolio_value': portfolio_value,
+                'cash': self.portfolio.cash,
+                'positions': len(self.portfolio.positions),
+                'open_pnl': portfolio_value - self.portfolio.cash - sum(
+                    p['qty'] * p['avg_price'] for p in self.portfolio.positions.values()
+                )
+            }
+
+            self._save_clearing_state(state)
+
+            logger.info(f"📊 Портфель на 17:00: {portfolio_value:,.0f}₽")
+            logger.info(f"💰 Кэш: {self.portfolio.cash:,.0f}₽")
+
+            return state
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка клиринга 17:00: {e}")
+            return {'error': str(e)}
+
+    def process_clearing_19(self):
+        """19:00 - Второй клиринг и списание комиссий"""
+        logger.info("=" * 60)
+        logger.info("🔰 БЭКОФИС: КЛИРИНГ 19:00 И КОМИССИИ")
+        logger.info("=" * 60)
+
+        try:
+            moex_config = self.settings.get('moex_schedule', {})
+            commission_config = moex_config.get('commission', {})
+            back_config = self.settings.get('back_office', {})
+
+            commission_rate = commission_config.get('rate_decimal', 0.0005)
+            commission_account = back_config.get('commission_account', 'commission')
+
+            daily_trades = getattr(self.portfolio, 'daily_trades', [])
+            total_turnover = sum(t.get('value', 0) for t in daily_trades)
+            commission = total_turnover * commission_rate
+
+            if commission > 0:
+                self.portfolio.cash -= commission
+                logger.info(f"💸 Списана комиссия: {commission:,.2f}₽ (оборот: {total_turnover:,.0f}₽)")
+            else:
+                logger.info("💰 Комиссия не начислена (нет сделок)")
+
+            if hasattr(self.portfolio, 'reset_daily_trades'):
+                self.portfolio.reset_daily_trades()
+
+            self._generate_daily_report()
+
+            return {
+                'commission': commission,
+                'turnover': total_turnover,
+                'cash_after': self.portfolio.cash
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка клиринга 19:00: {e}")
+            return {'error': str(e)}
+
+    def _send_liquidity_alert(self, report: Dict):
+        """Отправка alert о низкой ликвидности"""
+        try:
+            back_config = self.settings.get('back_office', {})
+            if not back_config.get('alert_on_low_liquidity', True):
+                return
+
+            email = back_config.get('alert_email', 'backoffice@example.com')
+
+            logger.warning(f"📧 ALERT: Низкая ликвидность! Требуется довнесение средств")
+            logger.warning(f"📧 Кому: {email}")
+            logger.warning(f"📧 Детали: cash={report['cash']:.0f}₽, exposure={report['total_exposure']:.0f}₽")
+
+        except Exception as e:
+            logger.error(f"Ошибка отправки alert: {e}")
+
+    def _save_liquidity_report(self, report: Dict):
+        """Сохранение отчета о ликвидности"""
+        try:
+            import os
+            os.makedirs("data/backoffice", exist_ok=True)
+
+            filename = f"data/backoffice/liquidity_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(report, f, indent=2, default=str)
+
+            logger.info(f"💾 Отчет ликвидности сохранен: {filename}")
+
+        except Exception as e:
+            logger.error(f"Ошибка сохранения отчета: {e}")
+
+    def _save_clearing_state(self, state: Dict):
+        """Сохранение состояния клиринга"""
+        try:
+            import os
+            os.makedirs("data/backoffice", exist_ok=True)
+
+            date_str = datetime.now().strftime('%Y%m%d')
+            filename = f"data/backoffice/clearing_{date_str}.json"
+
+            try:
+                with open(filename, 'r', encoding='utf-8') as f:
+                    history = json.load(f)
+            except:
+                history = []
+
+            history.append(state)
+
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(history, f, indent=2, default=str)
+
+            logger.info(f"💾 Состояние клиринга сохранено")
+
+        except Exception as e:
+            logger.error(f"Ошибка сохранения состояния: {e}")
 
     def shutdown(self):
         """Корректное завершение работы"""
