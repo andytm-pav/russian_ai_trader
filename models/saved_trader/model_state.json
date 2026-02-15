@@ -1155,12 +1155,12 @@
       "last_trade": null
     },
     "CBOM": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.00016347882949163542,
+      "avg_hold_time": 0.7481907597515318,
+      "success_rate": 1.0,
+      "last_trade": "2026-02-14T00:26:18.206179"
     },
     "CHGZ": {
       "total_trades": 0,
@@ -1923,7 +1923,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": 0.03090501256846122,
+  "market_sentiment": 0.025669343344090614,
   "sentiment_history": [
     0.0015873015873015873,
     0.0021327967806841048,
@@ -2037,18 +2037,22 @@
     0.038156384468296584,
     0.036568468793744154,
     0.033074223540386,
-    0.03090501256846122
+    0.03090501256846122,
+    0.02919662513275331,
+    0.027008669936551148,
+    0.025771217577042378,
+    0.025669343344090614
   ],
-  "volatility_index": 0.7115181579553497,
-  "memory_size": 10,
+  "volatility_index": 0.7166241003845872,
+  "memory_size": 11,
   "total_experiences": 0,
   "strategy_performance": {
     "balanced": {
-      "total_trades": 314,
-      "profitable_trades": 207,
-      "total_pnl": 895.0193084158813,
-      "avg_pnl": 2.850379963107902,
-      "win_rate": 0.6592356687898089
+      "total_trades": 320,
+      "profitable_trades": 213,
+      "total_pnl": 921.5693084158813,
+      "avg_pnl": 2.8799040887996292,
+      "win_rate": 0.665625
     },
     "news_aggressive": {
       "total_trades": 32,
@@ -2058,11 +2062,11 @@
       "win_rate": 0.46875
     },
     "tech_conservative": {
-      "total_trades": 225,
-      "profitable_trades": 164,
-      "total_pnl": 359.02543207327415,
-      "avg_pnl": 1.5956685869923295,
-      "win_rate": 0.7288888888888889
+      "total_trades": 229,
+      "profitable_trades": 167,
+      "total_pnl": 354.12559555210373,
+      "avg_pnl": 1.5463999805768722,
+      "win_rate": 0.7292576419213974
     }
   },
   "strategy_memory": [
@@ -6062,6 +6066,76 @@
       "pnl": 2.0,
       "hold_time": 84.4290223121643,
       "timestamp": "2026-02-13T19:35:42.024468"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 1.0,
+      "hold_time": 4575.070384263992,
+      "timestamp": "2026-02-13T20:52:05.604934"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -5.999999999999943,
+      "hold_time": 30781.880982875824,
+      "timestamp": "2026-02-13T21:08:25.725708"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 0.7500000000000284,
+      "hold_time": 0.00553131103515625,
+      "timestamp": "2026-02-13T21:16:08.900729"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 0.7500000000000284,
+      "hold_time": 55.70047307014465,
+      "timestamp": "2026-02-13T21:17:04.595671"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 1.0500000000000114,
+      "hold_time": 0.0040094852447509766,
+      "timestamp": "2026-02-13T23:37:24.945413"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 8.000000000000007,
+      "hold_time": 0.010636568069458008,
+      "timestamp": "2026-02-14T00:18:56.452948"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 8.000000000000007,
+      "hold_time": 0.005699872970581055,
+      "timestamp": "2026-02-14T00:19:40.121207"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": 8.000000000000007,
+      "hold_time": 65.63354563713074,
+      "timestamp": "2026-02-14T00:20:45.749052"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.00016347882949163542,
+      "hold_time": 0.7481907597515318,
+      "timestamp": "2026-02-14T00:26:18.206186"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.1000000000000334,
+      "hold_time": 2701.964194059372,
+      "timestamp": "2026-02-14T00:26:18.211680"
     }
   ],
   "strategies": {
@@ -6108,5 +6182,5 @@
       }
     }
   },
-  "save_time": "2026-02-13T20:11:28.854439"
+  "save_time": "2026-02-15T19:21:23.623579"
 }

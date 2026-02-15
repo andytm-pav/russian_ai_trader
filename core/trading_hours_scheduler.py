@@ -50,52 +50,78 @@ class TradingScheduler:
             }
 
     def is_trading_day(self, check_date: Optional[datetime] = None) -> bool:
-        """Проверка, является ли день торговым"""
+        """Проверка, является ли день торговым (с обратной совместимостью)"""
         if check_date is None:
             check_date = datetime.now(self.moscow_tz)
 
-        # Проверка кэша
         date_str = check_date.strftime('%Y-%m-%d')
+
+        # Проверка кэша
         if self.today_cache == date_str and self.is_trading_day_cache is not None:
             return self.is_trading_day_cache
 
-        date_str_short = check_date.strftime('%Y-%m-%d')
         day_of_week = check_date.strftime('%A').lower()
 
-        # Проверка регулярных дней и выходных сессий (ДСВД)
-        is_regular_weekday = day_of_week in self.config['trading_calendar']['regular_days']
+        # БЕЗОПАСНОЕ получение конфигов с default-значениями
+        trading_calendar = self.config.get('trading_calendar', {})
+        regular_days = trading_calendar.get('regular_days', ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])
+
+        # Получаем holidays с динамическим годом
+        current_year = check_date.strftime('%Y')
+        holidays_key = f'holidays_{current_year}'
+        holidays = self.config.get(holidays_key, self.config.get('holidays_2026', []))  # fallback на 2026
+
+        # Получаем excluded_dates с динамическим годом
+        weekend_sessions = self.config.get('weekend_sessions', {})
+        excluded_key = f'excluded_dates_{current_year}'
+        excluded_dates = weekend_sessions.get(excluded_key, weekend_sessions.get('excluded_dates_2026', []))
+
+        # Специальные торговые дни
+        special_days = self.config.get('special_trading_days', [])
+
+        # Предпраздничные дни
+        pre_holiday = trading_calendar.get('pre_holiday_early_close', [])
+
+        # Определяем тип дня
+        is_regular_weekday = day_of_week in regular_days
         is_weekend = day_of_week in ['saturday', 'sunday']
 
+        # 1. ПРАЗДНИКИ - всегда нет торгов
+        if date_str in holidays:
+            self._update_cache(date_str, False)
+            return False
+
+        # 2. СПЕЦИАЛЬНЫЕ ТОРГОВЫЕ ДНИ - всегда есть
+        if date_str in special_days:
+            self._update_cache(date_str, True)
+            return True
+
+        # 3. ОБРАБОТКА ВЫХОДНЫХ
         if not is_regular_weekday:
-            # Для субботы и воскресенья проверяем, не входят ли они в список исключений для ДСВД
             if is_weekend:
-                excluded_dates = self.config.get('weekend_sessions', {}).get('excluded_dates_2026', [])
-                if date_str_short in excluded_dates:
+                # Проверяем, включена ли ДСВД
+                if weekend_sessions.get('enabled', False):
+                    # Проверяем исключения
+                    if date_str in excluded_dates:
+                        self._update_cache(date_str, False)
+                        return False
+                    else:
+                        self._update_cache(date_str, True)
+                        return True
+                else:
+                    # ДСВД отключена глобально
                     self._update_cache(date_str, False)
                     return False
-                else:
-                    # Это выходной, но на него назначена ДСВД
-                    self._update_cache(date_str, True)
-                    return True
-            # Если это не будний день и не выходной с ДСВД (например, праздник в середине недели)
+            # Не будний и не выходной (например, праздник среди недели)
             self._update_cache(date_str, False)
             return False
 
-        # Проверка праздников
-        if date_str_short in self.config.get('holidays_2026', []):
-            self._update_cache(date_str, False)
-            return False
-
-        # Проверка специальных торговых дней
-        if date_str_short in self.config.get('special_trading_days', []):
+        # 4. БУДНИЙ ДЕНЬ - проверяем предпраздничные
+        if date_str in pre_holiday:
             self._update_cache(date_str, True)
             return True
 
-        # Проверка предпраздничных дней
-        if date_str_short in self.config.get('trading_calendar', {}).get('pre_holiday_early_close', []):
-            self._update_cache(date_str, True)
-            return True
-
+        # 5. ОБЫЧНЫЙ БУДНИЙ ДЕНЬ
         self._update_cache(date_str, True)
         return True
 
@@ -149,6 +175,21 @@ class TradingScheduler:
         # Сессия в выходной день (ДСВД)
         weekend_session = sessions.get('weekend_session', {})
         if weekend_session.get('enabled', False):
+            # ⚠️ ПРОВЕРКА ИСКЛЮЧЕНИЙ
+            date_str = check_datetime.strftime('%Y-%m-%d')
+            weekend_sessions_config = self.config.get('weekend_sessions', {})
+            current_year = check_datetime.strftime('%Y')
+            excluded_key = f'excluded_dates_{current_year}'
+            excluded_dates = weekend_sessions_config.get(excluded_key,
+                     weekend_sessions_config.get('excluded_dates_2026', []))
+
+            if date_str in excluded_dates:
+                return False
+
+             # ✅ ДОБАВИТЬ ПРОВЕРКУ enabled ИЗ weekend_sessions_config
+            if not weekend_sessions_config.get('enabled', False):
+                return False  # ДСВД отключена глобально
+
             # Получаем день недели из текущей даты
             day_of_week = check_datetime.strftime('%A').lower()
 

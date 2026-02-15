@@ -101,5 +101,10 @@
     "strategy_adaptation_cycles": 20,
     "enable_extreme_learning": true,
     "enable_aggressive_adaptation": true
+  },
+
+    "portfolio_manager": {
+    "preserve_buy_time_on_partial_sell": true
   }
+
 }

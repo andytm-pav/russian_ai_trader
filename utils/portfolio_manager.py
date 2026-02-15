@@ -26,13 +26,16 @@ class PortfolioManager:
 
         self.daily_trades = []
         self.daily_reset_time = "19:00"  # fallback
+        self.preserve_buy_time = True  # значение по умолчанию
 
         try:
             with open("config/settings.json", "r") as f:
                 settings = json.load(f)
                 moex = settings.get("moex_schedule", {})
+                pm_config = settings.get("portfolio_manager", {})
                 commission = moex.get("commission", {})
                 self.daily_reset_time = commission.get("charge_time", "19:00")
+                self.preserve_buy_time = pm_config.get("preserve_buy_time_on_partial_sell", True)
         except:
             pass
 
@@ -335,7 +338,7 @@ class PortfolioManager:
             else:
                 # Частичная продажа
                 pos['qty'] -= quantity
-                pos['buy_time'] = time.time()  # Обновляем время покупки для оставшихся
+                # pos['buy_time'] = time.time()  # Обновляем время покупки для оставшихся
                 logger.debug(f"Частичная продажа {ticker}: -{quantity}, осталось {pos['qty']}, стратегия: {strategy}")
 
             # Зачисление средств
