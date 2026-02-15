@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-02-14T16:00:01.197243",
+  "cash": 236.28400000000784,
+  "total_exposure": 10143.69,
+  "liquidity_ratio": 0.02329369292634217,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 14,
+  "positions": [
+    {
+      "ticker": "LPSB",
+      "value": 80.5,
+      "qty": 1,
+      "price": 80.5
+    },
+    {
+      "ticker": "HYDR",
+      "value": 0.0,
+      "qty": 0,
+      "price": 0.433
+    },
+    {
+      "ticker": "HNFG",
+      "value": 504.6,
+      "qty": 1,
+      "price": 504.6
+    },
+    {
+      "ticker": "ETLN",
+      "value": 82.4,
+      "qty": 2,
+      "price": 41.2
+    },
+    {
+      "ticker": "GEMA",
+      "value": 1202.0,
+      "qty": 10,
+      "price": 120.2
+    },
+    {
+      "ticker": "ELMT",
+      "value": 129.95000000000002,
+      "qty": 1000,
+      "price": 0.12995
+    },
+    {
+      "ticker": "EELT",
+      "value": 262.8,
+      "qty": 30,
+      "price": 8.76
+    },
+    {
+      "ticker": "ALRS",
+      "value": 817.4,
+      "qty": 20,
+      "price": 40.87
+    },
+    {
+      "ticker": "ENPG",
+      "value": 958.5,
+      "qty": 2,
+      "price": 479.25
+    },
+    {
+      "ticker": "CHMF",
+      "value": 989.6,
+      "qty": 1,
+      "price": 989.6
+    },
+    {
+      "ticker": "DATA",
+      "value": 110.34,
+      "qty": 1,
+      "price": 110.34
+    },
+    {
+      "ticker": "GMKN",
+      "value": 1547.0,
+      "qty": 10,
+      "price": 154.7
+    },
+    {
+      "ticker": "ASTR",
+      "value": 512.6,
+      "qty": 2,
+      "price": 256.3
+    },
+    {
+      "ticker": "BANE",
+      "value": 2946.0,
+      "qty": 2,
+      "price": 1473.0
+    }
+  ]
+}
