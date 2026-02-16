@@ -57,7 +57,7 @@ class MoexFetcher:
 
         self.request_timestamps.append(now)
 
-    def _make_request(self, url: str, params: Dict = None, timeout: int = 10) -> Optional[Dict]:
+    def _make_request(self, url: str, params: Dict = None, timeout: int = 15) -> Optional[Dict]:
         """Обёртка для выполнения запросов с rate limiting и обработкой ошибок"""
         self._rate_limit()
 
@@ -332,7 +332,7 @@ class MoexFetcher:
             url = f"{self.base_url}/engines/stock/markets/shares/boards/TQBR/securities/{ticker}.json"
             params = {'iss.meta': 'off'}
 
-            response = self.session.get(url, params=params, timeout=5)
+            response = self.session.get(url, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
 
@@ -625,7 +625,7 @@ class MoexFetcher:
             url = f"{self.base_url}/engines.json"
             params = {'iss.meta': 'off', 'limit': 1}
 
-            data = self._make_request(url, params, timeout=5)
+            data = self._make_request(url, params, timeout=15)
 
             status = {
                 'is_available': data is not None,

@@ -74,10 +74,13 @@
   },
   "memory_persistence": {
     "enable_memory_save": true,
+    "enable_autosave": true,
+    "autosave_interval": 10,
     "memory_file": "models/saved_trader/memory_buffer.pkl",
     "auto_save_interval_cycles": 20,
     "max_memory_to_save": 5000,
-    "compress": true
+    "compress": true,
+    "compression": true
   },
   "memory_serialization": {
     "enable_autosave": true,

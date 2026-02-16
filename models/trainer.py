@@ -2,6 +2,7 @@
 Модуль для фонового обучения модели трейдера
 """
 
+import os
 import threading
 import time
 import json
@@ -10,7 +11,11 @@ from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 import torch
+import pickle
+import gzip
+import traceback
 
+from pathlib import Path
 from utils.logger import get_logger
 from models.trader_model import trader_model_instance
 
@@ -67,29 +72,67 @@ class ModelTrainer:
             if not mem_config.get("enable_memory_save", True):
                 return
 
-            mem_file = mem_config.get("memory_file", "models/saved_trader/memory_buffer.pkl")
+            # 1. ПРОВЕРКА ПАМЯТИ
+            if len(self.model.memory) == 0:
+                logger.debug("Память пуста, сохранение не требуется")
+                return
+
+            # 2. ПУТЬ К ФАЙЛУ (абсолютный + относительный)
+            rel_path = mem_config.get("memory_file", "models/saved_trader/memory_buffer.pkl")
+
+            # Пробуем абсолютный путь от корня проекта
+            base_dir = Path(__file__).parent.parent  # поднимаемся на 2 уровня вверх
+            abs_path = base_dir / rel_path
+            mem_file = str(abs_path)
+
+            logger.debug(f"Сохранение памяти в: {mem_file}")
+
             max_save = mem_config.get("max_memory_to_save", 5000)
             compress = mem_config.get("compress", True)
 
-            import pickle
-            import gzip
-            from pathlib import Path
 
-            Path(mem_file).parent.mkdir(parents=True, exist_ok=True)
+
+            # 3. ПРОВЕРКА ПРАВ НА ЗАПИСЬ
+            mem_path = Path(mem_file)
+            mem_path.parent.mkdir(parents=True, exist_ok=True)
+
+            if not os.access(mem_path.parent, os.W_OK):
+                logger.error(f"Нет прав на запись в {mem_path.parent}")
+                return
 
             memory_to_save = list(self.model.memory)[-max_save:]
 
+            # 4. СОХРАНЕНИЕ
             if compress:
                 with gzip.open(mem_file, 'wb') as f:
-                    pickle.dump(memory_to_save, f)
+                    pickle.dump(memory_to_save, f, protocol=pickle.HIGHEST_PROTOCOL)
             else:
                 with open(mem_file, 'wb') as f:
-                    pickle.dump(memory_to_save, f)
+                    pickle.dump(memory_to_save, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-            logger.debug(f"Сохранена память: {len(memory_to_save)} опытов")
+            # 5. ВЕРИФИКАЦИЯ
+            if mem_path.exists():
+                file_size = mem_path.stat().st_size
+                logger.info(f"✅ Память сохранена: {len(memory_to_save)} опытов, размер: {file_size} байт")
+
+                # Проверка целостности
+                try:
+                    if compress:
+                        with gzip.open(mem_file, 'rb') as f:
+                            test_load = pickle.load(f)
+                    else:
+                        with open(mem_file, 'rb') as f:
+                            test_load = pickle.load(f)
+                    logger.debug(f"✅ Верификация успешна: загружено {len(test_load)} опытов")
+                except Exception as e:
+                    logger.error(f"❌ Ошибка верификации сохранённого файла: {e}")
+            else:
+                logger.error(f"❌ Файл не создан: {mem_file}")
 
         except Exception as e:
             logger.error(f"Ошибка сохранения памяти: {e}")
+
+            logger.error(traceback.format_exc())
 
     def load_memory(self):
         """Загрузка памяти модели с поддержкой сжатых и несжатых файлов"""

@@ -958,7 +958,7 @@ class SmartPortfolioBroker:
         self.model.save_model()
 
         # Генерация дневного отчета
-        self._generate_daily_report()
+        # self._generate_daily_report()
 
     def post_session_analysis(self):
         """Послерыночный анализ"""
@@ -973,6 +973,10 @@ class SmartPortfolioBroker:
 
         logger.info(f"Итоги дня: Капитал {total_value:,.0f}₽, PnL: {daily_pnl:+,.0f}₽")
         logger.info(f"С начала: {((total_value / initial) - 1) * 100:+.2f}%")
+
+        # Генерация дневного отчета
+        self._generate_daily_report()
+
 
     def run_cycle(self):
         """Основной торговый цикл"""

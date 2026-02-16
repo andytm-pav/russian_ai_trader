@@ -444,9 +444,9 @@ class TradingScheduler:
                              z0_deadline_callback=None,
                              clearing_17_callback=None,
                              clearing_19_callback=None):
-        """Планирование ежедневных задач"""
+        """Планирование ежедневных задач с поддержкой вечерней сессии"""
 
-        # Читаем времена из конфига
+        # Читаем ВСЕ времена из конфига - никаких магических чисел!
         try:
             with open("config/settings.json", "r") as f:
                 settings = json.load(f)
@@ -456,12 +456,17 @@ class TradingScheduler:
                 deadlines = clearing.get("deadlines", {})
                 commission = moex.get("commission", {})
 
-                # Времена из конфига
+                # Утренние задачи
                 pre_market = moex.get("pre_market_start", "06:30")
                 market_open = periods.get("continuous_trading", {}).get("start", "10:00")
-                market_close = periods.get("continuous_trading", {}).get("end", "18:40")
-                post_market = moex.get("post_market_start", "19:00")
 
+                # Вечернее закрытие - когда реально прекращаются торги (23:50)
+                evening_close = periods.get("evening_continuous", {}).get("end", "23:50")
+
+                # Послерыночный анализ ПОСЛЕ закрытия вечерней сессии
+                post_market = moex.get("post_market_start", "23:55")
+
+                # Бэкофис задачи
                 fixation = clearing.get("fixation_time", "16:00")
                 z0_cutoff = deadlines.get("z0", "16:50")
                 clearing_17_time = clearing.get("clearing_17", "17:00")
@@ -469,12 +474,12 @@ class TradingScheduler:
                 charge_time = commission.get("charge_time", "19:00")
 
         except Exception as e:
-            # Fallback - ПОЛНАЯ СОВМЕСТИМОСТЬ
+            # ПОЛНАЯ ОБРАТНАЯ СОВМЕСТИМОСТЬ - fallback значения
             logger.warning(f"Не удалось загрузить конфиг, использую fallback: {e}")
             pre_market = "06:30"
             market_open = "10:00"
-            market_close = "18:40"
-            post_market = "19:00"
+            evening_close = "23:50"
+            post_market = "23:55"
             fixation = "16:00"
             z0_cutoff = "16:50"
             clearing_17_time = "17:00"
@@ -484,20 +489,24 @@ class TradingScheduler:
         # Очищаем существующие задачи
         schedule.clear()
 
-        # Планирование основных задач
+        # === ОСНОВНЫЕ ЗАДАЧИ ===
+        # Предрыночный анализ (всегда выполняется)
         schedule.every().day.at(pre_market).do(pre_market_callback)
         logger.info(f"✅ Запланирован предрыночный анализ на {pre_market}")
 
+        # Открытие рынка
         schedule.every().day.at(market_open).do(market_open_callback)
         logger.info(f"✅ Запланировано открытие рынка на {market_open}")
 
-        schedule.every().day.at(market_close).do(market_close_callback)
-        logger.info(f"✅ Запланировано закрытие рынка на {market_close}")
+        # ⚠️ Закрытие рынка ТОЛЬКО после вечерней сессии!
+        schedule.every().day.at(evening_close).do(market_close_callback)
+        logger.info(f"✅ Запланировано закрытие рынка на {evening_close}")
 
+        # Послерыночный анализ после закрытия
         schedule.every().day.at(post_market).do(post_market_callback)
         logger.info(f"✅ Запланирован послерыночный анализ на {post_market}")
 
-        # Планирование задач бэкофиса
+        # === БЭКОФИС ЗАДАЧИ (только если переданы callback'и) ===
         if clearing_liquidity_callback:
             schedule.every().day.at(fixation).do(
                 lambda: self._execute_with_context(clearing_liquidity_callback, "fixation")
@@ -522,7 +531,7 @@ class TradingScheduler:
             )
             logger.info(f"✅ Запланирован клиринг 19:00 на {clearing_19_time}")
 
-        # Планирование логирования
+        # === ЛОГИРОВАНИЕ (всегда активно) ===
         schedule.every().day.at(fixation).do(self._log_clearing_fixation)
         schedule.every().day.at(z0_cutoff).do(self._log_z0_deadline)
         schedule.every().day.at(charge_time).do(self._log_commission_charge)
