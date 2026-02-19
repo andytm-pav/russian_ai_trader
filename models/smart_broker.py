@@ -6,7 +6,7 @@ import json
 import torch
 import time
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
 
@@ -41,6 +41,17 @@ class SmartPortfolioBroker:
         self.portfolio = PortfolioManager()
         self.model = trader_model_instance
         self.model.market_period = "closed"
+
+        # ✅ ЗАГРУЗКА НАСТРОЕК Т-БАНКА
+        moex_config = settings.get('moex_schedule', {})
+        commission_config = moex_config.get('commission', {})
+        self.tbank_config = commission_config.get('tbank', {})
+
+        # Параметры с значениями по умолчанию
+        self.tbank_check_start = self.tbank_config.get('check_start_hour', 9)
+        self.tbank_check_end = self.tbank_config.get('check_end_hour', 14)
+        self.tbank_check_interval = self.tbank_config.get('check_interval_cycles', 60)
+        self.tbank_settlement_time = self.tbank_config.get('settlement_time', "14:00")
 
         global logger
         # Инициализируем глобальный логгер с настройками
@@ -980,6 +991,13 @@ class SmartPortfolioBroker:
 
     def run_cycle(self):
         """Основной торговый цикл"""
+
+        # ✅ ПРОВЕРКА КОМИССИЙ ИЗ КОНФИГА
+        current_hour = datetime.now().hour
+        if (self.tbank_check_start <= current_hour < self.tbank_check_end and
+                self.cycle_count % self.tbank_check_interval == 0):
+            self.process_pending_commissions()
+
         if not self.trading_enabled or not self.scheduler.is_trading_time():
             return
 
@@ -1547,9 +1565,25 @@ class SmartPortfolioBroker:
         prices = self._get_current_prices()
         total_value = self.portfolio.get_total_value(prices)
 
+        """ Расчет pending комиссий"""
+        pending_total = 0
+        pending_count = 0
+        if hasattr(self.portfolio, 'pending_commissions'):
+            for comm in self.portfolio.pending_commissions:
+                if not comm.get('processed', False):
+                    pending_total += comm['amount']
+                    pending_count += 1
+
         summary = {
             'total_value': total_value,
             'cash': self.portfolio.cash,
+            'reserved_cash': self.portfolio.reserved_cash,
+            'available_cash': self.portfolio.cash - self.portfolio.reserved_cash,
+            'pending_commissions': {
+                'count': pending_count,
+                'total': pending_total,
+                'next_settlement': self._get_next_settlement_date()
+            },
             'positions_count': len(self.portfolio.positions),
             'initial_capital': self.settings["initial_capital_rub"],
             'total_pnl': total_value - self.settings["initial_capital_rub"],
@@ -1557,7 +1591,8 @@ class SmartPortfolioBroker:
             'current_signals': self.signals_cache[:5],
             'risk_metrics': self.risk_manager.get_risk_metrics(),
             'session_info': self.scheduler.get_session_info(),
-            'last_update': datetime.now().isoformat()
+            'last_update': datetime.now().isoformat(),
+
         }
 
         # Детали по позициям
@@ -1580,6 +1615,23 @@ class SmartPortfolioBroker:
         summary['positions'] = positions_detail
 
         return summary
+
+    def _get_next_settlement_date(self) -> Optional[str]:
+        """Получение ближайшей даты списания"""
+        if not hasattr(self.portfolio, 'pending_commissions'):
+            return None
+
+        upcoming = [
+            c for c in self.portfolio.pending_commissions
+            if not c.get('processed', False)
+        ]
+
+        if not upcoming:
+            return None
+
+        upcoming.sort(key=lambda x: x['settlement_date'])
+        return upcoming[0]['settlement_date']
+
 
     def update_settings(self, new_settings: Dict):
         """Обновление настроек системы"""
@@ -1769,43 +1821,133 @@ class SmartPortfolioBroker:
             return {'error': str(e)}
 
     def process_clearing_19(self):
-        """19:00 - Второй клиринг и списание комиссий"""
+        """19:00 - Расчет комиссии и постановка в очередь на списание по графику Т-Банка"""
         logger.info("=" * 60)
-        logger.info("🔰 БЭКОФИС: КЛИРИНГ 19:00 И КОМИССИИ")
+        logger.info("🔰 БЭКОФИС: КЛИРИНГ 19:00")
         logger.info("=" * 60)
 
         try:
-            moex_config = self.settings.get('moex_schedule', {})
-            commission_config = moex_config.get('commission', {})
-            back_config = self.settings.get('back_office', {})
-
-            commission_rate = commission_config.get('rate_decimal', 0.0005)
-            commission_account = back_config.get('commission_account', 'commission')
-
             daily_trades = getattr(self.portfolio, 'daily_trades', [])
             total_turnover = sum(t.get('value', 0) for t in daily_trades)
-            commission = total_turnover * commission_rate
+            total_reserved = sum(t.get('commission_reserved', 0) for t in daily_trades)
 
-            if commission > 0:
-                self.portfolio.cash -= commission
-                logger.info(f"💸 Списана комиссия: {commission:,.2f}₽ (оборот: {total_turnover:,.0f}₽)")
-            else:
+            if total_reserved == 0:
                 logger.info("💰 Комиссия не начислена (нет сделок)")
+                return {'commission': 0, 'turnover': 0}
 
+            # ✅ РАСЧЕТ ДАТЫ СПИСАНИЯ ИЗ КОНФИГА
+            today = datetime.now()
+
+            # Загружаем правила из конфига
+            weekday_map = self.tbank_config.get('weekday_settlement_map', {
+                "4": 3,  # пятница -> понедельник (+3)
+                "5": 2,  # суббота -> понедельник (+2)
+                "6": 1  # воскресенье -> понедельник (+1)
+            })
+
+            # По умолчанию +1 день
+            days_to_add = self.tbank_config.get('default_settlement_days', 1)
+
+            # Проверяем особые правила для выходных
+            weekday_str = str(today.weekday())
+            if weekday_str in weekday_map:
+                days_to_add = weekday_map[weekday_str]
+
+            settlement_date = today + timedelta(days=days_to_add)
+
+            # Создаем запись о pending комиссии
+            commission_record = {
+                'date': today.strftime('%Y-%m-%d'),
+                'amount': total_reserved,
+                'turnover': total_turnover,
+                'settlement_date': settlement_date.strftime('%Y-%m-%d'),
+                'settlement_time': self.tbank_settlement_time,
+                'processed': False,
+                'created_at': datetime.now().isoformat()
+            }
+
+            # Добавляем в очередь
+            if not hasattr(self.portfolio, 'pending_commissions'):
+                self.portfolio.pending_commissions = []
+
+            self.portfolio.pending_commissions.append(commission_record)
+
+            logger.info(f"📅 Комиссия за {today.strftime('%d.%m.%Y')}: {total_reserved:,.2f}₽")
+            logger.info(f"📅 Резерв заморожен: {self.portfolio.reserved_cash:,.2f}₽")
+            logger.info(f"📅 Будет списана {settlement_date.strftime('%d.%m.%Y')} до {self.tbank_settlement_time}")
+
+            # Сброс дневной статистики (НО резерв остается!)
             if hasattr(self.portfolio, 'reset_daily_trades'):
                 self.portfolio.reset_daily_trades()
 
             self._generate_daily_report()
 
             return {
-                'commission': commission,
+                'commission': total_reserved,
                 'turnover': total_turnover,
-                'cash_after': self.portfolio.cash
+                'settlement_date': settlement_date.strftime('%Y-%m-%d'),
+                'settlement_time': self.tbank_settlement_time,
+                'reserved_cash': self.portfolio.reserved_cash
             }
 
         except Exception as e:
             logger.error(f"❌ Ошибка клиринга 19:00: {e}")
             return {'error': str(e)}
+
+    def process_pending_commissions(self):
+        """Проверка и списание pending комиссий"""
+        if not hasattr(self.portfolio, 'pending_commissions'):
+            return
+
+        today = datetime.now().date()
+        current_hour = datetime.now().hour
+
+        # ✅ ПРОВЕРКА ИЗ КОНФИГА
+        if current_hour >= self.tbank_check_end:
+            return
+
+        processed_count = 0
+        total_commission = 0
+
+        for comm in list(self.portfolio.pending_commissions):
+            if comm.get('processed', False):
+                continue
+
+            settlement_date = datetime.strptime(comm['settlement_date'], '%Y-%m-%d').date()
+
+            # Если наступил день списания
+            if settlement_date <= today:
+                # Проверяем, что резерв достаточен
+                if self.portfolio.reserved_cash >= comm['amount']:
+                    # Списание из резерва
+                    self.portfolio.reserved_cash -= comm['amount']
+                    comm['processed'] = True
+                    comm['processed_date'] = today.strftime('%Y-%m-%d')
+                    comm['processed_time'] = datetime.now().strftime('%H:%M')
+
+                    processed_count += 1
+                    total_commission += comm['amount']
+
+                    logger.info(f"💸 СПИСАНО: комиссия {comm['amount']:,.2f}₽ за {comm['date']}")
+                else:
+                    # Критическая ошибка - недостаточно резерва
+                    logger.error(f"❌ КРИТИЧЕСКАЯ ОШИБКА: недостаточно резерва для комиссии {comm['amount']:,.2f}₽!")
+                    logger.error(f"💰 Резерв: {self.portfolio.reserved_cash:,.2f}₽")
+                    # Принудительно списываем из кэша
+                    self.portfolio.cash -= (comm['amount'] - self.portfolio.reserved_cash)
+                    self.portfolio.reserved_cash = 0
+                    comm['processed'] = True
+                    comm['forced'] = True
+
+        if processed_count > 0:
+            logger.info(f"✅ Обработано {processed_count} комиссий на сумму {total_commission:,.2f}₽")
+            logger.info(f"💰 Остаток резерва: {self.portfolio.reserved_cash:,.2f}₽")
+
+        # Очищаем обработанные
+        self.portfolio.pending_commissions = [
+            c for c in self.portfolio.pending_commissions
+            if not c.get('processed', False)
+        ]
 
     def _send_liquidity_alert(self, report: Dict):
         """Отправка alert о низкой ликвидности"""

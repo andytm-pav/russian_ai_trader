@@ -39,16 +39,26 @@
     },
 
     "commission": {
-      "charge_time": "19:00",
-      "charge_day": "T+0",
+      "charge_day": "T+1",
+      "charge_time": "14:00",
       "rate_percent": 0.3,
-      "rate_decimal": 0.003
-    },
+      "rate_decimal": 0.003,
+      "reserve_required": true,
+      "reserve_account": "commission",
 
-    "corporate_actions": {
-      "dividends_transfer": false,
-      "coupons_transfer": false,
-      "voting_rights_transfer": false
+      "tbank": {
+        "enabled": true,
+        "settlement_time": "14:00",
+        "default_settlement_days": 1,
+        "weekday_settlement_map": {
+          "4": 3,
+          "5": 2,
+          "6": 1
+        },
+        "check_start_hour": 9,
+        "check_end_hour": 14,
+        "check_interval_cycles": 60
+      }
     }
   },
 
@@ -103,8 +113,7 @@
     "enable_aggressive_adaptation": true
   },
 
-    "portfolio_manager": {
+  "portfolio_manager": {
     "preserve_buy_time_on_partial_sell": true
   }
-
 }

@@ -20,6 +20,8 @@ class PortfolioManager:
         self.portfolio_file = portfolio_file
         self.positions = {}  # {ticker: {qty, avg_price, current_value, buy_time}}
         self.cash = 0.0
+        self.reserved_cash = 0.0
+        self.pending_commissions = []  # список {date, amount, settlement_date, processed}
         self.trade_history = []
         self.initial_capital = 0.0
         self.strategy_positions = defaultdict(list)  # Позиции по стратегиям
@@ -149,34 +151,26 @@ class PortfolioManager:
 
     def buy(self, ticker: str, quantity: int, price: float, strategy: str = None, **kwargs) -> bool:
         """Покупка акций с указанием стратегии"""
-
         try:
-            # ✅ ДОБАВЛЯЕМ: Получение информации о бумаге
-            lot_size = kwargs.get('lot_size', 1)  # Размер лота
-            min_step = kwargs.get('min_step', 0.01)  # Минимальный шаг цены
+            # Получение информации о бумаге
+            lot_size = kwargs.get('lot_size', 1)
+            min_step = kwargs.get('min_step', 0.01)
 
-            # ✅ ДОБАВЛЯЕМ: Проверка кратности цены
+            # Проверка кратности цены
             if min_step > 0 and price % min_step != 0:
-                logger.warning(f"Цена {ticker} не кратна минимальному шагу {min_step}: {price}")
-                # Округляем до ближайшей допустимой цены
                 price = round(price / min_step) * min_step
                 logger.info(f"Цена скорректирована до {price:.4f}")
 
-            # ✅ ДОБАВЛЯЕМ: Проверка лотности количества
-            if lot_size > 1:
-                if quantity % lot_size != 0:
-                    logger.warning(f"Количество {ticker} не кратно размеру лота {lot_size}: {quantity}")
-                    # Округляем до ближайшего допустимого количества
-                    quantity = max(lot_size, (quantity // lot_size) * lot_size)
-                    logger.info(f"Количество скорректировано до {quantity}")
-
+            # Проверка лотности количества
+            if lot_size > 1 and quantity % lot_size != 0:
+                quantity = max(lot_size, (quantity // lot_size) * lot_size)
+                logger.info(f"Количество скорректировано до {quantity}")
 
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
                 logger.error(f"Некорректные данные для покупки {ticker}: qty={quantity}, price={price}")
                 return False
 
-            # ✅ ДОБАВЛЯЕМ: Проверка минимального количества (не менее 1 лота)
             if quantity < lot_size:
                 logger.error(f"Количество меньше размера лота {lot_size}: {quantity}")
                 return False
@@ -184,33 +178,35 @@ class PortfolioManager:
             # Расчет стоимости покупки
             cost = quantity * price
 
-            # Проверка доступности средств
-            if cost > self.cash:
-                logger.error(f"Недостаточно средств для покупки {ticker}: нужно {cost:,.0f}₽, есть {self.cash:,.0f}₽")
+            # ✅ ЗАГРУЗКА КОМИССИИ ИЗ КОНФИГА
+            commission_rate = self.settings.get('commission_rate', 0.003)
+            estimated_commission = cost * commission_rate
+            total_required = cost + estimated_commission
+
+            # ✅ ЕДИНСТВЕННАЯ проверка доступности средств
+            if total_required > self.cash:
+                logger.error(f"Недостаточно средств: нужно {total_required:,.0f}₽, есть {self.cash:,.0f}₽")
                 return False
 
             # Выполнение покупки
             if ticker in self.positions:
-                # Уже есть позиция - усредняем
+                # Усреднение позиции
                 pos = self.positions[ticker]
                 total_qty = pos['qty'] + quantity
                 total_cost = (pos['qty'] * pos['avg_price']) + cost
 
                 pos['qty'] = total_qty
                 pos['avg_price'] = total_cost / total_qty
-                pos['buy_time'] = time.time()  # Обновляем время покупки
+                pos['buy_time'] = time.time()
 
-                # ДОБАВЛЯЕМ: Сохраняем стратегию если указана
                 if strategy and 'strategy' not in pos:
                     pos['strategy'] = strategy
 
-                # ДОБАВЛЯЕМ: Сохраняем дополнительные параметры
                 if kwargs:
                     for key, value in kwargs.items():
                         pos[key] = value
 
-                logger.debug(f"Усреднена позиция {ticker}: +{quantity} @ {price:.2f}, "
-                         f"итого {total_qty} @ {pos['avg_price']:.2f}, стратегия: {strategy}")
+                logger.debug(f"Усреднена позиция {ticker}: +{quantity} @ {price:.2f}")
             else:
                 # Новая позиция
                 self.positions[ticker] = {
@@ -220,22 +216,17 @@ class PortfolioManager:
                     'total_cost': cost
                 }
 
-                # Сохраняем стратегию если указана
                 if strategy:
                     self.positions[ticker]['strategy'] = strategy
+                    self.strategy_positions[strategy].append(ticker)
 
-                # Сохраняем дополнительные параметры
                 if kwargs:
                     for key, value in kwargs.items():
                         self.positions[ticker][key] = value
 
-                # Добавляем в отслеживание стратегий
-                if strategy:
-                    self.strategy_positions[strategy].append(ticker)
-
-
-            # Списание средств
+            # ✅ ЕДИНСТВЕННОЕ списание средств (с учетом комиссии)
             self.cash -= cost
+            self.reserved_cash += estimated_commission
 
             # Запись в историю
             trade_record = {
@@ -245,12 +236,13 @@ class PortfolioManager:
                 'quantity': quantity,
                 'price': price,
                 'cost': cost,
+                'commission': estimated_commission,
                 'cash_after': self.cash,
+                'reserved_after': self.reserved_cash,
                 'position_after': self.positions[ticker].copy(),
-                'strategy': strategy  # ДОБАВЛЯЕМ стратегию в историю
+                'strategy': strategy
             }
 
-            # ДОБАВЛЯЕМ: Сохраняем дополнительные параметры в историю
             if kwargs:
                 trade_record['params'] = kwargs
 
@@ -262,15 +254,16 @@ class PortfolioManager:
                 'action': 'BUY',
                 'quantity': quantity,
                 'price': price,
-                'value': quantity * price,
+                'value': cost,
+                'commission_reserved': estimated_commission,
                 'strategy': strategy
             })
 
-            # Сохранение
             self.save_portfolio()
 
             logger.info(f"КУПЛЕНО: {ticker} {quantity} @ {price:.2f} = {cost:,.0f}₽, "
-                        f"остаток кэша: {self.cash:,.0f}₽, стратегия: {strategy}")
+                        f"комиссия: {estimated_commission:,.2f}₽, "
+                        f"кэш: {self.cash:,.0f}₽, резерв: {self.reserved_cash:,.0f}₽")
 
             return True
 
@@ -281,44 +274,38 @@ class PortfolioManager:
     def sell(self, ticker: str, quantity: int, price: float) -> bool:
         """Продажа акций"""
         try:
-            # ✅ ДОБАВЛЯЕМ: Получение информации о бумаге из позиции
+            # Получение информации о бумаге из позиции
+            if ticker not in self.positions:
+                logger.error(f"Нет позиции для продажи: {ticker}")
+                return False
+
             pos = self.positions[ticker]
             lot_size = pos.get('lot_size', 1)
+            strategy = pos.get('strategy')
 
-            # ✅ ДОБАВЛЯЕМ: Проверка лотности количества
+            # Проверка лотности количества
             if lot_size > 1 and quantity % lot_size != 0:
-                logger.warning(f"Количество {ticker} не кратно размеру лота {lot_size}: {quantity}")
-                # Округляем в меньшую сторону до кратного лотности
                 quantity = (quantity // lot_size) * lot_size
                 if quantity == 0:
                     logger.error(f"После округления количество стало нулевым")
                     return False
                 logger.info(f"Количество скорректировано до {quantity}")
 
-
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
                 logger.error(f"Некорректные данные для продажи {ticker}: qty={quantity}, price={price}")
                 return False
 
-            # Проверка наличия позиции
-            if ticker not in self.positions:
-                logger.error(f"Нет позиции для продажи: {ticker}")
-                return False
-
-            pos = self.positions[ticker]
-
-            # ДОБАВЛЯЕМ: Получаем стратегию перед удалением позиции
-            strategy = pos.get('strategy')
-
-            # Проверка количества
             if quantity > pos['qty']:
-                logger.error(f"Недостаточно акций для продажи {ticker}: "
-                             f"нужно {quantity}, есть {pos['qty']}")
+                logger.error(f"Недостаточно акций: нужно {quantity}, есть {pos['qty']}")
                 return False
 
             # Расчет выручки
             revenue = quantity * price
+
+            # ✅ ЗАГРУЗКА КОМИССИИ ИЗ КОНФИГА
+            commission_rate = self.settings.get('commission_rate', 0.003)
+            estimated_commission = revenue * commission_rate
 
             # Расчет PnL
             entry_cost = quantity * pos['avg_price']
@@ -329,20 +316,17 @@ class PortfolioManager:
             if quantity == pos['qty']:
                 # Продажа всей позиции
                 del self.positions[ticker]
-
-                # ДОБАВЛЯЕМ: Удаляем из трекера стратегий
                 if strategy:
                     self.remove_strategy_from_tracker(ticker, strategy)
-
-                logger.debug(f"Закрыта позиция {ticker}, стратегия: {strategy}")
+                logger.debug(f"Закрыта позиция {ticker}")
             else:
                 # Частичная продажа
                 pos['qty'] -= quantity
-                # pos['buy_time'] = time.time()  # Обновляем время покупки для оставшихся
-                logger.debug(f"Частичная продажа {ticker}: -{quantity}, осталось {pos['qty']}, стратегия: {strategy}")
+                logger.debug(f"Частичная продажа {ticker}: -{quantity}, осталось {pos['qty']}")
 
-            # Зачисление средств
+            # ✅ ЕДИНСТВЕННОЕ зачисление средств (с учетом комиссии)
             self.cash += revenue
+            self.reserved_cash += estimated_commission
 
             # Запись в историю
             trade_record = {
@@ -352,11 +336,13 @@ class PortfolioManager:
                 'quantity': quantity,
                 'price': price,
                 'revenue': revenue,
+                'commission': estimated_commission,
                 'pnl': pnl,
                 'pnl_percent': pnl_percent,
                 'cash_after': self.cash,
+                'reserved_after': self.reserved_cash,
                 'position_after': self.positions.get(ticker, {}).copy(),
-                'strategy': strategy  # ДОБАВЛЯЕМ стратегию
+                'strategy': strategy
             }
 
             self.trade_history.append(trade_record)
@@ -367,17 +353,17 @@ class PortfolioManager:
                 'action': 'SELL',
                 'quantity': quantity,
                 'price': price,
-                'value': quantity * price,
+                'value': revenue,
+                'commission_reserved': estimated_commission,
                 'pnl': pnl,
                 'strategy': strategy
             })
 
-            # Сохранение
             self.save_portfolio()
 
             logger.info(f"ПРОДАНО: {ticker} {quantity} @ {price:.2f} = {revenue:,.0f}₽, "
-                        f"PnL: {pnl:+,.0f}₽ ({pnl_percent:+.1f}%), "
-                        f"кэш: {self.cash:,.0f}₽, стратегия: {strategy}")
+                        f"комиссия: {estimated_commission:,.2f}₽, PnL: {pnl:+,.0f}₽ ({pnl_percent:+.1f}%), "
+                        f"кэш: {self.cash:,.0f}₽, резерв: {self.reserved_cash:,.0f}₽")
 
             return True
 
