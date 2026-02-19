@@ -41,8 +41,8 @@
     "commission": {
       "charge_time": "19:00",
       "charge_day": "T+0",
-      "rate_percent": 0.05,
-      "rate_decimal": 0.0005
+      "rate_percent": 0.3,
+      "rate_decimal": 0.003
     },
 
     "corporate_actions": {
