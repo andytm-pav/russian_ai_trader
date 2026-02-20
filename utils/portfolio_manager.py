@@ -29,6 +29,7 @@ class PortfolioManager:
         self.daily_trades = []
         self.daily_reset_time = "19:00"  # fallback
         self.preserve_buy_time = True  # значение по умолчанию
+        self.commission_rate = 0.003  # значение по умолчанию
 
         try:
             with open("config/settings.json", "r") as f:
@@ -36,6 +37,7 @@ class PortfolioManager:
                 moex = settings.get("moex_schedule", {})
                 pm_config = settings.get("portfolio_manager", {})
                 commission = moex.get("commission", {})
+                self.commission_rate = commission.get('rate_decimal', 0.003)
                 self.daily_reset_time = commission.get("charge_time", "19:00")
                 self.preserve_buy_time = pm_config.get("preserve_buy_time_on_partial_sell", True)
         except:
@@ -175,15 +177,14 @@ class PortfolioManager:
                 logger.error(f"Количество меньше размера лота {lot_size}: {quantity}")
                 return False
 
-            # Расчет стоимости покупки
+            # ✅ 1. СНАЧАЛА рассчитываем стоимость покупки
             cost = quantity * price
 
-            # ✅ ЗАГРУЗКА КОМИССИИ ИЗ КОНФИГА
-            commission_rate = self.settings.get('commission_rate', 0.003)
-            estimated_commission = cost * commission_rate
+            # ✅ 2. ПОТОМ рассчитываем комиссию (self.commission_rate загружен из конфига)
+            estimated_commission = cost * self.commission_rate
             total_required = cost + estimated_commission
 
-            # ✅ ЕДИНСТВЕННАЯ проверка доступности средств
+            # ✅ 3. ЕДИНСТВЕННАЯ проверка доступности средств
             if total_required > self.cash:
                 logger.error(f"Недостаточно средств: нужно {total_required:,.0f}₽, есть {self.cash:,.0f}₽")
                 return False
@@ -224,7 +225,7 @@ class PortfolioManager:
                     for key, value in kwargs.items():
                         self.positions[ticker][key] = value
 
-            # ✅ ЕДИНСТВЕННОЕ списание средств (с учетом комиссии)
+            # ✅ 4. ЕДИНСТВЕННОЕ списание средств (с учетом комиссии)
             self.cash -= cost
             self.reserved_cash += estimated_commission
 
@@ -300,12 +301,11 @@ class PortfolioManager:
                 logger.error(f"Недостаточно акций: нужно {quantity}, есть {pos['qty']}")
                 return False
 
-            # Расчет выручки
+            # ✅ СНАЧАЛА рассчитываем revenue
             revenue = quantity * price
 
-            # ✅ ЗАГРУЗКА КОМИССИИ ИЗ КОНФИГА
-            commission_rate = self.settings.get('commission_rate', 0.003)
-            estimated_commission = revenue * commission_rate
+            # ✅ ПОТОМ используем revenue для расчета комиссии
+            estimated_commission = revenue * self.commission_rate
 
             # Расчет PnL
             entry_cost = quantity * pos['avg_price']
@@ -324,7 +324,7 @@ class PortfolioManager:
                 pos['qty'] -= quantity
                 logger.debug(f"Частичная продажа {ticker}: -{quantity}, осталось {pos['qty']}")
 
-            # ✅ ЕДИНСТВЕННОЕ зачисление средств (с учетом комиссии)
+            # Зачисление средств (с учетом комиссии)
             self.cash += revenue
             self.reserved_cash += estimated_commission
 
