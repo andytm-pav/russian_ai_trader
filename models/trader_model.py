@@ -13,11 +13,73 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Optional
 import warnings
 
+
+class PrioritizedReplayBuffer:
+    """Буфер с приоритетами для важных опытов (TD-error)"""
+
+    def __init__(self, max_size=5000, alpha=0.6, beta=0.4, beta_increment=0.001):
+        self.buffer = []
+        self.priorities = np.zeros(max_size, dtype=np.float32)
+        self.max_size = max_size
+        self.alpha = alpha  # Степень приоритизации (0 = равномерно, 1 = только приоритетные)
+        self.beta = beta  # Степень коррекции смещения (растет со временем)
+        self.beta_increment = beta_increment
+        self.position = 0
+        self.size = 0
+
+    def add(self, experience, td_error=None):
+        """Добавление опыта с приоритетом"""
+        if td_error is None:
+            # По умолчанию - максимальный приоритет для новых
+            priority = self.priorities.max() if self.size > 0 else 1.0
+        else:
+            priority = (abs(td_error) + 1e-6) ** self.alpha
+
+        if self.size < self.max_size:
+            self.buffer.append(experience)
+            self.size += 1
+        else:
+            self.buffer[self.position] = experience
+
+        self.priorities[self.position] = priority
+        self.position = (self.position + 1) % self.max_size
+
+    def sample(self, batch_size):
+        """Выборка с учетом приоритетов"""
+        if self.size < batch_size:
+            return None, None, None
+
+        # Нормализуем приоритеты в вероятности
+        priorities = self.priorities[:self.size]
+        probs = priorities / priorities.sum()
+
+        # Выбираем индексы по вероятностям
+        indices = np.random.choice(self.size, batch_size, p=probs, replace=False)
+
+        # Корректируем веса для обучения (importance sampling)
+        total = self.size
+        weights = (total * probs[indices]) ** (-self.beta)
+        weights = weights / weights.max()
+
+        # Увеличиваем beta для уменьшения смещения
+        self.beta = min(1.0, self.beta + self.beta_increment)
+
+        samples = [self.buffer[idx] for idx in indices]
+
+        return samples, indices, weights
+
+    def update_priorities(self, indices, td_errors):
+        """Обновление приоритетов после обучения"""
+        for idx, td_error in zip(indices, td_errors):
+            self.priorities[idx] = (abs(td_error) + 1e-6) ** self.alpha
+
 warnings.filterwarnings('ignore')
 
 # ========== КОНСТАНТЫ МОДЕЛИ ==========
 # Архитектурные параметры
-NEWS_EMBEDDING_DIM = 768
+# NEWS_EMBEDDING_DIM = 768
+NEWS_EMBEDDING_DIM = 312  # (rubert-tiny2 выдает 312)
+
 NEWS_ENCODED_DIM = 128
 BASE_STATE_DIM = 150
 STRATEGY_PARAMS_DIM = 6
@@ -264,23 +326,52 @@ class AdvancedTraderModel:
             )
         )
 
-        # Инициализация сетей с правильными размерностями
-        self.news_encoder = NewsEncoder(
-            input_dim=NEWS_EMBEDDING_DIM,
-            hidden_dim=NEWS_ENCODER_HIDDEN_DIM
-        )
-        self.news_encoder.to(self.device)
+        # Загрузка BERT для русского языка
+        self.bert_model, self.bert_tokenizer = self._load_bert_model()
+
+        # ✅ АВТОКОРРЕКЦИЯ РАЗМЕРНОСТИ
+        global NEWS_EMBEDDING_DIM
+        if self.bert_model is not None:
+            try:
+                # Проверяем реальную размерность BERT
+                test_text = ["тест"]
+                inputs = self.bert_tokenizer(test_text, return_tensors="pt", padding=True)
+                with torch.no_grad():
+                    test_output = self.bert_model(**inputs)
+                    actual_bert_dim = test_output.last_hidden_state.shape[-1]
+
+                if actual_bert_dim != NEWS_EMBEDDING_DIM:
+                    print(f"[TraderModel] ⚠ Автокоррекция: BERT выдает {actual_bert_dim}, "
+                          f"меняем NEWS_EMBEDDING_DIM с {NEWS_EMBEDDING_DIM} на {actual_bert_dim}")
+
+                    # Меняем глобальную константу
+                    NEWS_EMBEDDING_DIM = actual_bert_dim
+
+                    # Пересоздаем энкодер с правильной размерностью
+                    self.news_encoder = NewsEncoder(
+                        input_dim=NEWS_EMBEDDING_DIM,
+                        hidden_dim=NEWS_ENCODER_HIDDEN_DIM
+                    ).to(self.device)
+
+                    print(f"[TraderModel] ✓ Энкодер пересоздан с размерностью {NEWS_EMBEDDING_DIM}")
+            except Exception as e:
+                print(f"[TraderModel] Ошибка автокоррекции: {e}")
+        else:
+            print("[TraderModel] BERT не загружен, использую simple_encode_news")
+
+        # ✅ Инициализация сетей (ТОЛЬКО ЕСЛИ ЕЩЁ НЕ СОЗДАНЫ)
+        if not hasattr(self, 'news_encoder') or self.news_encoder is None:
+            self.news_encoder = NewsEncoder(
+                input_dim=NEWS_EMBEDDING_DIM,
+                hidden_dim=NEWS_ENCODER_HIDDEN_DIM
+            ).to(self.device)  # 👈 to(self.device) сразу при создании
 
         self.policy_net = TradingPolicyNetwork(
             state_dim=TOTAL_STATE_DIM,
             action_dim=3
-        )
-        self.policy_net.to(self.device)
+        ).to(self.device)  # 👈 to(self.device) сразу при создании
 
-        # Загрузка BERT для русского языка
-        self.bert_model, self.bert_tokenizer = self._load_bert_model()
-
-        # Оптимизаторы
+        # ✅ Оптимизаторы
         self.news_optimizer = optim.AdamW(
             self.news_encoder.parameters(),
             lr=learning_rate,
@@ -295,6 +386,12 @@ class AdvancedTraderModel:
         # Память и состояние
         self.memory = deque(maxlen=memory_size)
         self.gamma = gamma
+        self.prioritized_buffer = PrioritizedReplayBuffer(
+            max_size=memory_size,
+            alpha=0.6,
+            beta=0.4
+        )
+        self.use_prioritized = True  # Флаг использования приоритетного буфера
 
         # Статистика
         self.error_memory = defaultdict(lambda: {
@@ -1024,15 +1121,32 @@ class AdvancedTraderModel:
 
         return action, confidence, state_value.item()
 
+    def get_state_value(self, state: torch.Tensor) -> float:
+        """Получение оценки состояния для расчета TD-error"""
+        try:
+            self.policy_net.eval()
+            with torch.no_grad():
+                # Добавляем batch dimension если нужно
+                if state.dim() == 1:
+                    state = state.unsqueeze(0)
+                _, value = self.policy_net(state)
+                return value.item()
+        except Exception as e:
+            print(f"[TraderModel] Ошибка get_state_value: {e}")
+            return 0.0
+
+
     def remember_experience(self,
                             state: torch.Tensor,
                             action: int,
                             reward: float,
                             next_state: torch.Tensor,
                             done: bool,
-                            news_features: Optional[torch.Tensor] = None):
-        """Сохранение опыта с новостями"""
-        self.memory.append({
+                            news_features: Optional[torch.Tensor] = None,
+                            td_error: Optional[float] = None):  # ✅ НОВЫЙ ПАРАМЕТР
+        """Сохранение опыта с приоритетом"""
+
+        experience = {
             'state': state.cpu(),
             'action': action,
             'reward': reward,
@@ -1040,7 +1154,16 @@ class AdvancedTraderModel:
             'done': done,
             'news_features': news_features.cpu() if news_features is not None else None,
             'timestamp': datetime.now().isoformat()
-        })
+        }
+
+        # ✅ ИСПОЛЬЗУЕМ ПРИОРИТЕТНЫЙ БУФЕР
+        if hasattr(self, 'prioritized_buffer') and self.prioritized_buffer is not None:
+            self.prioritized_buffer.add(experience, td_error)
+        else:
+            # Старый метод для обратной совместимости
+            self.memory.append(experience)
+
+        # Автосохранение
         if (self.memory_serialization_config['enable_autosave'] and
                 len(self.memory) % self.memory_serialization_config['autosave_interval'] == 0):
             self.save_memory()
@@ -1175,6 +1298,90 @@ class AdvancedTraderModel:
             import traceback
             print(traceback.format_exc())
             return None
+
+    def learn_from_prioritized(self, batch_size: int = DEFAULT_BATCH_SIZE):
+        """Обучение с приоритетной выборкой"""
+        if not hasattr(self, 'prioritized_buffer') or self.prioritized_buffer is None:
+            return self.learn_from_experience(batch_size)
+
+        # Приоритетная выборка
+        batch, indices, weights = self.prioritized_buffer.sample(batch_size)
+
+        if batch is None:
+            return None
+
+        try:
+            # Подготовка данных
+            states = torch.stack([exp['state'] for exp in batch]).to(self.device)
+            actions = torch.LongTensor([exp['action'] for exp in batch]).to(self.device)
+            rewards = torch.FloatTensor([exp['reward'] for exp in batch]).to(self.device)
+            next_states = torch.stack([exp['next_state'] for exp in batch]).to(self.device)
+            dones = torch.FloatTensor([exp['done'] for exp in batch]).to(self.device)
+            weights_tensor = torch.FloatTensor(weights).to(self.device)
+
+            # Новости (если есть)
+            news_features = None
+            if batch[0].get('news_features') is not None:
+                try:
+                    news_features = torch.stack([exp['news_features'] for exp in batch]).to(self.device)
+                except:
+                    pass
+
+            # Обучение
+            self.policy_net.train()
+
+            # Прямые проходы
+            if news_features is not None:
+                current_probs, current_values = self.policy_net(states, news_features)
+                with torch.no_grad():
+                    _, next_values = self.policy_net(next_states, news_features)
+            else:
+                current_probs, current_values = self.policy_net(states)
+                with torch.no_grad():
+                    _, next_values = self.policy_net(next_states)
+
+            # Целевые значения
+            target_values = rewards + (1 - dones) * self.gamma * next_values
+
+            # Value loss с весами
+            value_loss = (weights_tensor * nn.SmoothL1Loss(reduction='none')(
+                current_values, target_values.detach())).mean()
+
+            # Policy loss
+            dist = torch.distributions.Categorical(current_probs)
+            log_probs = dist.log_prob(actions)
+            advantages = (target_values - current_values).detach()
+            policy_loss = -(weights_tensor * log_probs * advantages).mean()
+
+            # Entropy
+            entropy = dist.entropy().mean()
+            entropy_bonus = ENTROPY_BONUS_COEFF * entropy
+
+            total_loss = value_loss + policy_loss - entropy_bonus
+
+            # Оптимизация
+            self.policy_optimizer.zero_grad()
+            total_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), GRADIENT_CLIP_VALUE)
+            self.policy_optimizer.step()
+
+            self.policy_net.eval()
+
+            # Вычисляем TD-ошибки для обновления приоритетов
+            with torch.no_grad():
+                td_errors = (target_values - current_values).cpu().numpy()
+
+            # Обновляем приоритеты
+            self.prioritized_buffer.update_priorities(indices, td_errors)
+
+            return total_loss.item()
+
+        except Exception as e:
+            print(f"[TraderModel] Ошибка приоритетного обучения: {e}")
+            self.policy_net.eval()
+            return None
+
+
 
     def learn_from_experience_custom(self, states, actions, rewards, next_states, dones, news_features=None):
         """Обучение на готовом батче с ЗАЩИТОЙ ОТ ОШИБОК"""

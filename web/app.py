@@ -6,7 +6,7 @@ import dash
 from dash import dcc, html, Input, Output, State, callback, ctx
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 import json
@@ -1214,12 +1214,11 @@ def update_system_stats(n_intervals):
         # Статус компонентов
         components_html = html.Div([
             html.P("🤖 AI модель: ✅ Активна"),
-            html.P(f"📰 Новости: ✅ Активны" if hasattr(broker_instance.news_core,
-                                                      'running') and broker_instance.news_core.running else "❌ Остановлены"),
+            html.P("📰 Новости: ✅ Активны" if hasattr(broker_instance, 'news_fetcher') else "📰 Новости: ❌ Недоступны"),
             html.P("📊 Тех.анализ: ✅ Активен"),
-            html.P(f"⚖️ Риск-менеджер: ✅ Активен"),
-            html.P(f"⏰ Планировщик: ✅ Активен"),
-            html.P(f"💰 Портфель: ✅ Активен")
+            html.P("⚖️ Риск-менеджер: ✅ Активен"),
+            html.P("⏰ Планировщик: ✅ Активен"),
+            html.P("💰 Портфель: ✅ Активен")
         ])
 
         return [stats_html, components_html]
@@ -1574,24 +1573,38 @@ def update_sentiment_chart(ticker, n_intervals):
             return dashboard_viz._create_empty_chart("Система не инициализирована")
 
         sentiment_data = []
-        try:
-            # Получаем сентимент из news_core
-            if hasattr(broker_instance, 'news_core'):
-                sentiment = broker_instance.news_core.get_current_sentiment(ticker)
 
-                # Создаем тестовые данные
-                now = datetime.now()
-                sentiment_data = [
-                    {
-                        'timestamp': (now - timedelta(hours=i)).isoformat(),
-                        'sentiment': sentiment * (0.8 + 0.4 * (i % 3 - 1)),  # Небольшие колебания
-                        'source': 'NEWS_CORE',
-                        'ticker': ticker
-                    }
-                    for i in range(20, 0, -1)
-                ]
-        except:
-            pass
+        # ✅ ИСПРАВЛЕНО: используем news_fetcher через метод get_sentiment_history
+        if hasattr(broker_instance, 'get_sentiment_history'):
+            # Получаем реальные данные сентимента
+            all_sentiment = broker_instance.get_sentiment_history(limit=50)
+
+            # Фильтруем по выбранному тикеру
+            for item in all_sentiment:
+                item_ticker = item.get('ticker', 'MARKET')
+                if item_ticker == ticker or (ticker == 'MOEX' and item_ticker == 'MARKET'):
+                    sentiment_data.append(item)
+
+            # Если нет данных для конкретного тикера, показываем рыночные
+            if not sentiment_data and ticker != 'MOEX':
+                sentiment_data = [item for item in all_sentiment
+                                  if item.get('ticker') == 'MARKET']
+
+        # Если все еще нет данных, создаем тестовые для отладки
+        if not sentiment_data:
+            # Тестовые данные для демонстрации
+            now = datetime.now()
+            base_sentiment = 0.2 if ticker == 'SBER' else 0.0
+
+            sentiment_data = [
+                {
+                    'timestamp': (now - timedelta(hours=i)).isoformat(),
+                    'sentiment': base_sentiment + 0.1 * np.sin(i * 0.5),
+                    'source': 'TEST',
+                    'ticker': ticker if ticker != 'MOEX' else 'MARKET'
+                }
+                for i in range(20, 0, -1)
+            ]
 
         if not sentiment_data:
             return dashboard_viz._create_empty_chart(f"Нет данных по сентименту для {ticker}")

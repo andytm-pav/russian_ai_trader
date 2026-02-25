@@ -1,21 +1,32 @@
 """
-Сбор новостей с различных источников
+Сбор новостей с различных источников - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ
 """
 
 import json
 import time
 import requests
-from datetime import datetime, timedelta, timezone  # ИМПОРТИРУЕМ timezone
-from typing import Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Set, Tuple
 import re
+import hashlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from collections import defaultdict
+import threading
+
+try:
+    from ahocorasick import Automaton
+    AHOCORASICK_AVAILABLE = True
+except ImportError:
+    AHOCORASICK_AVAILABLE = False
+    import re
 
 from utils.logger import get_logger
 
-logger = get_logger("NEWS_FETCHER")
+logger = get_logger("NEWS_FETCHER_OPT")
 
 
-class NewsFetcher:
-    """Класс для сбора новостей"""
+class OptimizedNewsFetcher:
+    """Оптимизированный класс для сбора новостей"""
 
     def __init__(self, config_path: str = "config/rss_sources.json"):
         self.config = self._load_config(config_path)
@@ -24,60 +35,181 @@ class NewsFetcher:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
 
-        # Кэш новостей
+        # Кэш новостей (TTL из конфига)
         self.news_cache = []
+        self.cache_ttl = self.config.get('cache_ttl_seconds', 300)  # 5 минут
         self.last_fetch_time = 0
         self.fetch_interval = self.config.get('update_interval_minutes', 5) * 60
 
-        logger.info(f"Инициализирован NewsFetcher с {len(self.config.get('sources', []))} источниками")
+        # 🔥 МНОГОПОТОЧНОСТЬ
+        self.max_workers = self.config.get('max_workers', 5)
+
+        # 🔥 БЫСТРАЯ ФИЛЬТРАЦИЯ (Aho-Corasick)
+        self._build_fast_filters()
+
+        # 🔥 КЭШ СЕНТИМЕНТА
+        self.sentiment_cache = {}
+        self.sentiment_cache_ttl = self.config.get('sentiment_cache_ttl', 3600)  # 1 час
+
+        # 🔥 ПРЕДОБУЧЕННАЯ МОДЕЛЬ
+        self.sentiment_model = None
+        self.use_ml_model = self.config.get('use_ml_model', False)
+        if self.use_ml_model:
+            self._init_sentiment_model()
+
+        # Статистика
+        self.stats = {
+            'total_fetches': 0,
+            'cache_hits': 0,
+            'cache_misses': 0,
+            'filter_hits': 0,
+            'avg_fetch_time': 0
+        }
+
+        logger.info(
+            f"Инициализирован OptimizedNewsFetcher:\n"
+            f"  - Источников: {len(self.config.get('sources', []))}\n"
+            f"  - Многопоточность: {self.max_workers} workers\n"
+            f"  - Фильтрация: {'Aho-Corasick' if AHOCORASICK_AVAILABLE else 'Regex'}\n"
+            f"  - ML модель: {'Да' if self.use_ml_model else 'Нет'}"
+        )
 
     def _load_config(self, config_path: str) -> Dict:
         """Загрузка конфигурации"""
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                config = json.load(f)
+
+            # Добавляем параметры оптимизации по умолчанию
+            config.setdefault('max_workers', 5)
+            config.setdefault('cache_ttl_seconds', 300)
+            config.setdefault('sentiment_cache_ttl', 3600)
+            config.setdefault('use_ml_model', False)
+            config.setdefault('batch_size', 32)
+
+            return config
         except Exception as e:
-            logger.error(f"Ошибка загрузки конфигурации новостей: {e}")
-            return {'sources': [], 'update_interval_minutes': 5}
+            logger.error(f"Ошибка загрузки конфигурации: {e}")
+            return {
+                'sources': [],
+                'update_interval_minutes': 5,
+                'max_workers': 5,
+                'cache_ttl_seconds': 300,
+                'sentiment_cache_ttl': 3600,
+                'use_ml_model': False,
+                'batch_size': 32
+            }
+
+    def _build_fast_filters(self):
+        """Построение быстрых фильтров с Aho-Corasick"""
+        keywords_config = self.config.get('keywords_filter', {})
+        self.include_words = keywords_config.get('include', [])
+        self.exclude_words = keywords_config.get('exclude', [])
+
+        if AHOCORASICK_AVAILABLE and (self.include_words or self.exclude_words):
+            # Строим автомат для быстрого поиска
+            self.filter_automaton = Automaton()
+
+            for word in self.include_words:
+                self.filter_automaton.add_word(word.lower(), ('include', word))
+            for word in self.exclude_words:
+                self.filter_automaton.add_word(word.lower(), ('exclude', word))
+
+            self.filter_automaton.make_automaton()
+            self.use_automaton = True
+            logger.debug(f"Построен Aho-Corasick автомат с {len(self.include_words) + len(self.exclude_words)} словами")
+        else:
+            # Fallback на регулярки
+            self.use_automaton = False
+            if self.include_words:
+                self.include_pattern = re.compile(
+                    '|'.join(map(re.escape, self.include_words)),
+                    re.IGNORECASE
+                )
+            if self.exclude_words:
+                self.exclude_pattern = re.compile(
+                    '|'.join(map(re.escape, self.exclude_words)),
+                    re.IGNORECASE
+                )
+            logger.debug("Использую regex для фильтрации (Aho-Corasick не доступен)")
+
+    def _init_sentiment_model(self):
+        """Инициализация предобученной модели"""
+        try:
+            from transformers import pipeline
+
+            model_name = self.config.get('sentiment_model', 'mxlcw/rubert-tiny2-russian-financial-sentiment')
+
+            # Загружаем модель один раз
+            self.sentiment_model = pipeline(
+                "text-classification",
+                model=model_name,
+                device=-1  # CPU, для GPU укажите 0
+            )
+
+            logger.info(f"Загружена модель сентимента: {model_name}")
+        except Exception as e:
+            logger.error(f"Ошибка загрузки модели: {e}, использую словарный метод")
+            self.use_ml_model = False
 
     def get_last_news(self, limit: int = 50) -> List[Dict]:
-        """Получение последних новостей"""
+        """Получение последних новостей с многопоточным сбором"""
         current_time = time.time()
+        start_time = current_time
 
-        # Используем кэш, если не прошло время интервала
+        # Статистика
+        self.stats['total_fetches'] += 1
+
+        # Проверка кэша
         if (current_time - self.last_fetch_time < self.fetch_interval and
                 self.news_cache):
-            logger.debug(f"Использую кэшированные новости ({len(self.news_cache)} шт)")
+            self.stats['cache_hits'] += 1
+            logger.debug(f"Кэш HIT: {len(self.news_cache)} новостей")
             return self.news_cache[:limit]
 
+        self.stats['cache_misses'] += 1
+
         try:
+            sources = [s for s in self.config.get('sources', []) if s.get('enabled', True)]
+
+            if not sources:
+                return []
+
+            # 🔥 МНОГОПОТОЧНЫЙ СБОР
             all_news = []
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                # Запускаем все задачи
+                future_to_source = {
+                    executor.submit(self._fetch_from_source, source): source
+                    for source in sources
+                }
 
-            # Сбор новостей со всех источников
-            for source in self.config.get('sources', []):
-                if not source.get('enabled', True):
-                    continue
+                # Собираем результаты по мере готовности
+                for future in as_completed(future_to_source):
+                    source = future_to_source[future]
+                    try:
+                        source_news = future.result(timeout=15)
+                        all_news.extend(source_news)
+                        logger.debug(f"Источник {source['name']}: {len(source_news)} новостей")
+                    except Exception as e:
+                        logger.error(f"Ошибка в источнике {source['name']}: {e}")
 
-                try:
-                    source_news = self._fetch_from_source(source)
-                    all_news.extend(source_news)
-
-                    logger.debug(f"Источник {source['name']}: {len(source_news)} новостей")
-
-                except Exception as e:
-                    logger.error(f"Ошибка сбора новостей из {source['name']}: {e}")
-
-            # Сортировка по времени (новые сначала)
+            # Сортировка и дедупликация
             all_news.sort(key=lambda x: x.get('ts', 0), reverse=True)
-
-            # Фильтрация дубликатов
-            unique_news = self._remove_duplicates(all_news)
+            unique_news = self._fast_remove_duplicates(all_news)
 
             # Обновление кэша
             self.news_cache = unique_news
             self.last_fetch_time = current_time
 
-            logger.info(f"Собрано {len(unique_news)} уникальных новостей")
+            # Статистика времени
+            elapsed = time.time() - start_time
+            self.stats['avg_fetch_time'] = (self.stats['avg_fetch_time'] * 0.9 + elapsed * 0.1)
+
+            logger.info(
+                f"Собрано {len(unique_news)} новостей за {elapsed:.2f}с "
+                f"(avg: {self.stats['avg_fetch_time']:.2f}с)"
+            )
 
             return unique_news[:limit]
 
@@ -86,44 +218,43 @@ class NewsFetcher:
             return self.news_cache[:limit] if self.news_cache else []
 
     def _fetch_from_source(self, source: Dict) -> List[Dict]:
-        """Сбор новостей из одного источника"""
-        news_items = []
-
-        # Определяем тип источника
+        """Сбор новостей из одного источника (вызывается в потоках)"""
         source_type = source.get('type', 'rss')
 
-        if source_type == 'rss':
-            news_items = self._fetch_rss(source)
-        elif source_type == 'api':
-            news_items = self._fetch_api(source)
-        elif source_type == 'web':
-            news_items = self._fetch_web(source)
-
-        return news_items
+        try:
+            if source_type == 'rss':
+                return self._fetch_rss(source)
+            elif source_type == 'api':
+                return self._fetch_api(source)
+            elif source_type == 'web':
+                return self._fetch_web(source)
+            else:
+                return []
+        except Exception as e:
+            logger.error(f"Ошибка в _fetch_from_source {source.get('name')}: {e}")
+            return []
 
     def _fetch_rss(self, source: Dict) -> List[Dict]:
-        """Парсинг RSS с ИСПРАВЛЕННЫМ сравнением дат"""
+        """Оптимизированный парсинг RSS"""
         try:
             import feedparser
 
             feed = feedparser.parse(source['url'])
             news_items = []
-
             max_items = source.get('max_items', 20)
+
+            # Текущее время в UTC
+            now_aware = datetime.now(timezone.utc)
 
             for entry in feed.entries[:max_items]:
                 # Парсинг даты
                 published = self._parse_date(entry.get('published', ''))
 
-                # Пропускаем старые новости (старше 3 дней)
                 if published:
-                    # ИСПРАВЛЕНИЕ: делаем обе даты aware (с часовым поясом)
+                    # Фильтр по времени (старше 3 дней)
                     if published.tzinfo is None:
-                        # Если published naive, делаем его aware в UTC
                         published = published.replace(tzinfo=timezone.utc)
 
-                    # Текущее время тоже делаем aware в UTC
-                    now_aware = datetime.now(timezone.utc)
                     age_days = (now_aware - published).days
                     if age_days > 3:
                         continue
@@ -135,367 +266,287 @@ class NewsFetcher:
                     'published': published.isoformat() if published else '',
                     'ts': self._get_timestamp(published),
                     'source': source['name'],
-                    'category': source.get('category', 'general')
+                    'category': source.get('category', 'general'),
+                    'priority': source.get('priority', 5)
                 }
 
-                # Фильтрация по ключевым словам
-                if self._filter_news_item(news_item):
+                # 🔥 БЫСТРАЯ ФИЛЬТРАЦИЯ
+                if self._fast_filter(news_item):
                     news_items.append(news_item)
 
             return news_items
 
         except Exception as e:
-            logger.error(f"Ошибка парсинга RSS {source['url']}: {e}")
+            logger.error(f"Ошибка RSS {source.get('url')}: {e}")
             return []
 
-    def _fetch_api(self, source: Dict) -> List[Dict]:
-        """Получение новостей через API"""
-        try:
-            url = source['url']
-            headers = source.get('headers', {})
-            params = source.get('params', {})
+    def _fast_filter(self, news_item: Dict) -> bool:
+        """Быстрая фильтрация через Aho-Corasick или regex"""
+        text = f"{news_item['title']} {news_item.get('summary', '')}".lower()
 
-            response = self.session.get(url, headers=headers, params=params, timeout=10)
-            response.raise_for_status()
-
-            data = response.json()
-
-            # Обработка в зависимости от структуры API
-            news_items = []
-
-            # Пример для разных API структур
-            if 'articles' in data:
-                articles = data['articles']
-            elif 'news' in data:
-                articles = data['news']
-            elif 'results' in data:
-                articles = data['results']
-            else:
-                articles = data if isinstance(data, list) else []
-
-            for article in articles[:20]:  # Ограничиваем
-                title = article.get('title') or article.get('headline', '')
-                summary = article.get('summary') or article.get('description') or article.get('content', '')
-
-                # Парсинг даты
-                date_str = article.get('publishedAt') or article.get('date') or article.get('timestamp')
-                published = self._parse_date(date_str) if date_str else datetime.now()
-
-                news_item = {
-                    'title': title,
-                    'summary': summary[:500] if summary else '',  # Ограничиваем длину
-                    'link': article.get('url') or article.get('link', ''),
-                    'published': published.isoformat(),
-                    'ts': self._get_timestamp(published),
-                    'source': source['name'],
-                    'category': source.get('category', 'general')
-                }
-
-                if self._filter_news_item(news_item):
-                    news_items.append(news_item)
-
-            return news_items
-
-        except Exception as e:
-            logger.error(f"Ошибка API {source['url']}: {e}")
-            return []
-
-    def _fetch_web(self, source: Dict) -> List[Dict]:
-        """Парсинг веб-страниц"""
-        try:
-            from bs4 import BeautifulSoup
-
-            response = self.session.get(source['url'], timeout=10)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.text, 'html.parser')
-
-            # Конфигурация парсинга
-            config = source.get('parsing_config', {})
-
-            news_items = []
-
-            # Поиск элементов новостей
-            news_elements = soup.select(config.get('item_selector', '.news-item'))
-
-            for element in news_elements[:20]:  # Ограничиваем
-                try:
-                    # Извлечение заголовка
-                    title_selector = config.get('title_selector', '.title')
-                    title_elem = element.select_one(title_selector)
-                    title = title_elem.text.strip() if title_elem else ''
-
-                    # Извлечение ссылки
-                    link_selector = config.get('link_selector', 'a')
-                    link_elem = element.select_one(link_selector)
-
-                    if link_elem and link_elem.get('href'):
-                        link = link_elem['href']
-                        # Преобразование относительных ссылок
-                        if link.startswith('/'):
-                            base_url = '/'.join(source['url'].split('/')[:3])
-                            link = base_url + link
-                    else:
-                        link = ''
-
-                    # Извлечение даты
-                    date_selector = config.get('date_selector', '.date')
-                    date_elem = element.select_one(date_selector)
-                    date_str = date_elem.text.strip() if date_elem else ''
-
-                    published = self._parse_date(date_str) if date_str else datetime.now()
-
-                    # Извлечение описания
-                    summary_selector = config.get('summary_selector', '.summary')
-                    summary_elem = element.select_one(summary_selector)
-                    summary = summary_elem.text.strip() if summary_elem else ''
-
-                    if title:  # Только если есть заголовок
-                        news_item = {
-                            'title': title,
-                            'summary': summary[:300],
-                            'link': link,
-                            'published': published.isoformat(),
-                            'ts': self._get_timestamp(published),
-                            'source': source['name'],
-                            'category': source.get('category', 'general')
-                        }
-
-                        if self._filter_news_item(news_item):
-                            news_items.append(news_item)
-
-                except Exception as e:
-                    logger.debug(f"Ошибка парсинга элемента новости: {e}")
-                    continue
-
-            return news_items
-
-        except Exception as e:
-            logger.error(f"Ошибка веб-парсинга {source['url']}: {e}")
-            return []
-
-    def _get_timestamp(self, dt: datetime) -> float:
-        """Безопасное получение timestamp с учётом часовых поясов"""
-        if dt.tzinfo is not None:
-            # Для aware datetime используем timestamp() (он всегда возвращает UTC timestamp)
-            return dt.timestamp()
-        else:
-            # Для naive datetime создаём aware в локальном поясе, затем получаем UTC timestamp
-            import time
-            local_tz = time.localtime().tm_gmtoff if hasattr(time, 'localtime') else 0
-            return dt.timestamp() + local_tz
-
-    def _parse_date(self, date_str: str) -> Optional[datetime]:
-        """Парсинг даты из различных форматов с ИСПРАВЛЕНИЕМ часовых поясов"""
-        try:
-            if not date_str:
-                return None
-
-            # Удаляем лишние пробелы
-            date_str = date_str.strip()
-
-            # Список форматов для попыток парсинга
-            formats = [
-                '%a, %d %b %Y %H:%M:%S %z',    # RSS с часовым поясом
-                '%a, %d %b %Y %H:%M:%S %Z',    # RSS с названием пояса
-                '%Y-%m-%dT%H:%M:%S%z',         # ISO с часовым поясом
-                '%Y-%m-%d %H:%M:%S%z',         # Альтернативный ISO
-                '%Y-%m-%dT%H:%M:%S',           # ISO без пояса
-                '%Y-%m-%d %H:%M:%S',           # Простой формат
-                '%d.%m.%Y %H:%M',              # Российский формат
-                '%d/%m/%Y %H:%M',              # Альтернативный
-                '%Y-%m-%d',                    # Только дата
-                '%d.%m.%Y',                    # Российская дата
-                '%d/%m/%Y'                     # Альтернативная дата
-            ]
-
-            for fmt in formats:
-                try:
-                    dt = datetime.strptime(date_str, fmt)
-
-                    # Если формат содержит %z (часовой пояс), то dt будет aware
-                    # Если нет - сделаем его aware в UTC
-                    if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=timezone.utc)
-
-                    return dt
-                except ValueError:
-                    continue
-
-            # Если не удалось распарсить, возвращаем текущую дату в UTC
-            logger.warning(f"Не удалось распарсить дату: {date_str[:50]}...")
-            return datetime.now(timezone.utc)
-
-        except Exception as e:
-            logger.error(f"Ошибка парсинга даты '{date_str[:50]}...': {e}")
-            return datetime.now(timezone.utc)
-
-    def _filter_news_item(self, news_item: Dict) -> bool:
-        """Фильтрация новостей по ключевым словам"""
-        keywords_config = self.config.get('keywords_filter', {})
-        include_words = keywords_config.get('include', [])
-        exclude_words = keywords_config.get('exclude', [])
-
-        text = f"{news_item['title']} {news_item['summary']}".lower()
+        # 🔥 СТАТИСТИКА
+        self.stats['filter_hits'] += 1
 
         # Проверка исключающих слов
-        for word in exclude_words:
-            if word.lower() in text:
+        if self.exclude_words:
+            if self.use_automaton:
+                # Aho-Corasick
+                for _, (word_type, word) in self.filter_automaton.iter(text):
+                    if word_type == 'exclude':
+                        return False
+            else:
+                # Regex
+                if hasattr(self, 'exclude_pattern') and self.exclude_pattern.search(text):
+                    return False
+
+        # Если есть включающие слова
+        if self.include_words:
+            if self.use_automaton:
+                # Aho-Corasick
+                for _, (word_type, word) in self.filter_automaton.iter(text):
+                    if word_type == 'include':
+                        return True
+                return False
+            else:
+                # Regex
+                if hasattr(self, 'include_pattern') and self.include_pattern.search(text):
+                    return True
                 return False
 
-        # Если указаны включающие слова, проверяем их
-        if include_words:
-            for word in include_words:
-                if word.lower() in text:
-                    return True
-            return False  # Не содержит ни одного включающего слова
+        return True
 
-        return True  # Нет фильтров или только exclude фильтры
+    def analyze_sentiment_batch(self, news_items: List[Dict]) -> List[Dict]:
+        """Пакетный анализ сентимента с кэшированием"""
+        if not news_items:
+            return []
 
-    def _remove_duplicates(self, news_items: List[Dict]) -> List[Dict]:
-        """Удаление дубликатов новостей"""
-        seen_titles = set()
-        unique_news = []
+        # Если используем ML модель
+        if self.use_ml_model and self.sentiment_model:
+            return self._analyze_sentiment_ml_batch(news_items)
+
+        # Иначе используем словарный метод
+        return self._analyze_sentiment_lexicon(news_items)
+
+    def _analyze_sentiment_ml_batch(self, news_items: List[Dict]) -> List[Dict]:
+        """ML сентимент с пакетной обработкой"""
+        batch_size = self.config.get('batch_size', 32)
+
+        # Подготовка текстов для анализа
+        texts = []
+        news_indices = []
+
+        for i, news in enumerate(news_items):
+            text = f"{news['title']} {news.get('summary', '')}"
+
+            # Проверка кэша
+            text_hash = hashlib.md5(text.encode()).hexdigest()
+            cached = self.sentiment_cache.get(text_hash)
+
+            if cached and (time.time() - cached['timestamp'] < self.sentiment_cache_ttl):
+                # Кэш hit
+                news['sentiment'] = cached['sentiment']
+                news['sentiment_score'] = cached['score']
+            else:
+                # Нужно обработать
+                texts.append(text[:512])  # Обрезаем
+                news_indices.append(i)
+
+        # Пакетная обработка
+        if texts:
+            for start_idx in range(0, len(texts), batch_size):
+                batch_texts = texts[start_idx:start_idx + batch_size]
+                try:
+                    results = self.sentiment_model(batch_texts)
+
+                    for j, result in enumerate(results):
+                        idx = news_indices[start_idx + j]
+                        news_item = news_items[idx]
+
+                        # Преобразование результата
+                        label = result['label'].lower()
+                        score = result['score']
+
+                        if 'positive' in label:
+                            sentiment = score
+                        elif 'negative' in label:
+                            sentiment = -score
+                        else:
+                            sentiment = 0.0
+
+                        news_item['sentiment'] = sentiment
+                        news_item['sentiment_score'] = score
+
+                        # Сохраняем в кэш
+                        text_hash = hashlib.md5(texts[start_idx + j].encode()).hexdigest()
+                        self.sentiment_cache[text_hash] = {
+                            'sentiment': sentiment,
+                            'score': score,
+                            'timestamp': time.time()
+                        }
+
+                except Exception as e:
+                    logger.error(f"Ошибка ML batch {start_idx}: {e}")
+                    for j in range(start_idx, min(start_idx + batch_size, len(texts))):
+                        idx = news_indices[j]
+                        news_items[idx]['sentiment'] = 0.0
+                        news_items[idx]['sentiment_score'] = 0.0
+
+        return news_items
+
+    def _analyze_sentiment_lexicon(self, news_items: List[Dict]) -> List[Dict]:
+        """Словарный анализ сентимента (быстрый fallback)"""
+        sentiment_dict = self.config.get('sentiment_dictionary', {})
+        positive_words = set(w.lower() for w in sentiment_dict.get('positive', []))
+        negative_words = set(w.lower() for w in sentiment_dict.get('negative', []))
+
+        for news in news_items:
+            text = f"{news['title']} {news.get('summary', '')}".lower()
+
+            pos_count = sum(1 for w in positive_words if w in text)
+            neg_count = sum(1 for w in negative_words if w in text)
+
+            if pos_count + neg_count > 0:
+                sentiment = (pos_count - neg_count) / (pos_count + neg_count)
+            else:
+                sentiment = 0.0
+
+            # Учитываем приоритет источника
+            sentiment *= (news.get('priority', 5) / 10.0)
+
+            news['sentiment'] = sentiment
+            news['sentiment_score'] = abs(sentiment)
+
+        return news_items
+
+    def _fast_remove_duplicates(self, news_items: List[Dict]) -> List[Dict]:
+        """Быстрое удаление дубликатов с использованием множества"""
+        seen = set()
+        unique = []
 
         for item in news_items:
-            title = item['title'].strip().lower()
-
             # Нормализация заголовка
-            title_norm = re.sub(r'[^\w\s]', '', title)  # Удаляем пунктуацию
+            title = re.sub(r'[^\w\s]', '', item['title'].lower()).strip()
+            if title and title not in seen:
+                seen.add(title)
+                unique.append(item)
 
-            if title_norm not in seen_titles:
-                seen_titles.add(title_norm)
-                unique_news.append(item)
+        return unique
 
-        return unique_news
+    def _parse_date(self, date_str: str) -> Optional[datetime]:
+        """Парсинг даты с кэшированием форматов"""
+        if not date_str:
+            return None
 
-    def search_news(self, query: str, limit: int = 20) -> List[Dict]:
-        """Поиск новостей по запросу"""
-        all_news = self.get_last_news(limit=200)  # Берем больше для поиска
+        # Кэш форматов (чтобы не перебирать каждый раз)
+        if not hasattr(self, '_date_formats'):
+            self._date_formats = [
+                '%a, %d %b %Y %H:%M:%S %z',
+                '%a, %d %b %Y %H:%M:%S %Z',
+                '%Y-%m-%dT%H:%M:%S%z',
+                '%Y-%m-%d %H:%M:%S%z',
+                '%Y-%m-%dT%H:%M:%S',
+                '%Y-%m-%d %H:%M:%S',
+                '%d.%m.%Y %H:%M',
+                '%d/%m/%Y %H:%M',
+                '%Y-%m-%d',
+                '%d.%m.%Y'
+            ]
 
-        if not query:
+        date_str = date_str.strip()
+
+        for fmt in self._date_formats:
+            try:
+                dt = datetime.strptime(date_str, fmt)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt
+            except ValueError:
+                continue
+
+        return datetime.now(timezone.utc)
+
+    def _get_timestamp(self, dt: Optional[datetime]) -> float:
+        """Быстрое получение timestamp"""
+        if dt is None:
+            return time.time()
+        return dt.timestamp()
+
+    def search_news(self, query: str = '', ticker: str = '', limit: int = 20) -> List[Dict]:
+        """Быстрый поиск новостей"""
+        all_news = self.get_last_news(limit=200)
+
+        if not query and not ticker:
             return all_news[:limit]
 
-        query_words = query.lower().split()
+        # Нормализация запроса
+        query = query.lower() if query else ''
+        ticker = ticker.upper() if ticker else ''
 
-        # Ранжирование новостей по релевантности
-        ranked_news = []
+        # Фильтрация
+        filtered = []
 
         for news in all_news:
             title = news['title'].lower()
             summary = news.get('summary', '').lower()
-            text = f"{title} {summary}"
 
-            # Подсчет релевантности
-            relevance = 0
+            if ticker:
+                if ticker not in title.upper() and ticker not in summary.upper():
+                    continue
 
-            for word in query_words:
-                if word in title:
-                    relevance += 3  # Больший вес для заголовка
-                elif word in summary:
-                    relevance += 1
+            if query:
+                if query not in title and query not in summary:
+                    continue
 
-            if relevance > 0:
-                ranked_news.append((relevance, news))
+            filtered.append(news)
+            if len(filtered) >= limit:
+                break
 
-        # Сортировка по релевантности
-        ranked_news.sort(key=lambda x: x[0], reverse=True)
-
-        # Возвращаем только новости
-        return [news for _, news in ranked_news[:limit]]
-
-    def get_news_by_ticker(self, ticker: str, limit: int = 10) -> List[Dict]:
-        """Получение новостей по конкретному тикеру"""
-        all_news = self.get_last_news(limit=100)
-
-        ticker_news = []
-        ticker_upper = ticker.upper()
-
-        for news in all_news:
-            title = news['title'].upper()
-
-            # Поиск упоминания тикера
-            if (ticker_upper in title or
-                    f" {ticker_upper} " in f" {title} " or  # Отдельное слово
-                    ticker_upper in news.get('summary', '').upper()):
-
-                ticker_news.append(news)
-
-                if len(ticker_news) >= limit:
-                    break
-
-        return ticker_news
+        return filtered
 
     def get_news_summary(self) -> Dict:
-        """Получение сводки по новостям"""
-        all_news = self.get_last_news(limit=50)
+        """Быстрая сводка по новостям"""
+        all_news = self.get_last_news(limit=100)
 
-        summary = {
-            'total_news': len(all_news),
-            'last_fetch': datetime.fromtimestamp(self.last_fetch_time).isoformat()
-            if self.last_fetch_time else None,
-            'sources_active': len([s for s in self.config.get('sources', [])
-                                   if s.get('enabled', True)]),
-            'categories': {},
-            'recent_tickers': set()
-        }
-
-        # Анализ категорий
-        for news in all_news:
-            category = news.get('category', 'unknown')
-            summary['categories'][category] = summary['categories'].get(category, 0) + 1
-
-        # Поиск упоминаний тикеров (простейшая реализация)
-        common_tickers = ['SBER', 'GAZP', 'LKOH', 'ROSN', 'VTBR', 'GMKN', 'NVTK', 'YNDX']
-
-        for news in all_news[:20]:  # Только первые 20
-            title = news['title'].upper()
-            for ticker in common_tickers:
-                if ticker in title:
-                    summary['recent_tickers'].add(ticker)
-
-        summary['recent_tickers'] = list(summary['recent_tickers'])
-
-        return summary
-
-    def get_market_news_summary(self, limit: int = 100) -> Dict:
-        """Сводка рыночных новостей для анализа настроения"""
-        all_news = self.get_last_news(limit=limit)
-
-        # Группировка по категориям
-        categories = {}
-        sources = {}
+        # Группировка
+        categories = defaultdict(int)
+        sources = defaultdict(int)
 
         for news in all_news:
-            # Категории
-            category = news.get('category', 'unknown')
-            categories[category] = categories.get(category, 0) + 1
+            categories[news.get('category', 'unknown')] += 1
+            sources[news.get('source', 'unknown')] += 1
 
-            # Источники
-            source = news.get('source', 'unknown')
-            sources[source] = sources.get(source, 0) + 1
+        # Топ тикеров из новостей
+        ticker_mentions = defaultdict(int)
+        try:
+            with open('config/tickers.json', 'r', encoding='utf-8') as f:
+                tickers_config = json.load(f)
+                tickers = [item['ticker'] for item in tickers_config.get('watchlist', [])]
 
-        # Поиск ключевых тем
-        import collections
-        word_counter = collections.Counter()
+                for news in all_news[:50]:
+                    title = news['title'].upper()
+                    for ticker in tickers:
+                        if ticker in title:
+                            ticker_mentions[ticker] += 1
+        except:
+            pass
 
-        for news in all_news[:50]:  # Только первые 50
-            title_words = news['title'].lower().split()
-            for word in title_words:
-                if len(word) > 3:  # Игнорируем короткие слова
-                    word_counter[word] += 1
-
-        top_themes = word_counter.most_common(10)
+        top_tickers = sorted(ticker_mentions.items(), key=lambda x: x[1], reverse=True)[:10]
 
         return {
             'total_news': len(all_news),
-            'categories': dict(sorted(categories.items(), key=lambda x: x[1], reverse=True)),
-            'sources': dict(sorted(sources.items(), key=lambda x: x[1], reverse=True)),
-            'top_themes': top_themes,
-            'last_update': datetime.now().isoformat()
+            'last_fetch': datetime.fromtimestamp(self.last_fetch_time).isoformat() if self.last_fetch_time else None,
+            'sources_active': len(sources),
+            'categories': dict(categories),
+            'sources': dict(sources),
+            'top_tickers': top_tickers,
+            'stats': self.stats,
+            'cache_size': len(self.news_cache)
         }
 
     def force_refresh(self):
-        """Принудительное обновление новостей"""
-        self.last_fetch_time = 0  # Сбрасываем время последнего сбора
+        """Принудительное обновление"""
+        self.last_fetch_time = 0
+        self.news_cache = []
+        self.stats['cache_hits'] = 0
+        self.stats['cache_misses'] = 0
         logger.info("Принудительное обновление новостей")

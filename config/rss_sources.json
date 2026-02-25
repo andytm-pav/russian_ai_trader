@@ -5,89 +5,162 @@
             "url": "https://www.bfm.ru/news.rss?rubric=19",
             "category": "market",
             "priority": 10,
-            "enabled": true
+            "enabled": true,
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "utf-8"
         },
         {
             "name": "РБК Финансы",
             "url": "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
             "category": "finance",
             "priority": 9,
-            "enabled": true
+            "enabled": true,
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "windows-1251"
         },
         {
             "name": "Интерфакс Финансы",
             "url": "https://www.interfax.ru/rss",
             "category": "finance",
             "priority": 8,
-            "enabled": true
+            "enabled": true,
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "utf-8"
         },
         {
             "name": "Ведомости Финансы",
             "url": "https://www.vedomosti.ru/rss/rubric/finance",
             "category": "finance",
             "priority": 7,
-            "enabled": true
+            "enabled": true,
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "utf-8",
+            "force_utf8": true
         },
         {
             "name": "Коммерсантъ Бизнес",
             "url": "https://www.kommersant.ru/rss/section-business.xml",
             "category": "business",
             "priority": 6,
-            "enabled": true
+            "enabled": true,
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "windows-1251"
         },
         {
             "name": "ЦБ РФ Пресс-релизы",
             "url": "https://www.cbr.ru/rss/eventrss",
             "category": "regulatory",
             "priority": 10,
-            "enabled": true
+            "enabled": true,
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "utf-8"
         },
         {
             "name": "Finam Новости",
             "url": "https://www.finam.ru/analysis/conews/rsspoint/",
             "category": "analysis",
             "priority": 5,
-            "enabled": true
+            "enabled": true,
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "windows-1251",
+            "force_utf8": true
         },
         {
             "url": "https://www.rg.ru/xml/index.xml",
-            "name": "Р_Г",
+            "name": "Российская Газета",
+            "category": "general",
+            "priority": 4,
             "enabled": true,
-            "update_interval": 300
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "utf-8"
         },
         {
             "url": "https://www.kommersant.ru/RSS/money.xml",
             "name": "Коммерсантъ Деньги",
+            "category": "finance",
+            "priority": 6,
             "enabled": true,
-            "update_interval": 300
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "windows-1251"
         },
         {
             "url": "https://www.kommersant.ru/rss/section-economics.xml",
             "name": "Коммерсантъ Экономика",
+            "category": "economics",
+            "priority": 6,
             "enabled": true,
-            "update_interval": 300
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "windows-1251"
         },
         {
             "url": "https://www.kommersant.ru/RSS/section-market.xml",
             "name": "Коммерсантъ Потребительский рынок",
+            "category": "market",
+            "priority": 6,
             "enabled": true,
-            "update_interval": 300
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "windows-1251"
         },
         {
             "url": "https://russian.rt.com/rss",
-            "name": "Новости RT на русском",
+            "name": "RT на русском",
+            "category": "general",
+            "priority": 3,
             "enabled": true,
-            "update_interval": 300
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "utf-8"
         },
         {
             "url": "https://tass.ru/rss/v2.xml",
-            "name": "ИНФОРМАЦИОННОЕ АГЕНТСТВО РОССИИ ТАСС",
+            "name": "ТАСС",
+            "category": "general",
+            "priority": 3,
             "enabled": true,
-            "update_interval": 300
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "utf-8"
+        },
+        {
+            "url": "https://ru.investing.com/rss/news_12.rss",
+            "name": "Investing.com",
+            "category": "finance",
+            "priority": 5,
+            "enabled": true,
+            "type": "rss",
+            "max_items": 20,
+            "update_interval": 300,
+            "encoding": "utf-8"
         }
     ],
+
     "update_interval_minutes": 5,
     "max_news_per_source": 20,
+
     "keywords_filter": {
         "include": [
             "акци",
@@ -99,40 +172,101 @@
             "прогноз",
             "рекомендац",
             "купить",
-            "продать"
+            "продать",
+            "ipo",
+            "размещение",
+            "сделка",
+            "слияние",
+            "поглощение",
+            "инвестиции",
+            "капитализация",
+            "котировки",
+            "индекс",
+            "биржа"
         ],
         "exclude": [
             "крипто",
             "криптовалют",
-            "биткоин"
+            "биткоин",
+            "эфириум",
+            "blockchain",
+            "блокчейн",
+            "майнинг"
         ]
     },
+
     "sentiment_dictionary": {
         "positive": [
-            "рост",
-            "увеличение",
-            "прибыль",
-            "дивиденд",
-            "выше",
-            "рекомендуют",
-            "покупать",
-            "переоцен"
+            "рост", "увеличение", "прибыль", "дивиденд", "выше", "рекомендуют",
+            "покупать", "переоцен", "повышение", "укрепление", "восстановление",
+            "рекорд", "максимум", "ралли", "оптимизм", "позитив", "бычий",
+            "лонг", "прорыв", "уверенность", "вливания", "поддержка"
         ],
         "negative": [
-            "падение",
-            "снижение",
-            "убыток",
-            "сокращение",
-            "ниже",
-            "продавать",
-            "недооцен"
+            "падение", "снижение", "убыток", "сокращение", "ниже", "продавать",
+            "недооцен", "обвал", "кризис", "рецессия", "дефолт", "банкротство",
+            "распродажа", "паника", "шок", "санкции", "медвежий", "шорт",
+            "просадка", "коррекция", "риск", "угроза"
         ],
         "neutral": [
-            "отчет",
-            "объявлен",
-            "результат",
-            "заседание",
-            "конференц"
+            "отчет", "объявлен", "результат", "заседание", "конференц",
+            "публикация", "сообщение", "пресс-релиз", "информация", "данные",
+            "статистика", "показатели", "цифры", "анализ", "исследование"
         ]
+    },
+
+    "analysis": {
+        "min_word_length": 4,
+        "stop_words": [
+            "для", "что", "это", "как", "на", "в", "по", "с", "из", "у", "к", "о", "от",
+            "при", "без", "над", "под", "за", "до", "про", "через", "после", "перед",
+            "или", "но", "а", "да", "и", "же", "бы", "ли", "если", "чтобы", "также",
+            "еще", "уже", "будет", "был", "была", "были", "есть", "все", "этот", "эта",
+            "это", "эти", "который", "которая", "которые", "такой", "такая", "такие"
+        ],
+        "max_news_for_analysis": 50,
+        "top_themes_count": 10
+    },
+
+    "optimization": {
+        "max_workers": 5,
+        "cache_ttl_seconds": 300,
+        "sentiment_cache_ttl": 3600,
+        "use_ml_model": true,
+        "sentiment_model": "mxlcw/rubert-tiny2-russian-financial-sentiment",
+        "batch_size": 32,
+        "use_ahocorasick": true,
+        "fallback_to_lexicon": true,
+        "max_text_length": 512,
+        "enable_stats": true
+    },
+
+    "filters": {
+        "max_age_days": 3,
+        "min_priority": 1,
+        "categories": ["finance", "market", "economics", "analysis", "regulatory"],
+        "languages": ["ru"]
+    },
+
+    "tickers": {
+        "auto_detect": true,
+        "case_sensitive": false,
+        "whole_word_only": true,
+        "min_mentions_for_trend": 3
+    },
+
+    "cache": {
+        "type": "memory",
+        "max_size": 1000,
+        "cleanup_interval": 600,
+        "persist_to_disk": false,
+        "persist_path": "data/news_cache.json"
+    },
+
+    "logging": {
+        "level": "INFO",
+        "log_stats_interval": 3600,
+        "log_slow_fetches": true,
+        "slow_fetch_threshold": 5.0
     }
 }

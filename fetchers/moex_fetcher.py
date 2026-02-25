@@ -134,7 +134,7 @@ class MoexFetcher:
         return results
 
     def get_all_securities(self) -> Dict[str, Dict]:
-        """Получение списка всех ликвидных бумаг - исправленная оптимизированная версия"""
+        """Получение списка всех ликвидных бумаг"""
         cache_key = "all_securities"
         cached = self._get_from_cache(cache_key)
 
@@ -145,15 +145,12 @@ class MoexFetcher:
         try:
             # 1. Получаем список бумаг (securities)
             url = f"{self.base_url}/engines/stock/markets/shares/boards/TQBR/securities.json"
-            logger.debug(f"Загружен securities.json")
             params = {
                 'iss.meta': 'off',
                 'iss.only': 'securities',
                 'securities.columns': 'SECID,SHORTNAME,SECNAME,LOTSIZE,MINSTEP,PREVPRICE',
                 'limit': 100
             }
-
-            logger.debug(f"Запрос списка бумаг...")
 
             response = self.session.get(url, params=params, timeout=15)
             response.raise_for_status()
@@ -166,7 +163,6 @@ class MoexFetcher:
             # Обрабатываем список бумаг
             columns = data['securities']['columns']
             rows = data['securities']['data']
-            logger.debug(f"Получено {len(rows)} строк с бумагами")
 
             tickers = []
             sec_dict = {}
@@ -176,11 +172,9 @@ class MoexFetcher:
                     ticker = row[columns.index('SECID')]
                     name = row[columns.index('SHORTNAME')]
 
-                    # ✅ ДОБАВЛЯЕМ: Получение лотности и шага цены
                     lot_size = row[columns.index('LOTSIZE')] if 'LOTSIZE' in columns else 1
                     min_step = row[columns.index('MINSTEP')] if 'MINSTEP' in columns else 0.01
 
-                    # Преобразование типов
                     try:
                         lot_size = int(lot_size)
                     except:
@@ -191,11 +185,6 @@ class MoexFetcher:
                     except:
                         min_step = 0.01
 
-
-
-
-
-                    # Безопасное получение PREVPRICE
                     prev_price = 0
                     if 'PREVPRICE' in columns:
                         idx = columns.index('PREVPRICE')
@@ -210,32 +199,30 @@ class MoexFetcher:
                     sec_dict[ticker] = {
                         'name': name,
                         'full_name': row[columns.index('SECNAME')] if 'SECNAME' in columns else name,
-                        'lot_size': lot_size,  # ✅ ДОБАВЛЯЕМ
-                        'min_step': min_step,  # ✅ ДОБАВЛЯЕМ
+                        'lot_size': lot_size,
+                        'min_step': min_step,
                         'prev_price': prev_price
                     }
 
                 except (IndexError, ValueError) as e:
-                    logger.debug(f"Ошибка обработки строки для {ticker}: {e}")
+                    logger.debug(f"Ошибка обработки строки: {e}")
                     continue
 
-            # 2. Получаем текущие цены batch-запросом (marketdata)
-            logger.debug(f"Запрашиваем цены для {len(tickers)} тикеров...")
+            # 2. Получаем текущие цены и метрики batch-запросом
+            logger.debug(f"Запрашиваем данные для {len(tickers)} тикеров...")
 
-            # Разбиваем на батчи по 50
-            all_prices = {}
+            all_data = {}
             batch_size = 50
 
             for i in range(0, len(tickers), batch_size):
                 batch = tickers[i:i + batch_size]
-                logger.debug(f"Батч {i // batch_size + 1}: {len(batch)} тикеров")
 
                 url = f"{self.base_url}/engines/stock/markets/shares/boards/TQBR/securities.json"
                 params = {
                     'securities': ','.join(batch),
                     'iss.meta': 'off',
                     'iss.only': 'marketdata',
-                    'marketdata.columns': 'SECID,LAST',
+                    'marketdata.columns': 'SECID,LAST,VALTODAY,VOLTODAY,SPREAD,ISSUECAPITALIZATION',
                     'limit': len(batch)
                 }
 
@@ -250,42 +237,88 @@ class MoexFetcher:
                             try:
                                 ticker = md_row[md_columns.index('SECID')]
 
-                                # Безопасное получение LAST цены
-                                last_price = 0
+                                # Получаем все необходимые данные
+                                data_row = {}
+
+                                # LAST цена
                                 if 'LAST' in md_columns:
                                     idx = md_columns.index('LAST')
                                     if idx < len(md_row) and md_row[idx] is not None:
                                         try:
-                                            last_price = float(md_row[idx])
+                                            data_row['price'] = float(md_row[idx])
                                         except (ValueError, TypeError):
-                                            last_price = 0
+                                            data_row['price'] = 0.0
 
-                                all_prices[ticker] = last_price
+                                # VALTODAY (объем в рублях)
+                                if 'VALTODAY' in md_columns:
+                                    idx = md_columns.index('VALTODAY')
+                                    if idx < len(md_row) and md_row[idx] is not None:
+                                        try:
+                                            data_row['volume'] = float(md_row[idx])
+                                        except (ValueError, TypeError):
+                                            data_row['volume'] = 0.0
+
+                                # VOLTODAY (объем в штуках)
+                                if 'VOLTODAY' in md_columns:
+                                    idx = md_columns.index('VOLTODAY')
+                                    if idx < len(md_row) and md_row[idx] is not None:
+                                        try:
+                                            data_row['volume_lots'] = float(md_row[idx])
+                                        except (ValueError, TypeError):
+                                            data_row['volume_lots'] = 0.0
+
+                                # SPREAD
+                                if 'SPREAD' in md_columns:
+                                    idx = md_columns.index('SPREAD')
+                                    if idx < len(md_row) and md_row[idx] is not None:
+                                        try:
+                                            data_row['spread'] = float(md_row[idx])
+                                        except (ValueError, TypeError):
+                                            data_row['spread'] = 0.0
+
+                                # ISSUECAPITALIZATION
+                                if 'ISSUECAPITALIZATION' in md_columns:
+                                    idx = md_columns.index('ISSUECAPITALIZATION')
+                                    if idx < len(md_row) and md_row[idx] is not None:
+                                        try:
+                                            data_row['market_cap'] = float(md_row[idx])
+                                        except (ValueError, TypeError):
+                                            data_row['market_cap'] = 0.0
+
+                                all_data[ticker] = data_row
+
                             except (IndexError, ValueError) as e:
-                                logger.debug(f"Ошибка обработки marketdata для батча: {e}")
+                                logger.debug(f"Ошибка обработки marketdata: {e}")
                                 continue
                 except Exception as e:
                     logger.warning(f"Ошибка batch-запроса для {len(batch)} тикеров: {e}")
-                    # Fallback: получаем цены по одному для этого батча
+                    # Fallback
                     for ticker in batch:
-                        try:
-                            price = self.get_price(ticker)
-                            all_prices[ticker] = price if price else 0
-                        except:
-                            all_prices[ticker] = 0
+                        price = self.get_price(ticker)
+                        all_data[ticker] = {'price': price if price else 0.0}
 
             # 3. Формируем итоговый результат
             securities = {}
             for ticker in tickers:
                 if ticker in sec_dict:
                     base_data = sec_dict[ticker]
-                    current_price = all_prices.get(ticker, 0.0)
+                    market_data = all_data.get(ticker, {})
+
+                    current_price = market_data.get('price', 0.0)
                     prev_price = base_data['prev_price']
 
                     # Расчет момента
                     momentum = 0.0
                     if prev_price and prev_price > 0 and current_price > 0:
                         momentum = ((current_price / prev_price) - 1) * 100
+
+                    # Расчет ликвидности (на основе объема)
+                    volume = market_data.get('volume', 0.0)
+                    liquidity = 0.0
+                    if volume > 0:
+                        # Нормализуем ликвидность от 0 до 1 (логарифмическая шкала)
+                        # Предполагаем, что объем > 1 млрд руб = высокая ликвидность
+                        liquidity = min(1.0, volume / 1_000_000_000)
 
                     securities[ticker] = {
                         'name': base_data['name'],
@@ -294,20 +327,18 @@ class MoexFetcher:
                         'min_step': base_data['min_step'],
                         'price': current_price,
                         'prev_price': prev_price,
-                        'volume': 0,  # Можно добавить отдельным запросом VALTODAY
+                        'volume': volume,  # ✅ РЕАЛЬНЫЕ ДАННЫЕ
                         'change': current_price - prev_price if prev_price else 0,
                         'momentum': momentum,
-                        'liquidity': 0.5,
-                        'spread': 0.01,
-                        'market_cap': 0,
+                        'liquidity': liquidity,  # ✅ РАССЧИТАНО ИЗ РЕАЛЬНЫХ ДАННЫХ
+                        'spread': market_data.get('spread', 0.0),  # ✅ РЕАЛЬНЫЕ ДАННЫЕ
+                        'market_cap': market_data.get('market_cap', 0.0),  # ✅ РЕАЛЬНЫЕ ДАННЫЕ
                         'update_time': datetime.now().isoformat()
                     }
 
-            logger.info(f"Загружено {len(securities)} бумаг (использованы batch-запросы)")
+            logger.info(f"Загружено {len(securities)} бумаг с реальными метриками")
 
-            # Сохранение в кэш
             self._save_to_cache(cache_key, securities)
-
             return securities
 
         except requests.exceptions.RequestException as e:
@@ -543,16 +574,34 @@ class MoexFetcher:
         return prices
 
     def _calculate_market_mood(self, indices: Dict[str, float]) -> float:
-        """Расчет общего настроения рынка"""
+        """Расчет общего настроения рынка на основе индексов"""
         try:
             if not indices:
                 return 0.0
 
-            # Простая эвристика: считаем процент положительных изменений
-            # В реальном приложении нужно сравнивать с предыдущими значениями
-            return 0.0  # По умолчанию нейтральное
+            # Получаем IMOEX (основной индекс)
+            imoex = indices.get('IMOEX', 0)
+            if imoex <= 0:
+                return 0.0
 
-        except:
+            # Сравниваем с предыдущим значением (можно получать из кэша)
+            cache_key = "prev_imoex"
+            prev_imoex = self._get_from_cache(cache_key)
+
+            if prev_imoex and prev_imoex > 0:
+                change = ((imoex / prev_imoex) - 1) * 100
+                # Mood от -1 до 1 на основе изменения
+                mood = max(-1.0, min(1.0, change / 5.0))  # +/-5% = mood +/-1
+            else:
+                mood = 0.0
+
+            # Сохраняем текущее значение
+            self._save_to_cache(cache_key, imoex)
+
+            return mood
+
+        except Exception as e:
+            logger.error(f"Ошибка расчета market mood: {e}")
             return 0.0
 
     def get_ticker_info(self, ticker: str) -> Optional[Dict]:

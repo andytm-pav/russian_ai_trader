@@ -1,0 +1,143 @@
+{
+  "timestamp": "2026-02-20T16:00:00.736893",
+  "cash": 32.590930000007624,
+  "total_exposure": 10698.07,
+  "liquidity_ratio": 0.0030464308048094306,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 22,
+  "positions": [
+    {
+      "ticker": "LPSB",
+      "value": 74.6,
+      "qty": 1,
+      "price": 74.6
+    },
+    {
+      "ticker": "HYDR",
+      "value": 0.0,
+      "qty": 0,
+      "price": 0.4319
+    },
+    {
+      "ticker": "ENPG",
+      "value": 973.8,
+      "qty": 2,
+      "price": 486.9
+    },
+    {
+      "ticker": "KZOS",
+      "value": 680.0,
+      "qty": 10,
+      "price": 68.0
+    },
+    {
+      "ticker": "FIXR",
+      "value": 564.1,
+      "qty": 1000,
+      "price": 0.5641
+    },
+    {
+      "ticker": "IVAT",
+      "value": 160.15,
+      "qty": 1,
+      "price": 160.15
+    },
+    {
+      "ticker": "IRAO",
+      "value": 332.2,
+      "qty": 100,
+      "price": 3.322
+    },
+    {
+      "ticker": "CBOM",
+      "value": 611.0,
+      "qty": 100,
+      "price": 6.11
+    },
+    {
+      "ticker": "ELFV",
+      "value": 503.6,
+      "qty": 1000,
+      "price": 0.5036
+    },
+    {
+      "ticker": "AQUA",
+      "value": 487.8,
+      "qty": 1,
+      "price": 487.8
+    },
+    {
+      "ticker": "GLRX",
+      "value": 62.88,
+      "qty": 1,
+      "price": 62.88
+    },
+    {
+      "ticker": "BELU",
+      "value": 435.0,
+      "qty": 1,
+      "price": 435.0
+    },
+    {
+      "ticker": "CHGZ",
+      "value": 1600.0,
+      "qty": 20,
+      "price": 80.0
+    },
+    {
+      "ticker": "APTK",
+      "value": 256.74,
+      "qty": 30,
+      "price": 8.558
+    },
+    {
+      "ticker": "DELI",
+      "value": 211.0,
+      "qty": 2,
+      "price": 105.5
+    },
+    {
+      "ticker": "ELMT",
+      "value": 131.55,
+      "qty": 1000,
+      "price": 0.13155
+    },
+    {
+      "ticker": "ASTR",
+      "value": 261.15,
+      "qty": 1,
+      "price": 261.15
+    },
+    {
+      "ticker": "DATA",
+      "value": 109.36,
+      "qty": 1,
+      "price": 109.36
+    },
+    {
+      "ticker": "BRZL",
+      "value": 1748.0,
+      "qty": 1,
+      "price": 1748.0
+    },
+    {
+      "ticker": "CHMF",
+      "value": 960.4,
+      "qty": 1,
+      "price": 960.4
+    },
+    {
+      "ticker": "CARM",
+      "value": 450.29999999999995,
+      "qty": 300,
+      "price": 1.501
+    },
+    {
+      "ticker": "ETLN",
+      "value": 84.44,
+      "qty": 2,
+      "price": 42.22
+    }
+  ]
+}
