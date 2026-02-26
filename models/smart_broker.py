@@ -17,11 +17,13 @@ from fetchers.moex_fetcher import MoexFetcher
 from fetchers.news_fetcher import OptimizedNewsFetcher  # ✅ ИСПРАВЛЕНО
 from utils.portfolio_manager import PortfolioManager
 from utils.logger import get_logger
+from models.trader_model import NEWS_ENCODED_DIM
 
 from models.trader_model import trader_model_instance
 from utils.lot_validator import LotValidator
 
 logger = None
+# NEWS_ENCODED_DIM = 128
 
 class SmartPortfolioBroker:
     """Умный брокер с интеграцией всех торговых ядер"""
@@ -374,7 +376,11 @@ class SmartPortfolioBroker:
     def _record_rl_experience(self, ticker: str, state: torch.Tensor,
                               action: int, strategy: str, price: float,
                               quantity: int, sentiment_data: Dict = None):
-        """Запись опыта с маркировкой важности"""
+
+        print(f"\n📝 _record_rl_experience for {ticker}")
+        print(f"   state.shape: {state.shape}, dtype: {state.dtype}")
+        print(f"   action: {action}, strategy: {strategy}")
+
         experience = {
             'ticker': ticker,
             'start_state': state.cpu(),
@@ -388,8 +394,8 @@ class SmartPortfolioBroker:
             'is_priority': self._is_priority_experience(sentiment_data)
         }
         self.pending_experiences.append(experience)
+        print(f"   ✅ Добавлено в pending_experiences: {len(self.pending_experiences)}")
 
-        # Также отправляем в trainer если это приоритетный опыт
         if hasattr(self, 'trainer') and experience['is_priority']:
             self.trainer.add_priority_experience(experience)
 
@@ -420,26 +426,58 @@ class SmartPortfolioBroker:
         return is_priority
 
     def _complete_rl_experience(self, ticker: str, exit_price: float):
-        """Завершение RL-опыта с МАРКИРОВКОЙ КРИТИЧЕСКИХ ОШИБОК"""
         logger.debug(f"[DEBUG] Завершение RL опыта для {ticker} @ {exit_price}")
+
+        print(f"\n🔍🔍🔍 _complete_rl_experience for {ticker}")
+        print(f"   pending_experiences before: {len(self.pending_experiences)}")
+        for i, exp in enumerate(self.pending_experiences):
+            print(f"   exp {i}: ticker={exp['ticker']}, completed={exp['completed']}")
+
+        found = False
+        for exp in self.pending_experiences:
+            if exp['ticker'] == ticker and not exp['completed']:
+                found = True
+                print(f"   ✅ НАЙДЕН ОПЫТ!")
+                print(f"   exp['start_state'].shape: {exp['start_state'].shape}")
+                print(f"   exp['strategy']: {exp['strategy']}")
+
+        # -----------------------------------------------------------------------------
 
         for exp in self.pending_experiences:
             if exp['ticker'] == ticker and not exp['completed']:
+                # 1. Базовые расчеты
                 pnl = (exit_price - exp['entry_price']) * exp['quantity']
                 hold_time = (time.time() - exp['entry_time']) / 3600
 
-                # Создаем следующее состояние
-                next_state = self._create_next_state(ticker, exit_price)
+                # 2. Создаем следующее базовое состояние (150)
+                next_base_state = self._create_next_state(ticker, exit_price)
 
-                # Нормализованный reward
+                # 3. Получаем параметры стратегии из опыта
+                strategy_params = self.model.strategies[exp['strategy']]
+
+                # 4. 🔥 ПРЕОБРАЗУЕМ ОБА СОСТОЯНИЯ В 156
+                # Начальное состояние (было сохранено как 150)
+                start_base_state = exp['start_state'].to(self.model.device)
+                full_start_state = self.model._create_strategy_state(
+                    start_base_state,
+                    strategy_params
+                )
+
+                # Следующее состояние (тоже преобразуем в 156)
+                full_next_state = self.model._create_strategy_state(
+                    next_base_state,
+                    strategy_params
+                )
+
+                # 5. Расчет награды
                 reward = self._calculate_reward(pnl, hold_time, exp['strategy'])
 
-                # 🔥 РАССЧИТЫВАЕМ TD-ERROR ДЛЯ ПРИОРИТЕТА
-                state_value = self.model.get_state_value(exp['start_state'].to(self.model.device))
-                next_state_value = self.model.get_state_value(next_state)
+                # 6. 🔥 РАССЧИТЫВАЕМ TD-ERROR ДЛЯ ПРИОРИТЕТА (используем полные состояния)
+                state_value = self.model.get_state_value(full_start_state)
+                next_state_value = self.model.get_state_value(full_next_state)
                 td_error = reward + self.model.gamma * next_state_value - state_value
 
-                # 🔥 ОПРЕДЕЛЯЕМ КРИТИЧЕСКИЕ ОШИБКИ
+                # 7. 🔥 ОПРЕДЕЛЯЕМ КРИТИЧЕСКИЕ ОШИБКИ
                 is_critical = False
                 critical_reason = ""
 
@@ -459,32 +497,36 @@ class SmartPortfolioBroker:
                     is_critical = True
                     critical_reason = "stuck_position"
 
-                # Сохраняем опыт с TD-error
+                # 8. Сохраняем опыт с TD-error (оба состояния 156)
+
+                print(f"   🔥 ВЫЗЫВАЕМ remember_experience!")
+
                 self.model.remember_experience(
-                    state=exp['start_state'].to(self.model.device),
+                    state=full_start_state,  # ✅ 156
                     action=exp['action'],
                     reward=reward,
-                    next_state=next_state,
+                    next_state=full_next_state,  # ✅ 156
                     done=True,
                     news_features=None,
-                    td_error=td_error  # ✅ ПЕРЕДАЕМ TD-ERROR
+                    td_error=td_error
                 )
+                print(f"   ✅ remember_experience ВЫЗВАН")
 
-                # 🔥 ДЛЯ КРИТИЧЕСКИХ ОШИБОК - ДУБЛИРУЕМ С ВЫСОКИМ ПРИОРИТЕТОМ
+                # 9. 🔥 ДЛЯ КРИТИЧЕСКИХ ОШИБОК - ДУБЛИРУЕМ С ВЫСОКИМ ПРИОРИТЕТОМ
                 if is_critical:
                     # Искусственно увеличиваем TD-error для приоритета
                     self.model.remember_experience(
-                        state=exp['start_state'].to(self.model.device),
+                        state=full_start_state,  # ✅ 156
                         action=exp['action'],
                         reward=reward * 2,  # Усиливаем награду для обучения
-                        next_state=next_state,
+                        next_state=full_next_state,  # ✅ 156
                         done=True,
                         news_features=None,
                         td_error=td_error * 3  # 🔥 УСИЛЕННЫЙ ПРИОРИТЕТ
                     )
                     logger.warning(f"🔥 КРИТИЧЕСКАЯ ОШИБКА: {ticker} - {critical_reason} (PnL: {pnl:.2f})")
 
-                # Запись в модель для статистики
+                # 10. Запись в модель для статистики
                 if 'sentiment_data' in exp:
                     market_sentiment = self._get_market_sentiment()
 
@@ -509,53 +551,122 @@ class SmartPortfolioBroker:
                     )
 
                 exp['completed'] = True
+                print(f"   ✅ Опыт завершен")
                 logger.debug(f"RL опыт завершен: {ticker}, reward={reward:.3f}, pnl={pnl:.2f}")
                 break
 
+        if not found:
+            print(f"   ❌ ОПЫТ ДЛЯ {ticker} НЕ НАЙДЕН!")
+            # ✅ ВАЖНО: создаем опыт "на лету" для позиций из файла
+            if ticker in self.portfolio.positions:
+                print(f"   ⚠️ Создаем опыт на лету для {ticker} (из портфеля)")
+                pos = self.portfolio.positions[ticker]
+
+                # Создаем базовое состояние (150)
+                dummy_state = self._create_initial_state(
+                    ticker,
+                    pos['avg_price'],
+                    {'lot_size': pos.get('lot_size', 1)}
+                )
+                print(f"   dummy_state.shape: {dummy_state.shape}")
+
+                exp = {
+                    'ticker': ticker,
+                    'start_state': dummy_state.cpu(),
+                    'action': 2,  # SELL
+                    'strategy': pos.get('strategy', 'balanced'),
+                    'entry_price': pos['avg_price'],
+                    'entry_time': pos.get('buy_time', time.time() - 3600),
+                    'quantity': pos['qty'],
+                    'sentiment_data': {'sentiment': 0, 'news_count': 0},
+                    'completed': False
+                }
+                self.pending_experiences.append(exp)
+                print(f"   ✅ Создан фиктивный опыт, теперь {len(self.pending_experiences)} опытов")
+                # Повторяем вызов
+                self._complete_rl_experience(ticker, exit_price)
+                return
+
+        print(f"   pending_experiences after: {len(self.pending_experiences)}")
         self.pending_experiences = [exp for exp in self.pending_experiences if not exp['completed']]
 
     def _calculate_reward(self, pnl: float, hold_time: float, strategy: str) -> float:
-        """Расчет награды ОПТИМИЗИРОВАННЫЙ ДЛЯ МАКСИМАЛЬНОЙ ПРИБЫЛИ"""
 
-        # ✅ ИСПОЛЬЗУЕМ КОНФИГИ
+        global logger
+
+        """
+        ЕДИНАЯ функция награды, объединяющая оба подхода
+        """
+        global logger
+        if logger is None:
+            from utils.logger import get_logger
+            logger = get_logger('SMART_BROKER')
+
+        # 1. Получаем параметры из конфига
         reward_calc = self.rl_config.get("reward_calculation", {})
-
-        # 1. БАЗОВАЯ НАГРАДА ЗА ПРИБЫЛЬ
         base_reward_multiplier = reward_calc.get("base_reward_multiplier", 100.0)
-        base_reward = pnl * base_reward_multiplier
+        speed_bonus_multiplier = reward_calc.get("speed_bonus_multiplier", 50.0)
+        time_penalty_multiplier = reward_calc.get("time_penalty_multiplier", 200.0)
 
-        # 2. БОНУС ЗА БЫСТРУЮ ПРИБЫЛЬ
+        # 2. Параметры стратегии
         strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
         target_time = strategy_params.get('target_hold_time_hours', 6)
 
-        speed_bonus_multiplier = reward_calc.get("speed_bonus_multiplier", 50.0)
+        # 3. БАЗОВАЯ НАГРАДА ЗА ПРИБЫЛЬ
+        base_reward = pnl * base_reward_multiplier
 
+        # 4. БОНУС/ШТРАФ ЗА СКОРОСТЬ (объединенная логика)
         if pnl > 0:
-            speed_bonus = max(0, (target_time - hold_time) / target_time) * speed_bonus_multiplier
+            # Прибыль: чем быстрее, тем лучше (НО не скальпинг)
+            if hold_time < 0.25:  # меньше 15 минут - это скальпинг
+                speed_component = -abs(pnl) * 2  # штраф за скальпинг
+                logger.debug(f"⚠️ Штраф за скальпинг: {speed_component:.2f}")
+            else:
+                # Нормальная быстрая прибыль - бонус
+                speed_ratio = max(0, (target_time - hold_time) / target_time)
+                speed_component = speed_ratio * speed_bonus_multiplier
+                logger.debug(f"🏆 Бонус за быструю прибыль: {speed_component:.2f}")
         else:
-            speed_bonus = min(0, (target_time - hold_time) / target_time) * speed_bonus_multiplier * 2
+            # Убыток: чем быстрее, тем лучше (меньше убыток)
+            if hold_time < 0.25:
+                # Быстрый убыток - меньший штраф
+                speed_component = abs(pnl) * speed_bonus_multiplier * 0.5
+                logger.debug(f"✅ Быстрый убыток (меньший штраф): {speed_component:.2f}")
+            else:
+                # Долгий убыток - большой штраф
+                speed_component = -abs(pnl) * time_penalty_multiplier
+                logger.debug(f"⚠️ Штраф за долгий убыток: {speed_component:.2f}")
 
-        # 3. ШТРАФ ЗА ПРОСИЖИВАНИЕ В УБЫТКАХ
-        time_penalty_multiplier = reward_calc.get("time_penalty_multiplier", 200.0)
+        # 5. ШТРАФ ЗА КОНЦЕНТРАЦИЮ
+        concentration_penalty = 0
+        if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'positions'):
+            positions_count = len(self.portfolio.positions)
+            if positions_count > 5:
+                concentration_penalty = -10 * (positions_count - 5)
+                logger.debug(f"⚠️ Штраф за концентрацию ({positions_count} позиций): {concentration_penalty:.2f}")
 
-        if pnl < 0 and hold_time > target_time * 1.5:
-            time_penalty = -abs(pnl) * time_penalty_multiplier
-        else:
-            time_penalty = 0.0
+        # 6. БОНУС ЗА ТЕРПЕНИЕ (для долгих прибыльных)
+        patience_bonus = 0
+        if pnl > 0 and hold_time > target_time * 2:
+            patience_bonus = pnl * 30
+            logger.debug(f"🏆 Бонус за терпение: {patience_bonus:.2f}")
 
-        # 4. СТРАТЕГИЧЕСКИЙ МНОЖИТЕЛЬ
-        strategy_multiplier = strategy_params.get('risk_multiplier', 1.0)
+        # 7. Объединяем все компоненты
+        pre_multiplier_reward = (base_reward + speed_component +
+                                 concentration_penalty + patience_bonus)
 
-        final_reward = (base_reward + speed_bonus + time_penalty) * strategy_multiplier
+        # 8. Применяем стратегический множитель
+        final_reward = pre_multiplier_reward * strategy_params.get('risk_multiplier', 1.0)
 
-        # 5. Лимиты из конфига
+        # 9. Лимиты из конфига
         max_reward = self.max_reward
         min_reward = self.min_reward
-
         limited_reward = max(min_reward, min(max_reward, final_reward))
 
-        logger.debug(f"Reward расчет: pnl={pnl:.2f}, base={base_reward:.2f}, "
-                     f"speed={speed_bonus:.2f}, penalty={time_penalty:.2f}, "
+        logger.debug(f"Reward расчет: pnl={pnl:.2f}, hold={hold_time:.2f}ч, "
+                     f"base={base_reward:.2f}, speed={speed_component:.2f}, "
+                     f"concentration={concentration_penalty:.2f}, patience={patience_bonus:.2f}, "
+                     f"strategy_mult={strategy_params.get('risk_multiplier', 1.0):.2f}, "
                      f"final={limited_reward:.2f}")
 
         return limited_reward
@@ -606,72 +717,72 @@ class SmartPortfolioBroker:
         return state
 
     def _select_buy_strategy(self, ticker: str, price: float,
-                             confidence: float, state: torch.Tensor) -> Tuple[str, float, float]:
-        """Выбор стратегии для покупки с учетом тональности"""
+                             confidence: float, base_state: torch.Tensor) -> Tuple[str, float, float]:
+        # ✅ Проверяем тип base_state
+        print(f"   base_state.dtype: {base_state.dtype}")
+        if base_state.dtype != torch.float32:
+            print(f"   ⚠️ КОНВЕРТИРУЕМ base_state в float32")
+            base_state = base_state.to(dtype=torch.float32)
 
-        # 1. Получаем сентимент и выбираем стратегию
+        """
+        Выбор стратегии для покупки - МОДЕЛЬ САМА ПРИНИМАЕТ РЕШЕНИЯ
+        base_state: базовое состояние размерности 150 (из ticker_states)
+        """
+
+        # 1. Получаем объективные данные (не правила!)
         sentiment_score = self._get_ticker_sentiment(ticker)
 
-        # Определяем категорию сентимента
-        if sentiment_score >= 0.3:
-            sentiment_category = "very_positive"
-        elif sentiment_score >= 0.1:
-            sentiment_category = "positive"
-        elif sentiment_score >= -0.1:
-            sentiment_category = "neutral"
-        elif sentiment_score >= -0.3:
-            sentiment_category = "negative"
-        else:
-            sentiment_category = "very_negative"
-
-        # Выбираем стратегию на основе сентимента
-        sentiment_strategy = self.model.choose_strategy_based_on_sentiment(
-            ticker=ticker,
-            sentiment=sentiment_score,
-            current_strategy='balanced'
-        )
-
-        # 2. Контекст рынка
+        # 2. Контекст рынка - только данные, без категорий
         market_context = {
             'market_sentiment': self.model.market_sentiment,
             'volatility': self.model.volatility_index,
             'confidence': confidence,
             'time_of_day': datetime.now().hour / 24.0,
             'ticker_sentiment': sentiment_score,
-            'sentiment_category': sentiment_category
+            # НЕТ sentiment_category - модель сама разберется!
         }
 
-        # 3. Модель выбирает финальную стратегию
+        # 3. Модель САМА выбирает стратегию и действие
+        # choose_action_with_strategy внутри вызовет _create_strategy_state,
+        # который превратит base_state (150) в full_state (156)
         action, final_strategy, strategy_confidence = self.model.choose_action_with_strategy(
-            state=state,
+            state=base_state,  # передаем 150
             ticker=ticker,
             price=price,
             market_context=market_context
         )
 
-        # 4. Настройка параметров
+        # 4. Получаем параметры выбранной стратегии из конфига
+        # (это не ручное управление, а базовые настройки, которые модель будет менять через адаптацию)
         strategy_config = self.model.strategies.get(final_strategy, self.model.strategies['balanced'])
 
-        # Корректировка на основе тональности
-        sentiment_config = self.model.strategy_config.get('sentiment_integration', {})
-        risk_adjustment = sentiment_config.get('risk_adjustment', {})
-
-        category_adjustment = risk_adjustment.get(sentiment_category, {})
-        stop_loss_multiplier = category_adjustment.get('stop_loss_multiplier', 1.0)
-        take_profit_multiplier = category_adjustment.get('take_profit_multiplier', 1.0)
-
+        # 5. Базовые значения стоп-лосса и тейк-профита
         base_stop_loss = strategy_config.get('stop_loss_percent', 2.5)
         base_take_profit = strategy_config.get('take_profit_percent', 5.0)
 
-        adjusted_stop_loss = base_stop_loss * stop_loss_multiplier
-        adjusted_take_profit = base_take_profit * take_profit_multiplier
+        # 6. Адаптация под волатильность (объективный рыночный фактор)
+        volatility_factor = 1.0
+        if hasattr(self.model, 'volatility_index'):
+            # Чем выше волатильность, тем шире стоп-лосс
+            volatility_factor = 1.0 + self.model.volatility_index
+
+        # 7. Адаптация под уверенность модели (чем увереннее, тем агрессивнее)
+        confidence_factor = 0.5 + strategy_confidence  # от 0.5 до 1.5
+
+        # 8. Итоговые параметры (без ручных множителей из конфига!)
+        adjusted_stop_loss = base_stop_loss * volatility_factor / confidence_factor
+        adjusted_take_profit = base_take_profit * volatility_factor * confidence_factor
+
+        # Ограничиваем разумные пределы
+        adjusted_stop_loss = max(0.5, min(10.0, adjusted_stop_loss))
+        adjusted_take_profit = max(1.0, min(20.0, adjusted_take_profit))
 
         stop_loss = price * (1 - adjusted_stop_loss / 100)
         take_profit = price * (1 + adjusted_take_profit / 100)
 
         logger.debug(
-            f"Стратегия {ticker}: {final_strategy} "
-            f"(sentiment: {sentiment_score:.3f}, category: {sentiment_category}) "
+            f"🤖 Стратегия {ticker}: {final_strategy} "
+            f"(sentiment: {sentiment_score:.3f}, confidence: {strategy_confidence:.2f}) "
             f"SL={adjusted_stop_loss:.1f}%, TP={adjusted_take_profit:.1f}%"
         )
 
@@ -680,13 +791,23 @@ class SmartPortfolioBroker:
     def _periodic_learning(self):
         """ОПТИМИЗИРОВАННОЕ онлайн-обучение с приоритетами"""
         try:
+            # 🔥 ДИАГНОСТИКА
+            print(f"\n📊 ДИАГНОСТИКА ПАМЯТИ:")
+            print(f"   memory size: {len(self.model.memory)}")
+            if hasattr(self.model, 'prioritized_buffer'):
+                print(f"   prioritized_buffer size: {self.model.prioritized_buffer.size}")
+
+            # ✅ ИСПРАВЛЕНО: определяем переменную!
             enable_extreme = self.profit_config.get("enable_extreme_learning", True)
 
-            # 1. СНАЧАЛА ПРИОРИТЕТНОЕ ОБУЧЕНИЕ
+            # 1. ПРИОРИТЕТНОЕ ОБУЧЕНИЕ
             if hasattr(self.model, 'learn_from_prioritized'):
-                priority_loss = self.model.learn_from_prioritized(batch_size=32)
-                if priority_loss:
-                    logger.debug(f"Приоритетное обучение: Loss={priority_loss:.6f}")
+                if self.model.prioritized_buffer.size >= 32:
+                    priority_loss = self.model.learn_from_prioritized(batch_size=32)
+                    if priority_loss:
+                        logger.debug(f"Приоритетное обучение: Loss={priority_loss:.6f}")
+                else:
+                    print(f"   ⚠️ Недостаточно опытов в prioritized_buffer: {self.model.prioritized_buffer.size} < 32")
 
             # 2. Критические сделки
             critical_trades = []
@@ -719,11 +840,12 @@ class SmartPortfolioBroker:
                         logger.info(f"[ЭКСТРЕМ-обучение] {len(critical_trades)} сделок "
                                     f"(прибыль: {profit_count}, убытки: {loss_count}) Loss={loss:.6f}")
 
-            # 4. Регулярное обучение (реже)
+            # 4. Регулярное обучение
             if self.cycle_count % (self.fast_learning_cycles * 2) == 0:
-                regular_loss = self.model.learn_from_experience(batch_size=32)
-                if regular_loss:
-                    logger.debug(f"Регулярное обучение: Loss={regular_loss:.6f}")
+                if len(self.model.memory) >= 32:
+                    regular_loss = self.model.learn_from_experience(batch_size=32)
+                    if regular_loss:
+                        logger.debug(f"Регулярное обучение: Loss={regular_loss:.6f}")
 
             # 5. Адаптация стратегий
             if self.cycle_count % self.strategy_adaptation_cycles == 0:
@@ -731,6 +853,8 @@ class SmartPortfolioBroker:
 
         except Exception as e:
             logger.error(f"Ошибка обучения: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
 
     def _train_extreme(self, extreme_batch):
         """АГРЕССИВНОЕ обучение на экстремальных сделках"""
@@ -933,26 +1057,7 @@ class SmartPortfolioBroker:
         if strategies_report:
             logger.info(f"Эффективность стратегий: {json.dumps(strategies_report, indent=2)}")
 
-    def _adapt_strategies(self):
-        """Адаптация параметров стратегий"""
-        for strategy_name, perf in self.model.strategy_performance.items():
-            if perf['total_trades'] >= 10:
-                win_rate = perf['win_rate']
-                avg_pnl = perf['avg_pnl']
 
-                current_multiplier = self.model.strategies[strategy_name]['risk_multiplier']
-
-                if win_rate > 0.6 and avg_pnl > 0:
-                    new_multiplier = min(current_multiplier * 1.1, 2.0)
-                elif win_rate < 0.4 or avg_pnl < 0:
-                    new_multiplier = max(current_multiplier * 0.9, 0.5)
-                else:
-                    new_multiplier = current_multiplier
-
-                self.model.strategies[strategy_name]['risk_multiplier'] = new_multiplier
-
-                logger.debug(f"Адаптация {strategy_name}: "
-                             f"risk_multiplier {current_multiplier:.2f} -> {new_multiplier:.2f}")
 
     def _initialize_components(self):
         """Инициализация всех компонентов"""
@@ -1080,6 +1185,13 @@ class SmartPortfolioBroker:
 
     def run_cycle(self):
         """Основной торговый цикл"""
+
+        # 🔥 ДИАГНОСТИКА КАЖДЫЙ ЦИКЛ
+        print(f"\n{'=' * 60}")
+        print(f"ЦИКЛ #{self.cycle_count}")
+        print(f"pending_experiences: {len(self.pending_experiences)}")
+        print(f"позиций: {len(self.portfolio.positions)}")
+        print(f"{'=' * 60}")
 
         # Проверка комиссий
         current_hour = datetime.now().hour
@@ -1537,52 +1649,105 @@ class SmartPortfolioBroker:
 
         except Exception as e:
             logger.error(f"Ошибка создания следующего состояния для {ticker}: {e}")
-            state_dim = getattr(self.model.policy_net, 'expected_state_dim',
-                                getattr(self.model.policy_net, 'state_dim', 156))
-            return torch.zeros(state_dim, dtype=torch.float32).to(self.model.device)
+            # ✅ ИСПРАВЛЕНО: создаем состояние правильной размерности
+            # Пытаемся получить текущую цену для базового состояния
+            try:
+                current_price = self.moex.get_price(ticker) or exit_price
+                security_info = securities.get(ticker, {}) if 'securities' in locals() else {}
+
+                # Создаем простое состояние с правильной размерностью
+                dummy_state = self.model.build_state_vector(
+                    ticker=ticker,
+                    price=current_price,
+                    momentum=0.0,
+                    sentiment=0.0,
+                    news_features=torch.zeros(1, NEWS_ENCODED_DIM).to(self.model.device),
+                    market_data={
+                        'volume': 1.0,
+                        'spread': 0.01,
+                        'rsi': 50,
+                        'volatility': 0.1,
+                        'sma_10_ratio': 1.0,
+                        'sma_20_ratio': 1.0,
+                        'bb_position': 0.5,
+                        'liquidity': 0.5,
+                        'market_cap': 0,
+                        'pe_ratio': 15
+                    },
+                    market_sentiment=self._get_market_sentiment() if hasattr(self, '_get_market_sentiment') else 0.0
+                )
+                return dummy_state.to(self.model.device)
+            except:
+                # Если совсем ничего не работает - создаем нулевой тензор 156
+                logger.warning(f"⚠️ Создание нулевого состояния для {ticker}")
+                return torch.zeros(156, dtype=torch.float32).to(self.model.device)
 
     def _adapt_strategies_for_profit(self):
-        """Адаптация стратегий для максимальной прибыли"""
+        """Адаптация стратегий - ТОЛЬКО на основе реальных результатов"""
         try:
-            adaptation_config = self.rl_config.get("strategy_adaptation", {})
-            min_trades = adaptation_config.get("min_trades_for_fast_adaptation", 5)
-
             for strategy_name, perf in self.model.strategy_performance.items():
-                if perf['total_trades'] >= min_trades:
+                if perf['total_trades'] >= 5:  # минимальная статистика
                     win_rate = perf['win_rate']
                     avg_pnl = perf['avg_pnl']
-                    current_multiplier = self.model.strategies[strategy_name]['risk_multiplier']
 
-                    win_high = adaptation_config.get("aggressive_win_rate_high", 0.7)
-                    win_low = adaptation_config.get("aggressive_win_rate_low", 0.3)
-                    profit_thresh = adaptation_config.get("profit_threshold_fast", 0.02)
-                    loss_thresh = adaptation_config.get("loss_threshold_fast", -0.01)
-                    max_risk = adaptation_config.get("max_risk_multiplier", 2.0)
-                    min_risk = adaptation_config.get("min_risk_multiplier", 0.5)
+                    strategy = self.model.strategies[strategy_name]
 
-                    if win_rate > win_high and avg_pnl > profit_thresh:
-                        increase_factor = adaptation_config.get("aggressive_increase_factor", 1.3)
-                        new_multiplier = min(current_multiplier * increase_factor, max_risk)
+                    # 📈 УСПЕШНАЯ СТРАТЕГИЯ - усиливаем пропорционально прибыли
+                    if avg_pnl > 0:
+                        # Сила усиления зависит от размера прибыли
+                        strength = min(avg_pnl * 10, 0.5)  # максимум +50%
 
-                        logger.info(f"🔥 УВЕЛИЧЕНИЕ {strategy_name}: "
-                                    f"{current_multiplier:.2f} → {new_multiplier:.2f} "
-                                    f"(WR: {win_rate:.1%}, PnL: {avg_pnl:.2%})")
+                        # Увеличиваем риск, но не больше 2.0
+                        old_risk = strategy['risk_multiplier']
+                        strategy['risk_multiplier'] = min(old_risk * (1 + strength), 2.0)
 
-                    elif win_rate < win_low or avg_pnl < loss_thresh:
-                        decrease_factor = adaptation_config.get("aggressive_decrease_factor", 0.7)
-                        new_multiplier = max(current_multiplier * decrease_factor, min_risk)
+                        # Уменьшаем время удержания (быстрее фиксируем прибыль)
+                        old_hold = strategy['target_hold_time_hours']
+                        strategy['target_hold_time_hours'] = max(old_hold * (1 - strength * 0.5), 0.5)
 
-                        logger.warning(f"⚠ УМЕНЬШЕНИЕ {strategy_name}: "
-                                       f"{current_multiplier:.2f} → {new_multiplier:.2f} "
-                                       f"(WR: {win_rate:.1%}, PnL: {avg_pnl:.2%})")
-                    else:
-                        new_multiplier = current_multiplier
-                        logger.debug(f"Стратегия {strategy_name} без изменений: {current_multiplier:.2f}")
+                        logger.info(f"📈 Усиление {strategy_name}: "
+                                    f"risk {old_risk:.2f}→{strategy['risk_multiplier']:.2f} "
+                                    f"(+{strength:.1%}, avg_pnl={avg_pnl:.2%})")
 
-                    self.model.strategies[strategy_name]['risk_multiplier'] = new_multiplier
+                    # 📉 УБЫТОЧНАЯ СТРАТЕГИЯ - ослабляем пропорционально убытку
+                    elif avg_pnl < 0:
+                        # Сила ослабления зависит от размера убытка
+                        weakness = min(abs(avg_pnl) * 10, 0.5)  # максимум -50%
 
+                        # Уменьшаем риск, но не меньше 0.5
+                        old_risk = strategy['risk_multiplier']
+                        strategy['risk_multiplier'] = max(old_risk * (1 - weakness), 0.5)
+
+                        # Увеличиваем время удержания (даём больше времени на разворот)
+                        old_hold = strategy['target_hold_time_hours']
+                        strategy['target_hold_time_hours'] = min(old_hold * (1 + weakness), 24)
+
+                        logger.info(f"📉 Ослабление {strategy_name}: "
+                                    f"risk {old_risk:.2f}→{strategy['risk_multiplier']:.2f} "
+                                    f"(-{weakness:.1%}, avg_pnl={avg_pnl:.2%})")
+
+                    # Адаптация стоп-лосса под волатильность (объективный фактор)
+                    if hasattr(self.model, 'volatility_index'):
+                        old_stop = strategy.get('stop_loss_percent', 2.5)
+                        old_take = strategy.get('take_profit_percent', 5.0)
+
+                        # Базовая настройка: 2% на стоп, 4% на тейк при нормальной волатильности
+                        base_stop = 2.0
+                        base_take = 4.0
+
+                        # Корректировка под текущую волатильность
+                        vol_factor = 1.0 + self.model.volatility_index
+                        strategy['stop_loss_percent'] = base_stop * vol_factor
+                        strategy['take_profit_percent'] = base_take * vol_factor
+
+                        logger.debug(f"📊 Адаптация под волатильность {strategy_name}: "
+                                     f"vol={self.model.volatility_index:.2f}, "
+                                     f"stop {old_stop:.1f}→{strategy['stop_loss_percent']:.1f}%, "
+                                     f"take {old_take:.1f}→{strategy['take_profit_percent']:.1f}%")
+
+            # Сохраняем обновленные стратегии
             self.model.save_model()
-            logger.info("Адаптация стратегий завершена")
+            logger.info("✅ Стратегии адаптированы на основе реальных результатов")
 
         except Exception as e:
             logger.error(f"Ошибка адаптации стратегий: {e}")

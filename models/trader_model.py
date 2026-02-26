@@ -8,11 +8,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import time
 from collections import deque, defaultdict
 from datetime import datetime, timedelta
 from typing import List, Dict, Tuple, Optional
 import warnings
-
+from utils.logger import get_logger
+logger = get_logger("TRADER_MODEL")
 
 class PrioritizedReplayBuffer:
     """Буфер с приоритетами для важных опытов (TD-error)"""
@@ -226,17 +228,33 @@ class TradingPolicyNetwork(nn.Module):
         )
 
     def forward(self, state, news_features=None):
-        # 🔴 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: АВТОКОРРЕКЦИЯ РАЗМЕРНОСТИ
+        # 🔥 АКТИВНАЯ КОРРЕКЦИЯ РАЗМЕРНОСТИ
         actual_dim = state.shape[-1]
         expected_dim = self.state_dim
 
         if actual_dim != expected_dim:
-            # Логируем только если это реальное состояние (не все нули)
+            # Логируем только если это реальное состояние
             if torch.any(state != 0):
                 print(f"[TraderModel] ⚠ Размерность состояния: {actual_dim}, ожидалось: {expected_dim}")
 
-            if actual_dim < expected_dim:
-                # Добавляем нули для недостающих признаков
+            if actual_dim == 150 and expected_dim == 156:
+                # 🔥 АКТИВНО добавляем параметры стратегии (balanced)
+                strategy_params = torch.tensor(
+                    [0.5, 0.5, 1.0, 0.25, 0.025, 0.05],
+                    # news_weight, tech_weight, risk_multiplier, hold_time, stop_loss, take_profit
+                    device=state.device,
+                    dtype=state.dtype
+                )
+
+                # Расширяем для batch если нужно
+                if state.dim() > 1:
+                    strategy_params = strategy_params.expand(state.shape[0], -1)
+
+                state = torch.cat([state, strategy_params], dim=-1)
+                print(f"   ⚡ forward добавил стратегию balanced, теперь {state.shape[-1]}")
+
+            elif actual_dim < expected_dim:
+                # Стандартное дополнение нулями (для других случаев)
                 padding = torch.zeros(
                     *state.shape[:-1],
                     expected_dim - actual_dim,
@@ -553,49 +571,52 @@ class AdvancedTraderModel:
         except Exception as e:
             print(f"[TraderModel] Ошибка загрузки памяти: {e}")
 
-
     def choose_action_with_strategy(self, state: torch.Tensor, ticker: str,
                                     price: float, market_context: Dict) -> Tuple[int, str, float]:
         """
-        Выбор действия с учетом стратегии
+        Выбор действия с учетом стратегии - модель САМА выбирает стратегию
         """
-        # 1. Оцениваем пригодность каждой стратегии для текущего состояния
         strategy_scores = {}
 
-        for strategy_name, params in self.strategies.items():
-            # Модифицируем состояние под стратегию
-            strategy_state = self._create_strategy_state(state, params)
+        # ✅ Если состояние уже 156, используем как есть
+        if state.shape[-1] == 156:
+            base_state = state
+        else:
+            # Если 150, будем добавлять стратегию для каждой
+            base_state = state
 
-            # Получаем предсказание
+        for strategy_name, params in self.strategies.items():
+            if state.shape[-1] == 150:
+                # Добавляем стратегию к базовому состоянию
+                strategy_state = self._create_strategy_state(base_state, params)
+            else:
+                # Уже полное состояние - используем как есть
+                strategy_state = base_state
+
             with torch.no_grad():
                 action_probs, state_value = self.policy_net(strategy_state)
 
-            # ✅ ИСПРАВЛЯЕМ: Используем конфигурируемый confidence_boost_factor
+            # Модель учится на win_rate стратегий - это обратная связь от реальных результатов!
             perf = self.strategy_performance[strategy_name]
             confidence_boost = perf['win_rate'] * self.confidence_boost_factor
 
-            # Ожидаемая ценность стратегии
             expected_value = state_value.item() + confidence_boost
-
             strategy_scores[strategy_name] = {
                 'expected_value': expected_value,
                 'action_probs': action_probs.cpu().numpy().flatten(),
                 'params': params
             }
 
-        # 2. Выбор стратегии (epsilon-greedy)
+        # Выбор стратегии - чистая exploitation/exploration, без ручных правил!
         if np.random.random() < self.exploration_rate:
-            # Exploration: случайная стратегия
             chosen_strategy = np.random.choice(list(self.strategies.keys()))
         else:
-            # Exploitation: лучшая стратегия
             chosen_strategy = max(strategy_scores.items(),
                                   key=lambda x: x[1]['expected_value'])[0]
 
-        # 3. Выбор действия для выбранной стратегии
         action_probs = strategy_scores[chosen_strategy]['action_probs']
 
-        if np.random.random() < ACTION_EXPLORATION_RATE and hasattr(self, 'memory') and len(self.memory) < 2000:
+        if np.random.random() < ACTION_EXPLORATION_RATE:
             action = np.random.choice(len(action_probs))
         else:
             action = np.argmax(action_probs)
@@ -604,67 +625,33 @@ class AdvancedTraderModel:
 
         return action, chosen_strategy, confidence
 
-    def choose_strategy_based_on_sentiment(self, ticker: str, sentiment: float,
-                                           current_strategy: str) -> str:
-        """
-        Выбор стратегии на основе тональности новостей
-        sentiment: -1.0 (очень негативно) до +1.0 (очень позитивно)
-        """
-        # Загружаем конфиг
-        sentiment_config = self.strategy_config.get('sentiment_integration', {})
-
-        # Проверяем, включена ли интеграция
-        if not sentiment_config.get('enabled', True):
-            return current_strategy
-
-        thresholds = sentiment_config.get('sentiment_thresholds', {})
-
-        # Определяем категорию сентимента
-        if sentiment >= thresholds.get('very_positive', 0.3):
-            sentiment_category = "very_positive"
-        elif sentiment >= thresholds.get('positive', 0.1):
-            sentiment_category = "positive"
-        elif sentiment >= thresholds.get('neutral', 0.0):
-            sentiment_category = "neutral"
-        elif sentiment >= thresholds.get('negative', -0.1):
-            sentiment_category = "negative"
-        else:
-            sentiment_category = "very_negative"
-
-        # Получаем маппинг стратегий
-        strategy_mapping = sentiment_config.get('strategy_mapping', {})
-        mapped_strategy = strategy_mapping.get(sentiment_category, current_strategy)
-
-        # Проверяем, существует ли стратегия
-        if mapped_strategy not in self.strategies:
-            mapped_strategy = current_strategy
-
-        return mapped_strategy
-
     def _create_strategy_state(self, base_state: torch.Tensor,
                                strategy_params: Dict) -> torch.Tensor:
-        """Создание состояния для конкретной стратегии"""
-        # Клонируем базовое состояние
+
+        # Проверяем размерность
+        if base_state.shape[-1] == 156:
+            # Уже полное состояние - возвращаем как есть
+            return base_state
+
+        # Только если 150 - добавляем параметры
         strategy_state = base_state.clone()
 
-        # Параметры стратегии
         strategy_params_tensor = torch.tensor([
-            strategy_params['news_weight'],
-            strategy_params['tech_weight'],
-            strategy_params['risk_multiplier'],
-            strategy_params.get('target_hold_time_hours', 6) / 24.0,  # Нормализованное время
-            strategy_params.get('stop_loss_percent', 2.5) / 100.0,  # Нормализованный стоп-лосс
-            strategy_params.get('take_profit_percent', 5.0) / 100.0  # Нормализованный тейк-профит
-        ]).to(self.device)
+            float(strategy_params.get('news_weight', 0.5)),
+            float(strategy_params.get('tech_weight', 0.5)),
+            float(strategy_params.get('risk_multiplier', 1.0)),
+            float(strategy_params.get('target_hold_time_hours', 6)) / 24.0,
+            float(strategy_params.get('stop_loss_percent', 2.5)) / 100.0,
+            float(strategy_params.get('take_profit_percent', 5.0)) / 100.0
+        ], dtype=torch.float32, device=self.device)
 
-        # Объединяем с основным состоянием
         strategy_state = torch.cat([strategy_state, strategy_params_tensor])
-
         return strategy_state
 
     def record_strategy_outcome(self, strategy_name: str, action: str,
                                 pnl: float, hold_time: float):
-        """Запись результата стратегии"""
+        """Запись результата стратегии - модель видит, что сработало, а что нет"""
+
         perf = self.strategy_performance[strategy_name]
         perf['total_trades'] += 1
         perf['total_pnl'] += pnl
@@ -672,17 +659,23 @@ class AdvancedTraderModel:
         if pnl > 0:
             perf['profitable_trades'] += 1
 
+        # Обновляем статистику - это и есть "обучение" стратегий!
         perf['avg_pnl'] = perf['total_pnl'] / perf['total_trades']
         perf['win_rate'] = perf['profitable_trades'] / perf['total_trades']
 
-        # Сохраняем в memory для обучения
+        # Сохраняем в memory для дальнейшего обучения
         self.strategy_memory.append({
             'strategy': strategy_name,
             'action': action,
             'pnl': pnl,
             'hold_time': hold_time,
+            'win_rate': perf['win_rate'],
             'timestamp': datetime.now().isoformat()
         })
+
+        # Диагностика - модель ВИДИТ, какие стратегии работают
+        logger.debug(f"📊 Стратегия {strategy_name}: win_rate={perf['win_rate']:.2%}, "
+                     f"avg_pnl={perf['avg_pnl']:.2f}, trades={perf['total_trades']}")
 
     def _load_bert_model(self):
         """Загрузка BERT модели с обработкой ошибок"""
@@ -961,7 +954,14 @@ class AdvancedTraderModel:
                            market_data: Dict,
                            market_sentiment: float = 0.0) -> torch.Tensor:
 
-        """Построение вектора состояния"""
+        global logger
+
+        # 🔥 КОРРЕКЦИЯ В САМОМ НАЧАЛЕ
+        # Сохраняем оригинальные данные для диагностики
+        original_ticker = ticker
+        original_price = price
+
+        """Построение вектора состояния с признаками саморегуляции"""
 
         # Признаки из новостей
         if news_features.numel() > 0 and news_features.shape[1] == NEWS_ENCODED_DIM:
@@ -991,10 +991,6 @@ class AdvancedTraderModel:
             min(total_trades / MAX_TRADES_FOR_EXPERIENCE, 2.0),
             min(avg_hold_time / 24.0, MAX_HOLD_TIME_DAYS),
 
-            # Рыночные признаки
-            # self.market_sentiment,
-            # self.volatility_index,
-
             # Данные рынка
             market_data.get('volume', 0) / VOLUME_NORMALIZATION,
             market_data.get('spread', 0.01) * 100,
@@ -1018,19 +1014,56 @@ class AdvancedTraderModel:
 
             # Рыночные признаки
             self.market_sentiment,
-            market_sentiment,  # ✅ НОВЫЙ: переданный рыночный сентимент
+            market_sentiment,
             self.volatility_index,
         ]
 
         # Новостные признаки
         features.extend(news_vec.tolist())
 
+        # ПРИЗНАКИ САМОРЕГУЛЯЦИИ
+        positions_norm = 0.0
+        if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'positions'):
+            total_positions = len(self.portfolio.positions)
+            positions_norm = min(total_positions / 10.0, 1.0)
+
+        trades_per_hour_norm = 0.0
+        if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'trade_history'):
+            last_hour = time.time() - 3600
+            recent_trades = 0
+            for t in self.portfolio.trade_history[-100:]:
+                if isinstance(t, dict) and 'timestamp' in t:
+                    try:
+                        t_time = datetime.fromisoformat(t['timestamp'].replace('Z', '+00:00')).timestamp()
+                        if t_time > last_hour:
+                            recent_trades += 1
+                    except:
+                        pass
+            trades_per_hour_norm = min(recent_trades / 20.0, 1.0)
+
+        exposure_norm = 0.0
+        if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'initial_capital'):
+            positions_value = sum(p['qty'] * p.get('avg_price', 0) for p in self.portfolio.positions.values())
+            exposure_ratio = positions_value / self.portfolio.initial_capital
+            exposure_norm = min(exposure_ratio, 1.0)
+
+        features.extend([positions_norm, trades_per_hour_norm, exposure_norm])
+
+        time_pressure = 0.0
+        if hasattr(self, 'scheduler'):
+            time_to_close = self.scheduler.get_time_to_next_session()
+            if time_to_close:
+                hours_left = time_to_close[0] + time_to_close[1] / 60
+                time_pressure = max(0, 1.0 - hours_left / 6.0)
+
+        features.append(time_pressure)
+
+
         # Преобразование в тензор
         state_vector = torch.FloatTensor(features).to(self.device)
 
-        # Проверка размерности - должно быть BASE_STATE_DIM
+        # Проверка размерности - должно быть BASE_STATE_DIM (150)
         if state_vector.shape[0] != BASE_STATE_DIM:
-            # Автоматическая корректировка
             if state_vector.shape[0] < BASE_STATE_DIM:
                 padding = torch.zeros(BASE_STATE_DIM - state_vector.shape[0]).to(self.device)
                 state_vector = torch.cat([state_vector, padding])
@@ -1044,43 +1077,55 @@ class AdvancedTraderModel:
                       ticker: str,
                       current_price: float,
                       market_context: Dict = None) -> Tuple[int, float, float]:
-        """Выбор действия с улучшенной логикой"""
+        """
+        Выбор действия с динамической exploration rate
+        Автоматически добавляет параметры стратегии если нужно (150 → 156)
+        """
+        global logger
+
+        # Режим с выбором стратегии (передан market_context)
         if market_context is not None:
+            # Если состояние 150 - добавляем стратегию из контекста
+            if state.shape[-1] == 150:
+                strategy_name = market_context.get('current_strategy', 'balanced')
+                strategy_params = self.strategies.get(strategy_name, self.strategies['balanced'])
+                state = self._create_strategy_state(state, strategy_params)
+                print(f"   ⚡ choose_action добавил стратегию {strategy_name}, теперь {state.shape[-1]}")
+
+            # Вызываем выбор действия со стратегией
             action, strategy, confidence = self.choose_action_with_strategy(
                 state, ticker, current_price, market_context
             )
-            return action, confidence, 0.0  # Возвращаем совместимый формат
 
+            # Получаем оценку состояния для TD-error
+            with torch.no_grad():
+                _, state_value = self.policy_net(state.unsqueeze(0))
+
+            return action, confidence, state_value.item()
+
+        # Режим без стратегии (простой выбор действия)
         self.policy_net.eval()
 
         with torch.no_grad():
-            # Получаем вероятности действий
             action_probs, state_value = self.policy_net(state.unsqueeze(0))
 
         probs = action_probs.cpu().numpy().flatten()
 
-        # Корректировка на основе истории
+        # Корректировка на основе истории ошибок
         error_data = self.error_memory[ticker]
         stats = self.ticker_stats[ticker]
 
-        # Параметры корректировки
         FAILURE_FACTOR_RATE = 0.2
         MAX_FAILURE_FACTOR = 0.6
         SUCCESS_FACTOR_RATE = 0.4
         POOR_PERFORMANCE_PENALTY = 0.3
 
         if error_data['failure_count'] > 1:
-            # Корректировка для проблемных тикеров
             failure_factor = min(error_data['failure_count'] * FAILURE_FACTOR_RATE, MAX_FAILURE_FACTOR)
-
-            # Снижаем вероятность покупки, повышаем продажи
             probs[0] *= (1.0 - failure_factor)  # BUY
             probs[2] *= (1.0 + failure_factor)  # SELL
-
-            # Нормализация
             probs = probs / probs.sum()
 
-        # Корректировка на основе успешности
         MIN_TRADES_FOR_ADJUSTMENT = 5
         SUCCESS_RATE_THRESHOLD_HIGH = 0.6
         SUCCESS_RATE_THRESHOLD_LOW = 0.4
@@ -1089,32 +1134,42 @@ class AdvancedTraderModel:
             success_factor = max(stats['success_rate'] - 0.5, 0) * SUCCESS_FACTOR_RATE
 
             if stats['success_rate'] > SUCCESS_RATE_THRESHOLD_HIGH:
-                # Успешные тикеры - больше покупок
                 probs[0] *= (1.0 + success_factor)  # BUY
             elif stats['success_rate'] < SUCCESS_RATE_THRESHOLD_LOW:
-                # Неуспешные тикеры - больше продаж
                 probs[2] *= (1.0 + POOR_PERFORMANCE_PENALTY)  # SELL
 
             probs = probs / probs.sum()
 
-        # Выбор действия (с эксплорацией на ранних этапах)
-        BASE_EXPLORATION_RATE = 0.3
-        MIN_EXPLORATION_RATE = 0.1
-        EXPLORATION_DECAY_EXPERIENCES = 10000
-        EXPLORATION_DECAY_RATE = 0.2
+        # 🔥 ДИНАМИЧЕСКАЯ EXPLORATION RATE
+        base_rate = 0.3
 
-        exploration_rate = max(
-            MIN_EXPLORATION_RATE,
-            BASE_EXPLORATION_RATE - (len(self.memory) / EXPLORATION_DECAY_EXPERIENCES) * EXPLORATION_DECAY_RATE
-        )
+        # Фактор количества позиций
+        position_factor = 1.0
+        if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'positions'):
+            position_factor = max(0, 1.0 - len(self.portfolio.positions) / 10.0)
 
-        MIN_EXPLORATION_MEMORY = 3000
+        # Фактор недавних убытков
+        loss_factor = 1.0
+        if hasattr(self, 'recent_losses') and self.recent_losses > 2:
+            loss_factor = 0.5
 
-        if np.random.random() < exploration_rate and len(self.memory) < MIN_EXPLORATION_MEMORY:
-            # Случайное действие для исследования
+        # Фактор времени до закрытия
+        time_factor = 1.0
+        if hasattr(self, 'scheduler'):
+            time_to_close = self.scheduler.get_time_to_next_session()
+            if time_to_close and time_to_close[0] < 1:  # меньше часа до закрытия
+                time_factor = 0.3
+
+        # Decay на основе накопленного опыта
+        memory_factor = max(0.1, 1.0 - len(self.memory) / 5000)
+
+        exploration_rate = base_rate * position_factor * loss_factor * time_factor * memory_factor
+        exploration_rate = max(0.05, min(0.5, exploration_rate))
+
+        # Выбор действия
+        if np.random.random() < exploration_rate:
             action = np.random.choice(len(probs))
         else:
-            # Жадное действие
             action = np.argmax(probs)
 
         confidence = probs[action]
@@ -1122,11 +1177,15 @@ class AdvancedTraderModel:
         return action, confidence, state_value.item()
 
     def get_state_value(self, state: torch.Tensor) -> float:
-        """Получение оценки состояния для расчета TD-error"""
         try:
+            # ✅ Если состояние 150, добавляем стратегию по умолчанию
+            if state.shape[-1] == 150:
+                strategy_params = self.strategies['balanced']
+                state = self._create_strategy_state(state, strategy_params)
+                print(f"   ⚡ get_state_value добавил стратегию, теперь {state.shape[-1]}")
+
             self.policy_net.eval()
             with torch.no_grad():
-                # Добавляем batch dimension если нужно
                 if state.dim() == 1:
                     state = state.unsqueeze(0)
                 _, value = self.policy_net(state)
@@ -1135,7 +1194,6 @@ class AdvancedTraderModel:
             print(f"[TraderModel] Ошибка get_state_value: {e}")
             return 0.0
 
-
     def remember_experience(self,
                             state: torch.Tensor,
                             action: int,
@@ -1143,8 +1201,10 @@ class AdvancedTraderModel:
                             next_state: torch.Tensor,
                             done: bool,
                             news_features: Optional[torch.Tensor] = None,
-                            td_error: Optional[float] = None):  # ✅ НОВЫЙ ПАРАМЕТР
-        """Сохранение опыта с приоритетом"""
+                            td_error: Optional[float] = None):
+
+        print(f"\n🔥🔥🔥 remember_experience FIRED! 🔥🔥🔥")
+        print(f"   state.shape: {state.shape}")
 
         experience = {
             'state': state.cpu(),
@@ -1156,12 +1216,23 @@ class AdvancedTraderModel:
             'timestamp': datetime.now().isoformat()
         }
 
-        # ✅ ИСПОЛЬЗУЕМ ПРИОРИТЕТНЫЙ БУФЕР
-        if hasattr(self, 'prioritized_buffer') and self.prioritized_buffer is not None:
-            self.prioritized_buffer.add(experience, td_error)
+        # ✅ ВСЕГДА добавляем в memory
+        self.memory.append(experience)
+        print(f"   ✅ memory size: {len(self.memory)}")
+
+        # 🔥 ДИАГНОСТИКА prioritized_buffer
+        print(f"   hasattr prioritized_buffer: {hasattr(self, 'prioritized_buffer')}")
+        if hasattr(self, 'prioritized_buffer'):
+            print(f"   prioritized_buffer is None: {self.prioritized_buffer is None}")
+            print(f"   prioritized_buffer exists, size before: {self.prioritized_buffer.size}")
+
+            if self.prioritized_buffer is not None:
+                self.prioritized_buffer.add(experience, td_error)
+                print(f"   ✅ Добавлено в prioritized_buffer, size after: {self.prioritized_buffer.size}")
+            else:
+                print(f"   ❌ prioritized_buffer is None!")
         else:
-            # Старый метод для обратной совместимости
-            self.memory.append(experience)
+            print(f"   ❌ prioritized_buffer attribute MISSING!")
 
         # Автосохранение
         if (self.memory_serialization_config['enable_autosave'] and
@@ -1304,11 +1375,14 @@ class AdvancedTraderModel:
         if not hasattr(self, 'prioritized_buffer') or self.prioritized_buffer is None:
             return self.learn_from_experience(batch_size)
 
+        # ✅ Проверяем размер prioritized_buffer
+        if self.prioritized_buffer.size < batch_size:
+            print(
+                f"[TraderModel] Недостаточно опытов в prioritized_buffer: {self.prioritized_buffer.size} < {batch_size}")
+            return None
+
         # Приоритетная выборка
         batch, indices, weights = self.prioritized_buffer.sample(batch_size)
-
-        if batch is None:
-            return None
 
         try:
             # Подготовка данных
@@ -1711,10 +1785,11 @@ class AdvancedTraderModel:
 
             # Выбор действия
             try:
-                action, confidence, _ = self.choose_action(state, ticker, price)
+                # Передаём пустой market_context, чтобы choose_action не ждал стратегию
+                action, confidence, _ = self.choose_action(state, ticker, price, market_context={})
             except Exception as e:
                 print(f"[TraderModel] Ошибка choose_action для {ticker}: {e}")
-                action, confidence = 1, 0.5  # HOLD по умолчанию
+                action, confidence = 1, 0.5
 
             # Оценка кандидата
             stats = self.ticker_stats[ticker]
