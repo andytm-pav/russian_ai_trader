@@ -326,48 +326,83 @@ class SmartPortfolioBroker:
                         executed_count += 1
                         logger.debug(f"[DEBUG] Куплено: {ticker} {quantity} @ {price:.2f}")
 
+
             elif action_str == 'SELL':
+
                 if ticker in self.portfolio.positions:
+
                     logger.debug(f"[DEBUG] Продажа {ticker}, есть позиция")
 
-                    # ✅ Получаем параметры из позиции
+                    # Получаем параметры из позиции
+
                     pos = self.portfolio.positions[ticker]
+
                     pos_lot_size = pos.get('lot_size', 1)
+
                     pos_min_step = pos.get('min_step', 0.01)
 
                     # Корректировка цены продажи
+
                     sell_price = price
+
                     if pos_min_step > 0:
+
                         sell_price, price_adjusted = LotValidator.validate_and_adjust_price(price, pos_min_step)
+
                         if price_adjusted:
                             logger.debug(f"Цена продажи {ticker} скорректирована")
 
-                    self._complete_rl_experience(ticker, sell_price)
+                    # ❌ УДАЛИТЕ ЭТУ СТРОКУ:
+
+                    # self._complete_rl_experience(ticker, sell_price)
 
                     # Исполнение продажи
+
                     qty = pos['qty'] // 2 if pos['qty'] > 1 else pos['qty']
 
-                    # ✅ Корректировка по лотности
+                    # Корректировка по лотности
+
                     if pos_lot_size > 1:
+
                         qty, qty_adjusted = LotValidator.validate_and_adjust_quantity(qty, pos_lot_size)
+
                         if qty_adjusted:
                             logger.debug(f"Количество продажи {ticker} скорректировано по лотности")
+
                         if qty == 0:
                             qty = pos_lot_size
 
                     if qty > 0:
-                        if self.portfolio.sell(ticker, qty, sell_price):
+
+                        success, pnl_with_commission = self.portfolio.sell(ticker, qty, sell_price)
+
+                        if success:
+
                             strategy = pos.get('strategy', 'balanced')
+
                             executed_count += 1
-                            logger.debug(f"[DEBUG] Продано: {ticker} {qty} @ {sell_price:.2f}")
+
+                            logger.debug(
+
+                                f"[DEBUG] Продано: {ticker} {qty} @ {sell_price:.2f} (PnL с комиссией: {pnl_with_commission:.2f})")
+
+                            # ✅ ТОЛЬКО ЭТОТ ВЫЗОВ (с actual_pnl)
+
+                            self._complete_rl_experience(ticker, sell_price, actual_pnl=pnl_with_commission)
 
                             # Записываем результат стратегии
+
                             if hasattr(self.model, 'record_strategy_outcome'):
                                 self.model.record_strategy_outcome(
+
                                     strategy_name=strategy,
+
                                     action='SELL',
-                                    pnl=(sell_price - pos['avg_price']) * qty,
+
+                                    pnl=pnl_with_commission,
+
                                     hold_time=time.time() - pos.get('buy_time', time.time())
+
                                 )
 
         logger.debug(f"[DEBUG] Всего исполнено сделок: {executed_count}")
@@ -425,7 +460,7 @@ class SmartPortfolioBroker:
 
         return is_priority
 
-    def _complete_rl_experience(self, ticker: str, exit_price: float):
+    def _complete_rl_experience(self, ticker: str, exit_price: float, actual_pnl: float = None):
         logger.debug(f"[DEBUG] Завершение RL опыта для {ticker} @ {exit_price}")
 
         print(f"\n🔍🔍🔍 _complete_rl_experience for {ticker}")
@@ -445,8 +480,12 @@ class SmartPortfolioBroker:
 
         for exp in self.pending_experiences:
             if exp['ticker'] == ticker and not exp['completed']:
-                # 1. Базовые расчеты
-                pnl = (exit_price - exp['entry_price']) * exp['quantity']
+                # Если передан actual_pnl - используем его (с комиссией)
+                if actual_pnl is not None:
+                    pnl = actual_pnl
+                else:
+                    # Старый расчет (без комиссии) - только для обратной совместимости
+                    pnl = (exit_price - exp['entry_price']) * exp['quantity']
                 hold_time = (time.time() - exp['entry_time']) / 3600
 
                 # 2. Создаем следующее базовое состояние (150)
@@ -553,7 +592,15 @@ class SmartPortfolioBroker:
                 exp['completed'] = True
                 print(f"   ✅ Опыт завершен")
                 logger.debug(f"RL опыт завершен: {ticker}, reward={reward:.3f}, pnl={pnl:.2f}")
+
+                # 💾 Принудительное сохранение каждые 3 опыта
+                if len(self.model.memory) % 3 == 0:
+                    print(f"💾 Сохраняем память после {len(self.model.memory)} опытов")
+                    self.model.save_memory()
+
                 break
+
+
 
         if not found:
             print(f"   ❌ ОПЫТ ДЛЯ {ticker} НЕ НАЙДЕН!")

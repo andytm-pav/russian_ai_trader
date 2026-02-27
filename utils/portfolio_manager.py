@@ -272,13 +272,13 @@ class PortfolioManager:
             logger.error(f"Ошибка покупки {ticker}: {e}")
             return False
 
-    def sell(self, ticker: str, quantity: int, price: float) -> bool:
-        """Продажа акций"""
+    def sell(self, ticker: str, quantity: int, price: float) -> Tuple[bool, float]:
+        """Продажа акций. Возвращает (успех, pnl)"""
         try:
             # Получение информации о бумаге из позиции
             if ticker not in self.positions:
                 logger.error(f"Нет позиции для продажи: {ticker}")
-                return False
+                return False, 0.0  # ✅ Tuple[bool, float]
 
             pos = self.positions[ticker]
             lot_size = pos.get('lot_size', 1)
@@ -289,42 +289,37 @@ class PortfolioManager:
                 quantity = (quantity // lot_size) * lot_size
                 if quantity == 0:
                     logger.error(f"После округления количество стало нулевым")
-                    return False
+                    return False, 0.0  # ✅ Tuple[bool, float]
                 logger.info(f"Количество скорректировано до {quantity}")
 
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
                 logger.error(f"Некорректные данные для продажи {ticker}: qty={quantity}, price={price}")
-                return False
+                return False, 0.0  # ✅ Tuple[bool, float]
 
             if quantity > pos['qty']:
                 logger.error(f"Недостаточно акций: нужно {quantity}, есть {pos['qty']}")
-                return False
+                return False, 0.0  # ✅ Tuple[bool, float]
 
-            # ✅ СНАЧАЛА рассчитываем revenue
+            # Расчет revenue и комиссии
             revenue = quantity * price
-
-            # ✅ ПОТОМ используем revenue для расчета комиссии
             estimated_commission = revenue * self.commission_rate
 
             # Расчет PnL
             entry_cost = quantity * pos['avg_price']
-            pnl = revenue - entry_cost
-            pnl_percent = (pnl / entry_cost * 100) if entry_cost > 0 else 0
+            pnl = revenue - entry_cost - estimated_commission  # ✅ PnL УЖЕ с комиссией!
 
             # Выполнение продажи
             if quantity == pos['qty']:
-                # Продажа всей позиции
                 del self.positions[ticker]
                 if strategy:
                     self.remove_strategy_from_tracker(ticker, strategy)
                 logger.debug(f"Закрыта позиция {ticker}")
             else:
-                # Частичная продажа
                 pos['qty'] -= quantity
                 logger.debug(f"Частичная продажа {ticker}: -{quantity}, осталось {pos['qty']}")
 
-            # Зачисление средств (с учетом комиссии)
+            # Зачисление средств
             self.cash += revenue
             self.reserved_cash += estimated_commission
 
@@ -338,7 +333,7 @@ class PortfolioManager:
                 'revenue': revenue,
                 'commission': estimated_commission,
                 'pnl': pnl,
-                'pnl_percent': pnl_percent,
+                'pnl_percent': (pnl / entry_cost * 100) if entry_cost > 0 else 0,
                 'cash_after': self.cash,
                 'reserved_after': self.reserved_cash,
                 'position_after': self.positions.get(ticker, {}).copy(),
@@ -346,7 +341,6 @@ class PortfolioManager:
             }
 
             self.trade_history.append(trade_record)
-
             self.daily_trades.append({
                 'timestamp': datetime.now().isoformat(),
                 'ticker': ticker,
@@ -362,10 +356,14 @@ class PortfolioManager:
             self.save_portfolio()
 
             logger.info(f"ПРОДАНО: {ticker} {quantity} @ {price:.2f} = {revenue:,.0f}₽, "
-                        f"комиссия: {estimated_commission:,.2f}₽, PnL: {pnl:+,.0f}₽ ({pnl_percent:+.1f}%), "
+                        f"комиссия: {estimated_commission:,.2f}₽, PnL: {pnl:+,.0f}₽ ({trade_record['pnl_percent']:+.1f}%), "
                         f"кэш: {self.cash:,.0f}₽, резерв: {self.reserved_cash:,.0f}₽")
 
-            return True
+            return True, pnl  # ✅ Tuple[bool, float]
+
+        except Exception as e:
+            logger.error(f"Ошибка продажи {ticker}: {e}")
+            return False, 0.0  # ✅ Tuple[bool, float]
 
         except Exception as e:
             logger.error(f"Ошибка продажи {ticker}: {e}")
