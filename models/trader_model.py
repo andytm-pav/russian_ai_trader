@@ -546,7 +546,7 @@ class AdvancedTraderModel:
             }
 
     def load_memory(self):
-        """Загрузка сериализованной памяти"""
+        """Загрузка сериализованной памяти в оба буфера"""
         config = self.memory_serialization_config
         file_path = config['memory_file']
 
@@ -565,11 +565,30 @@ class AdvancedTraderModel:
                 with open(file_path, 'rb') as f:
                     loaded_memory = pickle.load(f)
 
+            # ✅ Загружаем в обычную память
+            self.memory.clear()
             self.memory.extend(loaded_memory)
-            print(f"[TraderModel] Загружено {len(loaded_memory)} опытов из памяти")
+            print(f"[TraderModel] Загружено {len(loaded_memory)} опытов в memory")
+
+            # ✅ ПЕРЕСОЗДАЁМ prioritized_buffer
+            if hasattr(self, 'prioritized_buffer'):
+                # Создаём НОВЫЙ буфер
+                self.prioritized_buffer = PrioritizedReplayBuffer(
+                    max_size=self.memory.maxlen,
+                    alpha=0.6,
+                    beta=0.4
+                )
+
+                # Добавляем опыты по одному
+                for exp in loaded_memory:
+                    self.prioritized_buffer.add(exp, td_error=None)
+
+                print(f"[TraderModel] Загружено {self.prioritized_buffer.size} опытов в prioritized_buffer")
 
         except Exception as e:
             print(f"[TraderModel] Ошибка загрузки памяти: {e}")
+            import traceback
+            traceback.print_exc()
 
     def choose_action_with_strategy(self, state: torch.Tensor, ticker: str,
                                     price: float, market_context: Dict) -> Tuple[int, str, float]:
@@ -1216,23 +1235,18 @@ class AdvancedTraderModel:
             'timestamp': datetime.now().isoformat()
         }
 
-        # ✅ ВСЕГДА добавляем в memory
+        # ✅ 1. ВСЕГДА добавляем в обычную память
         self.memory.append(experience)
         print(f"   ✅ memory size: {len(self.memory)}")
 
-        # 🔥 ДИАГНОСТИКА prioritized_buffer
-        print(f"   hasattr prioritized_buffer: {hasattr(self, 'prioritized_buffer')}")
+        # ✅ 2. ВСЕГДА добавляем в prioritized_buffer (если он существует)
         if hasattr(self, 'prioritized_buffer'):
-            print(f"   prioritized_buffer is None: {self.prioritized_buffer is None}")
-            print(f"   prioritized_buffer exists, size before: {self.prioritized_buffer.size}")
-
-            if self.prioritized_buffer is not None:
-                self.prioritized_buffer.add(experience, td_error)
-                print(f"   ✅ Добавлено в prioritized_buffer, size after: {self.prioritized_buffer.size}")
-            else:
-                print(f"   ❌ prioritized_buffer is None!")
+            self.prioritized_buffer.add(experience, td_error)
+            logger.debug(f"   ✅ prioritized_buffer size: {self.prioritized_buffer.size}")
+            print(f"   ✅ prioritized_buffer size: {self.prioritized_buffer.size}")
         else:
-            print(f"   ❌ prioritized_buffer attribute MISSING!")
+            logger.debug(f"   ⚠️ prioritized_buffer не найден")
+            print(f"   ⚠️ prioritized_buffer не найден")
 
         # Автосохранение
         if (self.memory_serialization_config['enable_autosave'] and
@@ -1441,9 +1455,17 @@ class AdvancedTraderModel:
 
             self.policy_net.eval()
 
-            # Вычисляем TD-ошибки для обновления приоритетов
+            # ✅ ИСПРАВЛЕНО: добавляем .squeeze()
             with torch.no_grad():
-                td_errors = (target_values - current_values).cpu().numpy()
+                # Вычисляем разницу
+                td_errors = (target_values - current_values).detach().cpu().numpy()
+
+                # ГАРАНТИРОВАННО превращаем в одномерный массив чисел
+                td_errors = np.asarray(td_errors, dtype=np.float32).flatten()
+
+                # Проверка на всякий случай
+                print(f"td_errors shape: {td_errors.shape}, dtype: {td_errors.dtype}")
+                print(f"First few values: {td_errors[:5]}")
 
             # Обновляем приоритеты
             self.prioritized_buffer.update_priorities(indices, td_errors)
@@ -1452,6 +1474,8 @@ class AdvancedTraderModel:
 
         except Exception as e:
             print(f"[TraderModel] Ошибка приоритетного обучения: {e}")
+            import traceback
+            traceback.print_exc()
             self.policy_net.eval()
             return None
 
