@@ -175,6 +175,7 @@ class NewsEncoder(nn.Module):
 
         # Адаптивный слой для разных размерностей
         self.adaptor = nn.Linear(NEWS_EMBEDDING_DIM, input_dim) if input_dim != NEWS_EMBEDDING_DIM else nn.Identity()
+        self.learn_steps = 0
 
     def forward(self, x):
         x = self.adaptor(x)
@@ -225,6 +226,13 @@ class TradingPolicyNetwork(nn.Module):
             embed_dim=NEWS_ENCODED_DIM,
             num_heads=4,
             dropout=DROPOUT_RATE_1
+        )
+
+        # 🔥 НОВАЯ ГОЛОВА ДЛЯ ПРЕДСКАЗАНИЯ ЦЕНЫ
+        self.predictor = nn.Sequential(
+            nn.Linear(POLICY_HIDDEN_DIM_3, 64),
+            nn.ReLU(),
+            nn.Linear(64, 3)  # [падение, нейтрально, рост]
         )
 
     def forward(self, state, news_features=None):
@@ -296,7 +304,10 @@ class TradingPolicyNetwork(nn.Module):
         action_probs = self.action_net(state_features)
         state_value = self.value_net(state_features)
 
-        return action_probs, state_value
+        # 🔥 ПРЕДСКАЗАНИЕ ДВИЖЕНИЯ ЦЕНЫ
+        price_pred = self.predictor(state_features)
+
+        return action_probs, state_value, price_pred
 
 class AdvancedTraderModel:
     """Продвинутая модель трейдера с улучшенной архитектурой"""
@@ -441,6 +452,9 @@ class AdvancedTraderModel:
 
         # ✅ Загрузка RL конфига
         self.rl_config = self._load_rl_config()
+
+        self.learn_steps = 0
+        self.recent_losses = 0
 
 
         print(f"[TraderModel] Инициализирована на {self.device}")
@@ -613,7 +627,7 @@ class AdvancedTraderModel:
                 strategy_state = base_state
 
             with torch.no_grad():
-                action_probs, state_value = self.policy_net(strategy_state)
+                action_probs, state_value, price_pred = self.policy_net(strategy_state)
 
             # Модель учится на win_rate стратегий - это обратная связь от реальных результатов!
             perf = self.strategy_performance[strategy_name]
@@ -1126,7 +1140,7 @@ class AdvancedTraderModel:
         self.policy_net.eval()
 
         with torch.no_grad():
-            action_probs, state_value = self.policy_net(state.unsqueeze(0))
+            action_probs, state_value, price_pred = self.policy_net(state.unsqueeze(0))
 
         probs = action_probs.cpu().numpy().flatten()
 
@@ -1207,7 +1221,7 @@ class AdvancedTraderModel:
             with torch.no_grad():
                 if state.dim() == 1:
                     state = state.unsqueeze(0)
-                _, value = self.policy_net(state)
+                _, value, _ = self.policy_net(state)
                 return value.item()
         except Exception as e:
             print(f"[TraderModel] Ошибка get_state_value: {e}")
@@ -1256,20 +1270,20 @@ class AdvancedTraderModel:
             self.save_memory()
 
     def learn_from_experience(self, batch_size: int = DEFAULT_BATCH_SIZE):
-        """Обучение на опыте с БЕЗОПАСНОЙ ОБРАБОТКОЙ ДАННЫХ"""
+        """Обучение на опыте с предсказанием цены"""
         if len(self.memory) < max(batch_size * 2, MIN_EXPERIENCES_FOR_LEARNING):
             return None
 
         try:
-            # ✅ БЕЗОПАСНЫЙ ВЫБОР БАТЧА
+            # Выбор батча
             actual_batch_size = min(batch_size, len(self.memory) // 2)
-            if actual_batch_size < 4:  # Минимальный размер для обучения
+            if actual_batch_size < 4:
                 return None
 
             indices = np.random.choice(len(self.memory), actual_batch_size, replace=False)
             batch = [self.memory[i] for i in indices]
 
-            # ✅ БЕЗОПАСНАЯ ПОДГОТОВКА ДАННЫХ
+            # Подготовка данных
             try:
                 states = torch.stack([exp['state'] for exp in batch]).to(self.device)
                 actions = torch.LongTensor([exp['action'] for exp in batch]).to(self.device)
@@ -1280,58 +1294,57 @@ class AdvancedTraderModel:
                 print(f"[TraderModel] Ошибка подготовки батча: {e}")
                 return None
 
-            # ✅ БЕЗОПАСНАЯ ПОДГОТОВКА NEW_FEATURES
-            news_features_list = []
-            has_valid_news = True
-
-            for exp in batch:
-                if exp.get('news_features') is not None:
-                    news_features_list.append(exp['news_features'])
-                else:
-                    has_valid_news = False
-                    break
-
-            if has_valid_news and len(news_features_list) == len(batch):
+            # Подготовка новостей
+            news_features = None
+            has_valid_news = False
+            if batch[0].get('news_features') is not None:
                 try:
-                    news_features = torch.stack(news_features_list).to(self.device)
-                    # Проверяем размерность новостей
-                    if news_features.shape[-1] != NEWS_ENCODED_DIM:
-                        print(f"[TraderModel] Неверная размерность новостей: {news_features.shape}")
-                        news_features = None
-                        has_valid_news = False
-                except Exception as e:
-                    print(f"[TraderModel] Ошибка подготовки новостей: {e}")
-                    news_features = None
-                    has_valid_news = False
-            else:
-                news_features = None
-                has_valid_news = False
+                    news_features = torch.stack([exp['news_features'] for exp in batch]).to(self.device)
+                    if news_features.shape[-1] == NEWS_ENCODED_DIM:
+                        has_valid_news = True
+                except:
+                    pass
 
-            # Переключаем в режим обучения
+            # 🔥 ПОЛУЧАЕМ РЕАЛЬНЫЕ ИЗМЕНЕНИЯ ЦЕН
+            price_changes = []
+            for i, exp in enumerate(batch):
+                if 'next_price' in exp:
+                    price_change = (exp['next_price'] - exp['price']) / exp['price']
+                else:
+                    # Если нет сохранённой цены, используем reward как прокси
+                    price_change = rewards[i].item() / 100  # приблизительно
+
+                # Преобразуем в класс: 0=падение, 1=нейтрально, 2=рост
+                if price_change < -0.01:
+                    price_class = 0  # падение >1%
+                elif price_change > 0.01:
+                    price_class = 2  # рост >1%
+                else:
+                    price_class = 1  # нейтрально
+                price_changes.append(price_class)
+
+            price_targets = torch.LongTensor(price_changes).to(self.device)
+
+            # Обучение
             self.policy_net.train()
 
-            # ✅ БЕЗОПАСНЫЕ ПРЯМЫЕ ПРОХОДЫ
+            # Прямой проход
             try:
-                if has_valid_news and news_features is not None:
-                    current_probs, current_values = self.policy_net(states, news_features)
+                if has_valid_news:
+                    current_probs, current_values, price_pred = self.policy_net(states, news_features)
                 else:
-                    current_probs, current_values = self.policy_net(states)
+                    current_probs, current_values, price_pred = self.policy_net(states)
             except Exception as e:
                 print(f"[TraderModel] Ошибка прямого прохода: {e}")
                 self.policy_net.eval()
                 return None
 
-            # ✅ БЕЗОПАСНЫЕ СЛЕДУЮЩИЕ ОЦЕНКИ
-            try:
-                with torch.no_grad():
-                    if has_valid_news and news_features is not None:
-                        _, next_values = self.policy_net(next_states, news_features)
-                    else:
-                        _, next_values = self.policy_net(next_states)
-            except Exception as e:
-                print(f"[TraderModel] Ошибка следующего прохода: {e}")
-                self.policy_net.eval()
-                return None
+            # Следующие оценки
+            with torch.no_grad():
+                if has_valid_news:
+                    _, next_values, _ = self.policy_net(next_states, news_features)
+                else:
+                    _, next_values, _ = self.policy_net(next_states)
 
             # Целевые значения
             target_values = rewards + (1 - dones) * self.gamma * next_values
@@ -1340,43 +1353,38 @@ class AdvancedTraderModel:
             value_loss = nn.SmoothL1Loss()(current_values, target_values.detach())
 
             # Policy loss
-            try:
-                dist = torch.distributions.Categorical(current_probs)
-                log_probs = dist.log_prob(actions)
-            except Exception as e:
-                print(f"[TraderModel] Ошибка распределения: {e}")
-                self.policy_net.eval()
-                return None
-
+            dist = torch.distributions.Categorical(current_probs)
+            log_probs = dist.log_prob(actions)
             advantages = (target_values - current_values).detach()
             policy_loss = -(log_probs * advantages).mean()
 
-            # Entropy regularization
+            # Entropy
             entropy = dist.entropy().mean()
             entropy_bonus = ENTROPY_BONUS_COEFF * entropy
 
+            # 🔥 PRICE PREDICTION LOSS
+            price_loss = nn.CrossEntropyLoss()(price_pred, price_targets)
+
+            # Коэффициент для предсказания (можно настраивать)
+            PRICE_PREDICTION_WEIGHT = 0.1
+
             # Общий loss
-            total_loss = value_loss + policy_loss - entropy_bonus
+            total_loss = value_loss + policy_loss - entropy_bonus + PRICE_PREDICTION_WEIGHT * price_loss
 
             # Оптимизация
             self.policy_optimizer.zero_grad()
             total_loss.backward()
-
-            # Gradient clipping
             torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), GRADIENT_CLIP_VALUE)
-
             self.policy_optimizer.step()
 
-            # Возвращаем в eval режим
             self.policy_net.eval()
 
-            # ✅ ПЕРИОДИЧЕСКОЕ ОБУЧЕНИЕ ЭНКОДЕРА НОВОСТЕЙ (с защитой)
-            ENCODER_TRAIN_INTERVAL = 100
-            if len(self.memory) % ENCODER_TRAIN_INTERVAL == 0 and has_valid_news:
-                try:
-                    self._train_news_encoder(batch)
-                except Exception as e:
-                    print(f"[TraderModel] Ошибка обучения энкодера: {e}")
+            # Логирование accuracy предсказаний
+            with torch.no_grad():
+                predictions = price_pred.argmax(dim=1)
+                accuracy = (predictions == price_targets).float().mean().item()
+                if self.learn_steps % 10 == 0:
+                    print(f"[TraderModel] Price prediction accuracy: {accuracy:.2%}")
 
             return total_loss.item()
 
@@ -1384,6 +1392,7 @@ class AdvancedTraderModel:
             print(f"[TraderModel] Критическая ошибка обучения: {e}")
             import traceback
             print(traceback.format_exc())
+            self.policy_net.eval()
             return None
 
     def learn_from_prioritized(self, batch_size: int = DEFAULT_BATCH_SIZE):

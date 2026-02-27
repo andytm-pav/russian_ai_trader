@@ -318,6 +318,7 @@ class SmartPortfolioBroker:
                                           min_step=min_step,
                                           stop_loss=stop_loss,
                                           take_profit=take_profit):
+
                         # 5. Запись RL-опыта с сентиментом
                         self._record_rl_experience(
                             ticker=ticker,
@@ -339,43 +340,41 @@ class SmartPortfolioBroker:
                         logger.debug(f"[DEBUG] Куплено: {ticker} {quantity} @ {price:.2f}")
 
 
+
+
             elif action_str == 'SELL':
 
                 if ticker in self.portfolio.positions:
-
                     logger.debug(f"[DEBUG] Продажа {ticker}, есть позиция")
 
                     # Получаем параметры из позиции
-
                     pos = self.portfolio.positions[ticker]
-
                     pos_lot_size = pos.get('lot_size', 1)
-
                     pos_min_step = pos.get('min_step', 0.01)
 
-                    # Корректировка цены продажи
+                    # ✅ СОХРАНЯЕМ ДАННЫЕ ДО ПРОДАЖИ
+                    pos_info = {
+                        'avg_price': pos['avg_price'],
+                        'strategy': pos.get('strategy', 'balanced'),
+                        'lot_size': pos.get('lot_size', 1),
+                        'qty': pos['qty'],
+                        'buy_time': pos.get('buy_time', time.time())
+                    }
 
+                    # Корректировка цены продажи
                     sell_price = price
 
                     if pos_min_step > 0:
-
                         sell_price, price_adjusted = LotValidator.validate_and_adjust_price(price, pos_min_step)
 
                         if price_adjusted:
                             logger.debug(f"Цена продажи {ticker} скорректирована")
 
-                    # ❌ УДАЛИТЕ ЭТУ СТРОКУ:
-
-                    # self._complete_rl_experience(ticker, sell_price)
-
                     # Исполнение продажи
-
                     qty = pos['qty'] // 2 if pos['qty'] > 1 else pos['qty']
 
                     # Корректировка по лотности
-
                     if pos_lot_size > 1:
-
                         qty, qty_adjusted = LotValidator.validate_and_adjust_quantity(qty, pos_lot_size)
 
                         if qty_adjusted:
@@ -385,36 +384,30 @@ class SmartPortfolioBroker:
                             qty = pos_lot_size
 
                     if qty > 0:
-
                         success, pnl_with_commission = self.portfolio.sell(ticker, qty, sell_price)
 
                         if success:
-
                             strategy = pos.get('strategy', 'balanced')
-
                             executed_count += 1
-
                             logger.debug(
-
                                 f"[DEBUG] Продано: {ticker} {qty} @ {sell_price:.2f} (PnL с комиссией: {pnl_with_commission:.2f})")
 
-                            # ✅ ТОЛЬКО ЭТОТ ВЫЗОВ (с actual_pnl)
+                            # ✅ ПЕРЕДАЁМ pos_info В _complete_rl_experience!
 
-                            self._complete_rl_experience(ticker, sell_price, actual_pnl=pnl_with_commission)
+                            self._complete_rl_experience(
+                                ticker,
+                                sell_price,
+                                actual_pnl=pnl_with_commission,
+                                pos_info=pos_info  #
+                            )
 
                             # Записываем результат стратегии
-
                             if hasattr(self.model, 'record_strategy_outcome'):
                                 self.model.record_strategy_outcome(
-
                                     strategy_name=strategy,
-
                                     action='SELL',
-
                                     pnl=pnl_with_commission,
-
                                     hold_time=time.time() - pos.get('buy_time', time.time())
-
                                 )
 
         logger.debug(f"[DEBUG] Всего исполнено сделок: {executed_count}")
@@ -472,7 +465,7 @@ class SmartPortfolioBroker:
 
         return is_priority
 
-    def _complete_rl_experience(self, ticker: str, exit_price: float, actual_pnl: float = None):
+    def _complete_rl_experience(self, ticker: str, exit_price: float, actual_pnl: float = None, pos_info: dict = None):
         logger.debug(f"[DEBUG] Завершение RL опыта для {ticker} @ {exit_price}")
 
         print(f"\n🔍🔍🔍 _complete_rl_experience for {ticker}")
