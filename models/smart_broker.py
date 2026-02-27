@@ -559,7 +559,8 @@ class SmartPortfolioBroker:
                     next_state=full_next_state,  # ✅ 156
                     done=True,
                     news_features=None,
-                    td_error=td_error
+                    td_error=td_error,
+                    sentiment_data=exp.get('sentiment_data')
                 )
                 print(f"   ✅ remember_experience ВЫЗВАН")
 
@@ -573,7 +574,8 @@ class SmartPortfolioBroker:
                         next_state=full_next_state,  # ✅ 156
                         done=True,
                         news_features=None,
-                        td_error=td_error * 3  # 🔥 УСИЛЕННЫЙ ПРИОРИТЕТ
+                        td_error=td_error * 3, # 🔥 УСИЛЕННЫЙ ПРИОРИТЕТ
+                        sentiment_data=exp.get('sentiment_data')
                     )
                     logger.warning(f"🔥 КРИТИЧЕСКАЯ ОШИБКА: {ticker} - {critical_reason} (PnL: {pnl:.2f})")
 

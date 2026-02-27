@@ -1220,7 +1220,8 @@ class AdvancedTraderModel:
                             next_state: torch.Tensor,
                             done: bool,
                             news_features: Optional[torch.Tensor] = None,
-                            td_error: Optional[float] = None):
+                            td_error: Optional[float] = None,
+                            sentiment_data=None):
 
         print(f"\n🔥🔥🔥 remember_experience FIRED! 🔥🔥🔥")
         print(f"   state.shape: {state.shape}")
@@ -1232,6 +1233,7 @@ class AdvancedTraderModel:
             'next_state': next_state.cpu(),
             'done': done,
             'news_features': news_features.cpu() if news_features is not None else None,
+            'sentiment_data': sentiment_data,  # ✅ СОХРАНЯЕМ НОВОСТНОЙ САНТИМЕНТ
             'timestamp': datetime.now().isoformat()
         }
 
