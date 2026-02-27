@@ -282,12 +282,24 @@ class SmartPortfolioBroker:
 
                 # ✅ ПРОВЕРКА ЛОТНОСТИ
                 if lot_size > 1:
+                    original_quantity = quantity
                     quantity, qty_adjusted = LotValidator.validate_and_adjust_quantity(quantity, lot_size)
+
                     if qty_adjusted:
-                        logger.debug(f"Количество {ticker} скорректировано по лотности {lot_size}")
+                        logger.debug(
+                            f"Количество {ticker} скорректировано с {original_quantity} до {quantity} (лот: {lot_size})")
+
+                    # Если после корректировки 0, пробуем взять 1 лот
                     if quantity == 0:
-                        logger.error(f"После корректировки по лотности количество стало 0")
-                        continue
+                        # Проверяем, можем ли взять 1 лот
+                        one_lot_cost = lot_size * price
+                        if one_lot_cost <= self.portfolio.cash * 0.5:  # Не больше 50% кэша
+                            quantity = lot_size
+                            logger.debug(f"✋ Берем минимальный лот: {quantity} (стоимость: {one_lot_cost:.2f}₽)")
+                        else:
+                            logger.warning(
+                                f"❌ Недостаточно средств для 1 лота {ticker}: нужно {one_lot_cost:.2f}₽, есть {self.portfolio.cash:.2f}₽")
+                            continue
 
                 if quantity > 0:
                     # ✅ Получаем сентимент из оптимизированного фетчера
@@ -1136,7 +1148,8 @@ class SmartPortfolioBroker:
             clearing_liquidity_callback=self.check_clearing_liquidity,
             z0_deadline_callback=self.execute_z0_deadline,
             clearing_17_callback=self.process_clearing_17,
-            clearing_19_callback=self.process_clearing_19
+            clearing_19_callback=self.process_clearing_19,
+            commission_callback = self.process_pending_commissions
         )
 
         logger.info("SmartBroker: все компоненты инициализированы")

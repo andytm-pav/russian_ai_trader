@@ -443,7 +443,8 @@ class TradingScheduler:
                              clearing_liquidity_callback=None,
                              z0_deadline_callback=None,
                              clearing_17_callback=None,
-                             clearing_19_callback=None):
+                             clearing_19_callback=None,
+                             commission_callback=None):
         """Планирование ежедневных задач с поддержкой вечерней сессии"""
 
         # Читаем ВСЕ времена из конфига - никаких магических чисел!
@@ -530,6 +531,13 @@ class TradingScheduler:
                 lambda: self._execute_with_context(clearing_19_callback, "clearing_19")
             )
             logger.info(f"✅ Запланирован клиринг 19:00 на {clearing_19_time}")
+
+        # === СПИСАНИЕ КОМИССИЙ ===
+        if commission_callback:
+            schedule.every().day.at("14:00").do(
+                lambda: self._execute_with_context(commission_callback, "commission_charge")
+            )
+            logger.info(f"✅ Запланировано списание комиссий на 14:00 (T+1)")
 
         # === ЛОГИРОВАНИЕ (всегда активно) ===
         schedule.every().day.at(fixation).do(self._log_clearing_fixation)
