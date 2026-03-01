@@ -1132,7 +1132,7 @@ class AdvancedTraderModel:
 
             # Получаем оценку состояния для TD-error
             with torch.no_grad():
-                _, state_value = self.policy_net(state.unsqueeze(0))
+                _, state_value, _ = self.policy_net(state.unsqueeze(0))
 
             return action, confidence, state_value.item()
 
@@ -1431,13 +1431,13 @@ class AdvancedTraderModel:
 
             # Прямые проходы
             if news_features is not None:
-                current_probs, current_values = self.policy_net(states, news_features)
+                current_probs, current_values, price_pred = self.policy_net(states, news_features)
                 with torch.no_grad():
                     _, next_values = self.policy_net(next_states, news_features)
             else:
-                current_probs, current_values = self.policy_net(states)
+                current_probs, current_values, price_pred = self.policy_net(states)
                 with torch.no_grad():
-                    _, next_values = self.policy_net(next_states)
+                    _, next_values, _ = self.policy_net(next_states)
 
             # Целевые значения
             target_values = rewards + (1 - dones) * self.gamma * next_values
@@ -1517,16 +1517,16 @@ class AdvancedTraderModel:
 
             # Текущие оценки
             if has_news:
-                current_probs, current_values = self.policy_net(states, news_features)
+                current_probs, current_values, price_pred = self.policy_net(states, news_features)
             else:
-                current_probs, current_values = self.policy_net(states)
+                current_probs, current_values, price_pred = self.policy_net(states)
 
             # Следующие оценки (без градиентов)
             with torch.no_grad():
                 if has_news:
-                    _, next_values = self.policy_net(next_states, news_features)
+                    _, next_values, _ = self.policy_net(next_states, news_features)
                 else:
-                    _, next_values = self.policy_net(next_states)
+                    _, next_values, _ = self.policy_net(next_states)
 
             # Целевые значения
             target_values = rewards + (1 - dones) * self.gamma * next_values
