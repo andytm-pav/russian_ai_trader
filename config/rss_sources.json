@@ -1,4 +1,5 @@
 {
+    "use_ml_model": true,
     "sources": [
         {
             "name": "БизнессФМ",
@@ -232,7 +233,6 @@
         "max_workers": 5,
         "cache_ttl_seconds": 300,
         "sentiment_cache_ttl": 3600,
-        "use_ml_model": true,
         "sentiment_model": "mxlcw/rubert-tiny2-russian-financial-sentiment",
         "batch_size": 32,
         "use_ahocorasick": true,

@@ -455,6 +455,20 @@ class AdvancedTraderModel:
 
         self.learn_steps = 0
         self.recent_losses = 0
+        self.reward_scaling = self.rl_config.get('reward_scaling', 2.0)
+        self.price_change_threshold = self.rl_config.get('price_change_threshold', 0.01)
+        self.reward_clip_min = self.rl_config.get('reward_clip_min', -100)
+        self.reward_clip_max = self.rl_config.get('reward_clip_max', 100)
+        self.hold_time_deviation_penalty = self.rl_config.get('hold_time_deviation_penalty', 0.3)
+        self.max_hold_time_deviation = self.rl_config.get('max_hold_time_deviation', 0.5)
+        self.quick_trade_penalty = self.rl_config.get('quick_trade_penalty', 0.5)
+        self.good_profit_bonus = self.rl_config.get('good_profit_bonus', 1.0)
+        self.big_loss_penalty = self.rl_config.get('big_loss_penalty', 1.5)
+        self.small_profit_bonus = self.rl_config.get('small_profit_bonus', 0.2)
+        self.sentiment_positive_threshold = self.rl_config.get('sentiment_positive_threshold', 0.1)
+        self.sentiment_negative_threshold = self.rl_config.get('sentiment_negative_threshold', -0.1)
+        self.sentiment_positive_bonus_multiplier = self.rl_config.get('sentiment_positive_bonus_multiplier', 0.5)
+        self.sentiment_negative_bonus_multiplier = self.rl_config.get('sentiment_negative_bonus_multiplier', 0.3)
 
 
         print(f"[TraderModel] Инициализирована на {self.device}")
@@ -1240,6 +1254,10 @@ class AdvancedTraderModel:
         print(f"\n🔥🔥🔥 remember_experience FIRED! 🔥🔥🔥")
         print(f"   state.shape: {state.shape}")
 
+        if reward < self.reward_clip_min or reward > self.reward_clip_max:
+            logger.debug(f"Clipping reward from {reward} to [{self.reward_clip_min}, {self.reward_clip_max}]")
+            reward = max(self.reward_clip_min, min(self.reward_clip_max, reward))
+
         experience = {
             'state': state.cpu(),
             'action': action,
@@ -1312,16 +1330,19 @@ class AdvancedTraderModel:
                     price_change = (exp['next_price'] - exp['price']) / exp['price']
                 else:
                     # Если нет сохранённой цены, используем reward как прокси
-                    price_change = rewards[i].item() / 100  # приблизительно
+                    price_change = (exp['reward'] / self.reward_scaling)  # приблизительно
 
                 # Преобразуем в класс: 0=падение, 1=нейтрально, 2=рост
-                if price_change < -0.01:
-                    price_class = 0  # падение >1%
-                elif price_change > 0.01:
-                    price_class = 2  # рост >1%
+                if price_change < -self.price_change_threshold:
+                    price_class = 0  # падение
+                elif price_change > self.price_change_threshold:
+                    price_class = 2  # рост
                 else:
                     price_class = 1  # нейтрально
                 price_changes.append(price_class)
+                # pnl = exp['reward'] / self.reward_scaling
+                pnl_value = exp['reward'] / self.reward_scaling
+                logger.debug(f"PnL in batch: {pnl_value:.4f}")
 
             price_targets = torch.LongTensor(price_changes).to(self.device)
 
@@ -1635,20 +1656,15 @@ class AdvancedTraderModel:
 
         # ✅ УНИВЕРСАЛЬНЫЙ PnL РАСЧЕТ ДЛЯ ЛЮБОЙ ТОРГОВОЙ ЛОГИКИ
         if entry_price > 0 and exit_price > 0:
-            # Процентное изменение цены (работает для любых стратегий)
             price_change_ratio = (exit_price - entry_price) / entry_price
 
-            # Определяем PnL в зависимости от действия
             if action == 'BUY':
-                # Для покупки PnL будет рассчитан позже при продаже
-                # Но мы все равно фиксируем начальную сделку
                 pnl = 0.0
                 trade_return = 0.0
             elif action == 'SELL':
-                # Для продажи - это завершенная сделка
                 pnl = price_change_ratio
                 trade_return = price_change_ratio
-            else:  # HOLD или другие действия
+            else:
                 pnl = 0.0
                 trade_return = 0.0
         else:
@@ -1659,13 +1675,10 @@ class AdvancedTraderModel:
         stats = self.ticker_stats[ticker]
         stats['total_trades'] += 1
 
-        if action in ['SELL', 'CLOSE']:  # Только завершенные сделки
+        if action in ['SELL', 'CLOSE']:
             stats['total_pnl'] += pnl
-
             if pnl > 0:
                 stats['profitable_trades'] += 1
-
-            # Обновление среднего времени удержания
             if stats['total_trades'] == 1:
                 stats['avg_hold_time'] = hold_time
             else:
@@ -1676,7 +1689,7 @@ class AdvancedTraderModel:
         if stats['total_trades'] > 0:
             stats['success_rate'] = stats['profitable_trades'] / stats['total_trades']
         else:
-            stats['success_rate'] = 0.5  # Дефолт при отсутствии сделок
+            stats['success_rate'] = 0.5
 
         stats['last_trade'] = datetime.now().isoformat()
 
@@ -1684,12 +1697,9 @@ class AdvancedTraderModel:
         if strategy and action in ['SELL', 'CLOSE']:
             self.record_strategy_outcome(strategy, action, pnl, hold_time)
 
-        # ✅ ЗАПИСЬ ОШИБОК (значительные убытки)
-        SIGNIFICANT_LOSS_THRESHOLD = LOSS_THRESHOLD  # Используем константу из настроек
-
-        if pnl < SIGNIFICANT_LOSS_THRESHOLD and action in ['SELL', 'CLOSE']:
+        # ✅ ЗАПИСЬ ОШИБОК
+        if pnl < LOSS_THRESHOLD and action in ['SELL', 'CLOSE']:
             error_data = self.error_memory[ticker]
-
             trade_record = {
                 'date': datetime.now().isoformat(),
                 'action': action,
@@ -1701,67 +1711,44 @@ class AdvancedTraderModel:
                 'market_conditions': market_conditions,
                 'strategy': strategy
             }
-
             error_data['failed_trades'].append(trade_record)
             error_data['failure_count'] += 1
             error_data['last_failure'] = datetime.now().isoformat()
-
-            # Обновление среднего убытка
             if error_data['failed_trades']:
                 losses = [t['pnl'] for t in error_data['failed_trades']]
                 error_data['avg_loss'] = sum(losses) / len(losses)
-
-            # Обновление success rate в error memory
             error_data['success_rate'] = stats['success_rate']
             error_data['total_trades'] = stats['total_trades']
-
             print(f"[TraderModel] ⚠ Запомнена ошибка: {ticker} {action}, убыток {pnl:.2%}, стратегия: {strategy}")
 
-        # ✅ РАСЧЕТ НАГРАДЫ ДЛЯ ОБУЧЕНИЯ
-        # Используем константы из настроек
-        REWARD_SCALING = 20.0
-        HOLD_TIME_DEVIATION_PENALTY = 0.3
-        MAX_HOLD_TIME_DEVIATION = 0.5
-        QUICK_TRADE_PENALTY = 0.5
-        GOOD_PROFIT_BONUS = 1.0
-        BIG_LOSS_PENALTY = 1.5
-        SMALL_PROFIT_BONUS = 0.2
+        # ✅ РАСЧЕТ НАГРАДЫ - ИСПОЛЬЗУЕМ ПЕРЕМЕННЫЕ ИЗ КОНФИГА
+        reward = pnl
 
-        # Базовая награда
         if action in ['SELL', 'CLOSE']:
-            reward = pnl * REWARD_SCALING
-
-            # ✅ БОНУС ЗА ПРАВИЛЬНУЮ РЕАКЦИЮ НА РЫНОЧНОЕ НАСТРОЕНИЕ
-            # Если позитивная сделка на позитивном рынке - бонус
-            # Если убыточная на негативном рынке - меньший штраф
+            # Бонус за правильную реакцию на рыночное настроение
             sentiment_alignment_bonus = 0.0
-            if pnl > 0 and market_sentiment > 0.1:
-                sentiment_alignment_bonus = market_sentiment * 0.5
-            elif pnl < 0 and market_sentiment < -0.1:
-                sentiment_alignment_bonus = abs(market_sentiment) * 0.3
-
+            if pnl > 0 and market_sentiment > self.sentiment_positive_threshold:
+                sentiment_alignment_bonus = market_sentiment * self.sentiment_positive_bonus_multiplier
+            elif pnl < 0 and market_sentiment < self.sentiment_negative_threshold:
+                sentiment_alignment_bonus = abs(market_sentiment) * self.sentiment_negative_bonus_multiplier
             reward += sentiment_alignment_bonus
-
-
 
             # Учитываем стратегию в награде
             if strategy:
-                # Проверяем соответствует ли hold_time целевой стратегии
                 target_hold_time = self.strategies.get(strategy, {}).get('target_hold_time_hours', 6)
                 hold_time_diff = abs(hold_time - target_hold_time)
-
-                if hold_time_diff > target_hold_time * MAX_HOLD_TIME_DEVIATION:
-                    reward -= HOLD_TIME_DEVIATION_PENALTY * hold_time_diff / target_hold_time
+                if hold_time_diff > target_hold_time * self.max_hold_time_deviation:
+                    reward -= self.hold_time_deviation_penalty * hold_time_diff / target_hold_time
 
             # Бонусы/штрафы
             if hold_time < MIN_HOLD_TIME and abs(pnl) < SMALL_PROFIT:
-                reward -= QUICK_TRADE_PENALTY
+                reward -= self.quick_trade_penalty
             elif pnl > PROFIT_THRESHOLD:
-                reward += GOOD_PROFIT_BONUS
+                reward += self.good_profit_bonus
             elif pnl < LOSS_THRESHOLD:
-                reward -= BIG_LOSS_PENALTY
+                reward -= self.big_loss_penalty
             elif pnl > 0:
-                reward += SMALL_PROFIT_BONUS
+                reward += self.small_profit_bonus
         else:
             reward = 0.0
 

@@ -58,13 +58,13 @@
     "action_exploration_rate": 0.2
   },
   "sentiment_integration": {
-  "market_sentiment_weight": 0.3,
-  "ticker_sentiment_weight": 0.4,
-  "reward_sentiment_bonus": 0.5,
-  "min_news_for_market_sentiment": 10,
-  "sentiment_time_decay_hours": 24,
-  "high_impact_multiplier": 2.0,
-  "market_sentiment_cache_minutes": 5
+    "market_sentiment_weight": 0.3,
+    "ticker_sentiment_weight": 0.4,
+    "reward_sentiment_bonus": 0.5,
+    "min_news_for_market_sentiment": 10,
+    "sentiment_time_decay_hours": 24,
+    "high_impact_multiplier": 2.0,
+    "market_sentiment_cache_minutes": 5
   },
   "state_parameters": {
     "state_vector_size": 153,
@@ -88,5 +88,19 @@
     "memory_file": "models/saved_trader/memory_buffer.pkl",
     "max_memory_to_save": 5000,
     "compression": true
-  }
+  },
+  "reward_scaling": 2.0,
+  "price_change_threshold": 0.01,
+  "reward_clip_min": -100,
+  "reward_clip_max": 100,
+  "hold_time_deviation_penalty": 0.3,
+  "max_hold_time_deviation": 0.5,
+  "quick_trade_penalty": 0.5,
+  "good_profit_bonus": 1.0,
+  "big_loss_penalty": 1.5,
+  "small_profit_bonus": 0.2,
+  "sentiment_positive_threshold": 0.1,
+  "sentiment_negative_threshold": -0.1,
+  "sentiment_positive_bonus_multiplier": 0.5,
+  "sentiment_negative_bonus_multiplier": 0.3
 }
