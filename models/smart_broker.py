@@ -35,6 +35,8 @@ class SmartPortfolioBroker:
 
         # ✅ ИСПРАВЛЕНО: используем OptimizedNewsFetcher вместо RSSFetcher и NewsTraderCore
         self.news_fetcher = OptimizedNewsFetcher("config/rss_sources.json")
+        self.news_fetcher.get_last_news(limit=100)  # Прогрев кэша
+
 
         self.technical_core = TechnicalTraderCore()
         self.risk_manager = RiskManager()
@@ -60,6 +62,7 @@ class SmartPortfolioBroker:
         global logger
         # Инициализируем глобальный логгер с настройками
         logger = get_logger('SMART_BROKER')
+        logger.info(f"[SmartBroker] NewsFetcher инициализирован, статистика: {self.news_fetcher.stats}")
 
         # ✅ ИНИЦИАЛИЗАЦИЯ НОВЫХ КОНФИГОВ
         self.profit_config = settings.get("profit_optimization", {})
@@ -1137,12 +1140,27 @@ class SmartPortfolioBroker:
             import threading
             def background_fetch():
                 while True:
-                    self.news_fetcher.get_last_news(limit=100)
-                    time.sleep(300)  # Каждые 5 минут
+                    try:
+                        start_time = time.time()
+                        news = self.news_fetcher.get_last_news(limit=100)
+                        elapsed = time.time() - start_time
+
+                        if news:
+                            logger.debug(f"📰 Фоновый сбор: {len(news)} новостей за {elapsed:.1f}с")
+                        else:
+                            logger.warning("⚠️ Фоновый сбор: новостей нет")
+
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка фонового сбора: {e}")
+                        import traceback
+                        logger.error(traceback.format_exc())
+
+                    time.sleep(120)  # 2 минуты
 
             fetch_thread = threading.Thread(target=background_fetch, daemon=True)
             fetch_thread.start()
             logger.info("Запущен фоновый сбор новостей")
+            logger.info(f"📊 Текущая статистика NewsFetcher: {self.news_fetcher.stats}")
 
         # Загрузка состояния портфеля
         self._load_portfolio_state()
