@@ -563,8 +563,7 @@ class SmartPortfolioBroker:
                     td_error=td_error,
                     sentiment_data=exp.get('sentiment_data'),
                     pnl_rub = pnl_rub,  # ✅  рубли для лога
-                    pnl_percent = pnl_percent
-                )
+                    )
                 print(f"   ✅ remember_experience ВЫЗВАН")
 
                 # 9. 🔥 ДЛЯ КРИТИЧЕСКИХ ОШИБОК - ДУБЛИРУЕМ С ВЫСОКИМ ПРИОРИТЕТОМ
