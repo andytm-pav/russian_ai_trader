@@ -1203,7 +1203,7 @@ class AdvancedTraderModel:
             probs = probs / probs.sum()
 
         # 🔥 ДИНАМИЧЕСКАЯ EXPLORATION RATE
-        base_rate = 0.3
+        base_rate =  max(0.05, 0.3 * (1 - len(self.memory) / 2000))
 
         # Фактор количества позиций
         position_factor = 1.0
