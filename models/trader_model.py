@@ -613,10 +613,25 @@ class AdvancedTraderModel:
 
                 print(f"[TraderModel] Загружено {self.prioritized_buffer.size} опытов в prioritized_buffer")
 
+
+            # ПРОВЕРКА
+            if len(self.memory) > 0:
+                sample_size = min(100, len(self.memory))
+                rewards_sample = [self.memory[i]['reward'] for i in range(sample_size)]
+                avg_reward = sum(rewards_sample) / len(rewards_sample)
+                print(f"[TraderModel] 📊 Средний reward в памяти (первые {sample_size}): {avg_reward:.4f}")
+
+                if abs(avg_reward) > 1.0:
+                    print(f"[TraderModel] ⚠️ ВНИМАНИЕ: Reward выглядят аномально большими ({avg_reward:.2f})")
+                    print(f"[TraderModel]    Ожидаемый диапазон: -0.5 ... 0.5")
+
         except Exception as e:
             print(f"[TraderModel] Ошибка загрузки памяти: {e}")
             import traceback
             traceback.print_exc()
+
+
+
 
     def choose_action_with_strategy(self, state: torch.Tensor, ticker: str,
                                     price: float, market_context: Dict) -> Tuple[int, str, float]:
@@ -1263,6 +1278,7 @@ class AdvancedTraderModel:
             'state': state.cpu(),
             'action': action,
             'reward': reward,
+            'pnl_rub': pnl_rub,
             'next_state': next_state.cpu(),
             'done': done,
             'news_features': news_features.cpu() if news_features is not None else None,
@@ -1341,9 +1357,13 @@ class AdvancedTraderModel:
                 else:
                     price_class = 1  # нейтрально
                 price_changes.append(price_class)
-                # pnl = exp['reward'] / self.reward_scaling
-                pnl_value = exp['reward'] / self.reward_scaling
-                logger.debug(f"PnL in batch: {pnl_value:.4f}")
+
+                if 'pnl_rub' in exp:
+                    logger.debug(f"PnL in batch: {exp['pnl_rub']:.4f}₽")
+                else:
+                    # Для старых опытов без pnl_rub
+                    pnl_estimate = exp['reward'] / self.reward_scaling
+                    logger.debug(f"PnL in batch (approx): {pnl_estimate:.4f}")
 
             price_targets = torch.LongTensor(price_changes).to(self.device)
 

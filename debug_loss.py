@@ -1,87 +1,148 @@
 import json
 import numpy as np
+import torch
+from collections import deque
+import pickle
+import gzip
 
-# Ваши реальные данные из лога
-test_data = {
-    'td_errors': [-112.58, -161.28, -339.12, -235.34, -1038.44],
-    'pnl_values': [-45.42, -83.73, -193.45, -500.0, -397.41,
-                   -107.0, -50.0, -92.4, -12.49, -4.58,
-                   -63.72, -120.62, -147.82, -30.73, 10.54,
-                   -500.0, -39.6, -16.24, -125.37, 1.19,
-                   -50.0, -0.956, -9.91, -49.18, -91.94,
-                   -481.53, -50.0, -81.31, -33.96, -81.42,
-                   -78.21, -246.62],
-    'loss': -1123.116943,
-    'accuracy': 93.75,
-    'reward_scaling': 0.02  # из вашего конфига
-}
 
-print("=" * 60)
-print("ДИАГНОСТИКА ПРОБЛЕМЫ LOSS")
-print("=" * 60)
+def analyze_trader_model_problem(model_instance=None, memory_file="models/saved_trader/memory_buffer.pkl"):
+    """
+    Диагностика проблемы с loss в уже обученной модели
+    """
+    print("=" * 80)
+    print("ДИАГНОСТИКА ПРОБЛЕМЫ LOSS В ОБУЧЕННОЙ МОДЕЛИ")
+    print("=" * 80)
 
-# 1. Анализ PnL значений
-pnl_array = np.array(test_data['pnl_values'])
-print(f"\n1. АНАЛИЗ PnL В BATCH:")
-print(f"   Всего значений: {len(pnl_array)}")
-print(f"   Минимум: {pnl_array.min():.2f}")
-print(f"   Максимум: {pnl_array.max():.2f}")
-print(f"   Среднее: {pnl_array.mean():.2f}")
-print(f"   Медиана: {np.median(pnl_array):.2f}")
-print(f"   Стандартное отклонение: {pnl_array.std():.2f}")
+    # 1. Анализ конфигурации
+    print("\n1. ПРОВЕРКА КОНФИГУРАЦИИ:")
+    try:
+        with open("config/rl_config.json", "r") as f:
+            rl_config = json.load(f)
+            reward_scaling = rl_config.get('reward_scaling', 2.0)
+            print(f"   reward_scaling = {reward_scaling}")
 
-# 2. Проверка масштаба
-print(f"\n2. ПРОВЕРКА МАСШТАБА:")
-print(f"   95% значений между: {np.percentile(pnl_array, 2.5):.2f} и {np.percentile(pnl_array, 97.5):.2f}")
+            # Проверяем, что scaling соответствует масштабу
+            if reward_scaling > 1.0:
+                print(f"   ⚠️ ВНИМАНИЕ: reward_scaling > 1.0 ({reward_scaling})")
+                print(f"      Это может быть причиной больших td_errors")
+    except Exception as e:
+        print(f"   Ошибка загрузки конфига: {e}")
 
-# 3. Сравнение с td_errors
-td_array = np.array(test_data['td_errors'])
-print(f"\n3. СВЯЗЬ PnL И TD-ERRORS:")
-print(f"   Средний |td_error|: {np.abs(td_array).mean():.2f}")
-print(f"   Средний |pnl|: {np.abs(pnl_array).mean():.2f}")
-print(f"   Соотношение |td_error|/|pnl|: {np.abs(td_array).mean() / np.abs(pnl_array).mean():.2f}")
+    # 2. Загрузка и анализ памяти модели
+    print("\n2. АНАЛИЗ ПАМЯТИ МОДЕЛИ:")
+    try:
+        with gzip.open(memory_file, 'rb') as f:
+            memory = pickle.load(f)
 
-# 4. Что должно быть при правильном масштабе
-print(f"\n4. РАСЧЕТ ПРАВИЛЬНОГО МАСШТАБА:")
-# Предполагаем, что pnl_array - это рубли
-correct_pnl_percent = pnl_array / 1000  # допустим, средняя цена 1000₽
-correct_reward = correct_pnl_percent * test_data['reward_scaling']
-print(f"   Если pnl в рублях, то:")
-print(f"   Средний pln%: {correct_pnl_percent.mean() * 100:.2f}%")
-print(f"   Средний reward (правильный): {correct_reward.mean():.4f}")
-print(f"   Средний reward (сейчас в логе): {pnl_array.mean():.2f}")
+        print(f"   Всего опытов: {len(memory)}")
 
-# 5. Имитация обучения
-print(f"\n5. ИМИТАЦИЯ ОБУЧЕНИЯ:")
-# Создаем синтетические current_values (маленькие, т.к. сеть только учится)
-current_values = np.random.normal(0, 1, len(td_array)) * 10
-target_values = current_values + td_array
+        # Анализируем rewards
+        rewards = [exp['reward'] for exp in memory if 'reward' in exp]
+        if rewards:
+            rewards_array = np.array(rewards)
+            print(f"\n   Статистика reward (то, что хранится в памяти):")
+            print(f"     Минимум: {rewards_array.min():.4f}")
+            print(f"     Максимум: {rewards_array.max():.4f}")
+            print(f"     Среднее: {rewards_array.mean():.4f}")
+            print(f"     Медиана: {np.median(rewards_array):.4f}")
+            print(f"     Std: {rewards_array.std():.4f}")
 
-print(f"   current_values mean: {current_values.mean():.2f}")
-print(f"   target_values mean: {target_values.mean():.2f}")
-print(f"   Разница target-current: {(target_values - current_values).mean():.2f}")
+            # Проверяем масштаб reward
+            if abs(rewards_array.mean()) > 10:
+                print(f"   ⚠️ Reward СЛИШКОМ БОЛЬШИЕ (среднее > 10)")
+                print(f"      Должны быть в районе 0.xx (проценты)")
+            elif abs(rewards_array.mean()) < 0.01:
+                print(f"   ⚠️ Reward СЛИШКОМ МАЛЕНЬКИЕ (среднее < 0.01)")
+                print(f"      Возможно, scaling слишком маленький")
 
-# 6. Диагностика
-print(f"\n6. ВЫВОД:")
-if np.abs(td_array).mean() > 100:
-    print("   🔴 TD-ERRORS СЛИШКОМ БОЛЬШИЕ (>100)")
-    print("      Причина: rewards (pnl * scaling) дают огромные значения")
+        # Ищем pnl_rub в опытах
+        pnl_rub_found = sum(1 for exp in memory if 'pnl_rub' in exp)
+        print(f"\n   Опытов с pnl_rub: {pnl_rub_found}/{len(memory)}")
 
-if np.abs(pnl_array).mean() > 50:
-    print("   🔴 PnL В БАТЧЕ СЛИШКОМ БОЛЬШИЕ (>50)")
-    print("      Это точно РУБЛИ, а не ПРОЦЕНТЫ!")
-    print("      Нужно делить на цену акции или использовать price_change_ratio")
+        if pnl_rub_found > 0:
+            pnl_rub = [exp['pnl_rub'] for exp in memory if 'pnl_rub' in exp]
+            pnl_rub_array = np.array(pnl_rub)
+            print(f"\n   Статистика pnl_rub (реальные рубли):")
+            print(f"     Минимум: {pnl_rub_array.min():.2f}₽")
+            print(f"     Максимум: {pnl_rub_array.max():.2f}₽")
+            print(f"     Среднее: {pnl_rub_array.mean():.2f}₽")
+            print(f"     Медиана: {np.median(pnl_rub_array):.2f}₽")
 
-if test_data['loss'] < 0:
-    print("   🔴 LOSS ОТРИЦАТЕЛЬНЫЙ")
-    print("      Entropy bonus перевешивает основные компоненты loss")
+    except Exception as e:
+        print(f"   Ошибка загрузки памяти: {e}")
 
-print("\n" + "=" * 60)
-print("РЕКОМЕНДАЦИИ:")
-print("=" * 60)
-print("""
-1. В remember_experience СОХРАНЯЙТЕ и reward (проценты) и pnl_abs (рубли)
-2. В learn_from_experience ИСПОЛЬЗУЙТЕ price_change_ratio для классов цены
-3. УБЕДИТЕСЬ что pnl в процентах (0.xx), а не в рублях (100.500)
-4. Добавьте НОРМАЛИЗАЦИЮ target_values: target_values = target_values / 100
-""")
+    # 3. Анализ одного батча для понимания расчета loss
+    print("\n3. ИМИТАЦИЯ РАСЧЕТА LOSS:")
+
+    # Создаем синтетические данные, похожие на реальные
+    np.random.seed(42)
+    batch_size = 32
+
+    # Вариант А: reward в процентах (как должно быть)
+    rewards_percent = np.random.normal(-0.02, 0.1, batch_size)  # средний убыток 2%
+    print(f"\n   Вариант А (reward в ПРОЦЕНТАХ):")
+    print(f"     rewards mean: {rewards_percent.mean():.4f}")
+    print(f"     rewards std: {rewards_percent.std():.4f}")
+
+    # Вариант Б: reward в рублях (как сейчас в логе)
+    rewards_rub = np.random.normal(-100, 150, batch_size)  # средний убыток 100₽
+    print(f"\n   Вариант Б (reward в РУБЛЯХ - как в вашем логе):")
+    print(f"     rewards mean: {rewards_rub.mean():.2f}")
+    print(f"     rewards std: {rewards_rub.std():.2f}")
+
+    # Имитация current_values (то, что предсказывает сеть)
+    current_values = np.random.normal(0, 10, batch_size)
+
+    # Расчет target_values и td_errors для обоих вариантов
+    gamma = 0.95
+    next_values = np.random.normal(0, 10, batch_size)
+
+    print(f"\n   СРАВНЕНИЕ TD-ERRORS:")
+
+    # Для процентов
+    target_percent = rewards_percent + gamma * next_values
+    td_percent = target_percent - current_values
+    print(f"\n   При reward в ПРОЦЕНТАХ:")
+    print(f"     target_values mean: {target_percent.mean():.4f}")
+    print(f"     td_errors mean: {td_percent.mean():.4f}")
+    print(f"     |td_errors| mean: {np.abs(td_percent).mean():.4f}")
+
+    # Для рублей
+    target_rub = rewards_rub + gamma * next_values
+    td_rub = target_rub - current_values
+    print(f"\n   При reward в РУБЛЯХ (как сейчас):")
+    print(f"     target_values mean: {target_rub.mean():.2f}")
+    print(f"     td_errors mean: {td_rub.mean():.2f}")
+    print(f"     |td_errors| mean: {np.abs(td_rub).mean():.2f}")
+
+    # 4. Масштабирование для исправления
+    print("\n4. РЕКОМЕНДУЕМОЕ МАСШТАБИРОВАНИЕ:")
+
+    # Вычисляем правильный scaling на основе текущих данных
+    if pnl_rub_found > 0:
+        avg_pnl_rub = np.abs(pnl_rub_array).mean()
+        desired_reward_scale = 0.1  # хотим reward порядка 0.1
+        recommended_scaling = desired_reward_scale / avg_pnl_rub if avg_pnl_rub > 0 else 0.001
+
+        print(f"   Средний |PnL| в рублях: {avg_pnl_rub:.2f}₽")
+        print(f"   Желаемый масштаб reward: {desired_reward_scale}")
+        print(f"   Рекомендуемый reward_scaling: {recommended_scaling:.6f}")
+        print(f"   (текущий: {reward_scaling if 'reward_scaling' in locals() else 'неизвестно'})")
+
+    print("\n" + "=" * 80)
+    print("ВЫВОД:")
+    print("=" * 80)
+
+    print("""
+    1. Проблема: reward в памяти модели хранятся в НЕПРАВИЛЬНОМ масштабе
+    2. Решение: Нужно пересохранить память с правильным scaling
+    3. Действия:
+       a) Установить reward_scaling = 0.001 в конфиге
+       b) Переобучить модель с новым scaling
+       c) Либо написать скрипт для пересчета существующей памяти
+    """)
+
+
+if __name__ == "__main__":
+    analyze_trader_model_problem()

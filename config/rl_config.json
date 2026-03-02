@@ -89,10 +89,10 @@
     "max_memory_to_save": 5000,
     "compression": true
   },
-  "reward_scaling": 2.0,
+  "reward_scaling": 0.001,
   "price_change_threshold": 0.01,
-  "reward_clip_min": -100,
-  "reward_clip_max": 100,
+  "reward_clip_min": -10,
+  "reward_clip_max": 10,
   "hold_time_deviation_penalty": 0.3,
   "max_hold_time_deviation": 0.5,
   "quick_trade_penalty": 0.5,
