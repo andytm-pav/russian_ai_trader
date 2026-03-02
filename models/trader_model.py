@@ -1249,7 +1249,8 @@ class AdvancedTraderModel:
                             done: bool,
                             news_features: Optional[torch.Tensor] = None,
                             td_error: Optional[float] = None,
-                            sentiment_data=None):
+                            sentiment_data=None,
+                            pnl_rub: float = 0.0):
 
         print(f"\n🔥🔥🔥 remember_experience FIRED! 🔥🔥🔥")
         print(f"   state.shape: {state.shape}")
@@ -1752,7 +1753,7 @@ class AdvancedTraderModel:
         else:
             reward = 0.0
 
-        return reward, pnl
+        return reward, price_change_ratio
 
     def rank_candidates(self,
                         prices: Dict[str, float],

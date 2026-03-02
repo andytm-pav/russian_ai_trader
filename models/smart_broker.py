@@ -545,6 +545,14 @@ class SmartPortfolioBroker:
 
                 print(f"   🔥 ВЫЗЫВАЕМ remember_experience!")
 
+                # Рассчитываем PnL в процентах перед вызовом
+                entry_price = exp['entry_price']
+                if entry_price > 0:
+                    pnl_percent = (exit_price - entry_price) / entry_price  # ✅ проценты
+                else:
+                    pnl_percent = 0.0
+                pnl_rub = pnl
+
                 self.model.remember_experience(
                     state=full_start_state,  # ✅ 156
                     action=exp['action'],
@@ -553,7 +561,9 @@ class SmartPortfolioBroker:
                     done=True,
                     news_features=None,
                     td_error=td_error,
-                    sentiment_data=exp.get('sentiment_data')
+                    sentiment_data=exp.get('sentiment_data'),
+                    pnl_rub = pnl_rub,  # ✅ ДОБАВИТЬ - рубли для лога
+                    pnl_percent = pnl_percent
                 )
                 print(f"   ✅ remember_experience ВЫЗВАН")
 
@@ -568,13 +578,16 @@ class SmartPortfolioBroker:
                         done=True,
                         news_features=None,
                         td_error=td_error * 3, # 🔥 УСИЛЕННЫЙ ПРИОРИТЕТ
-                        sentiment_data=exp.get('sentiment_data')
+                        sentiment_data=exp.get('sentiment_data'),
+                        pnl_rub=pnl_rub,  # рубли для лога
+                        pnl_percent=pnl_percent # проценты для лога
                     )
                     logger.warning(f"🔥 КРИТИЧЕСКАЯ ОШИБКА: {ticker} - {critical_reason} (PnL: {pnl:.2f})")
 
                 # 10. Запись в модель для статистики
                 if 'sentiment_data' in exp:
                     market_sentiment = self._get_market_sentiment()
+
 
                     self.model.record_trade_outcome(
                         ticker=ticker,
@@ -587,7 +600,8 @@ class SmartPortfolioBroker:
                             'strategy': exp['strategy'],
                             'confidence': exp.get('confidence', 0.5),
                             'reward': reward,
-                            'pnl': pnl,
+                            'pnl': pnl_percent,
+                            'pnl_rub': pnl,
                             'market_sentiment': market_sentiment,
                             'is_critical': is_critical,
                             'critical_reason': critical_reason
