@@ -358,6 +358,8 @@ class AdvancedTraderModel:
         # Загрузка BERT для русского языка
         self.bert_model, self.bert_tokenizer = self._load_bert_model()
 
+
+
         # ✅ АВТОКОРРЕКЦИЯ РАЗМЕРНОСТИ
         global NEWS_EMBEDDING_DIM
         if self.bert_model is not None:
@@ -470,6 +472,23 @@ class AdvancedTraderModel:
         self.sentiment_positive_bonus_multiplier = self.rl_config.get('sentiment_positive_bonus_multiplier', 0.5)
         self.sentiment_negative_bonus_multiplier = self.rl_config.get('sentiment_negative_bonus_multiplier', 0.3)
 
+        # с rl_config:
+        self.learning_rate = self.rl_config.get('learning_rate', 0.0005)
+        self.gamma = self.rl_config.get('gamma', 0.95)
+        self.batch_size = self.rl_config.get('batch_size', 32)
+        self.target_update_interval = self.rl_config.get('target_update_interval', 100)
+        self.tau = self.rl_config.get('tau', 0.005)
+
+        # ✅ ПАРАМЕТРЫ РИСКА
+        risk_config = self.rl_config.get('risk_calculation', {})
+        self.failure_penalty_rate = risk_config.get('failure_penalty_rate', 0.08)
+        self.max_failure_penalty = risk_config.get('max_failure_penalty', 0.8)
+        self.loss_penalty_multiplier = risk_config.get('loss_penalty_multiplier', 1.5)
+        self.max_loss_penalty = risk_config.get('max_loss_penalty', 0.6)
+        self.success_bonus_rate = risk_config.get('success_bonus_rate', 0.3)
+        self.base_sentiment_factor = risk_config.get('base_sentiment_factor', 1.2)
+        self.volatility_multiplier = risk_config.get('volatility_multiplier', 0.4)
+        self.base_volatility_factor = risk_config.get('base_volatility_factor', 0.8)
 
         print(f"[TraderModel] Инициализирована на {self.device}")
         print(f"[TraderModel] Статистика: {len(self.error_memory)} тикеров, "
@@ -533,7 +552,14 @@ class AdvancedTraderModel:
         """Загрузка RL конфига"""
         try:
             with open("config/rl_config.json", "r", encoding="utf-8") as f:
-                return json.load(f)
+                config = json.load(f)
+                # Проверка наличия обязательных параметров
+                required_params = ['reward_scaling', 'price_change_threshold']
+                for param in required_params:
+                    if param not in config:
+                        print(
+                            f"[TraderModel] ⚠ ВНИМАНИЕ: {param} отсутствует в конфиге, используется значение по умолчанию")
+                return config
         except Exception as e:
             print(f"[TraderModel] ⚠ Ошибка загрузки RL конфига: {e}")
             return {}
@@ -976,31 +1002,27 @@ class AdvancedTraderModel:
         error_data = self.error_memory[ticker]
         stats = self.ticker_stats[ticker]
 
-        # Параметры расчета риска
-        FAILURE_PENALTY_RATE = 0.08
-        MAX_FAILURE_PENALTY = 0.8
-        LOSS_PENALTY_MULTIPLIER = 1.5
-        MAX_LOSS_PENALTY = 0.6
-        SUCCESS_BONUS_RATE = 0.3
-        BASE_SENTIMENT_FACTOR = 1.2
-        VOLATILITY_MULTIPLIER = 0.4
-        BASE_VOLATILITY_FACTOR = 0.8
-
-        # Базовый риск
+        # ✅ ТЕПЕРЬ ИСПОЛЬЗУЕМ ПАРАМЕТРЫ ИЗ КОНФИГА
         if error_data['failure_count'] == 0:
-            base_risk = RISK_BASE
+            base_risk = RISK_BASE  # это оставляем, RISK_BASE из констант
         else:
-            failure_penalty = min(error_data['failure_count'] * FAILURE_PENALTY_RATE, MAX_FAILURE_PENALTY)
-            loss_penalty = min(abs(error_data['avg_loss']) * LOSS_PENALTY_MULTIPLIER, MAX_LOSS_PENALTY)
-            success_bonus = max(stats['success_rate'] - 0.5, 0) * SUCCESS_BONUS_RATE
+            failure_penalty = min(
+                error_data['failure_count'] * self.failure_penalty_rate,
+                self.max_failure_penalty
+            )
+            loss_penalty = min(
+                abs(error_data['avg_loss']) * self.loss_penalty_multiplier,
+                self.max_loss_penalty
+            )
+            success_bonus = max(stats['success_rate'] - 0.5, 0) * self.success_bonus_rate
 
             base_risk = RISK_BASE + failure_penalty + loss_penalty - success_bonus
 
         # Корректировка на сентимент
-        sentiment_factor = BASE_SENTIMENT_FACTOR - abs(sentiment)
+        sentiment_factor = self.base_sentiment_factor - abs(sentiment)
 
         # Корректировка на волатильность рынка
-        volatility_factor = BASE_VOLATILITY_FACTOR + (self.volatility_index * VOLATILITY_MULTIPLIER)
+        volatility_factor = self.base_volatility_factor + (self.volatility_index * self.volatility_multiplier)
 
         final_risk = base_risk * sentiment_factor * volatility_factor
 
@@ -1203,7 +1225,7 @@ class AdvancedTraderModel:
             probs = probs / probs.sum()
 
         # 🔥 ДИНАМИЧЕСКАЯ EXPLORATION RATE
-        base_rate =  max(0.05, 0.3 * (1 - len(self.memory) / 2000))
+        base_rate = self.exploration_rate
 
         # Фактор количества позиций
         position_factor = 1.0
@@ -1270,6 +1292,10 @@ class AdvancedTraderModel:
         print(f"\n🔥🔥🔥 remember_experience FIRED! 🔥🔥🔥")
         print(f"   state.shape: {state.shape}")
 
+        if np.isnan(reward) or np.isinf(reward):
+            logger.error(f"⚠️ Обнаружен NaN/Inf reward: {reward}")
+            reward = 0.0
+
         if reward < self.reward_clip_min or reward > self.reward_clip_max:
             logger.debug(f"Clipping reward from {reward} to [{self.reward_clip_min}, {self.reward_clip_max}]")
             reward = max(self.reward_clip_min, min(self.reward_clip_max, reward))
@@ -1303,6 +1329,8 @@ class AdvancedTraderModel:
         if (self.memory_serialization_config['enable_autosave'] and
                 len(self.memory) % self.memory_serialization_config['autosave_interval'] == 0):
             self.save_memory()
+
+
 
     def learn_from_experience(self, batch_size: int = DEFAULT_BATCH_SIZE):
         """Обучение на опыте с предсказанием цены"""
@@ -1345,9 +1373,11 @@ class AdvancedTraderModel:
             for i, exp in enumerate(batch):
                 if 'next_price' in exp:
                     price_change = (exp['next_price'] - exp['price']) / exp['price']
+                elif 'pnl_rub' in exp and 'entry_price' in exp:
+                    # Если есть pnl_rub, но нет next_price, используем его для приближения
+                    price_change = exp['pnl_rub'] / exp['entry_price'] / 100  # приблизительно
                 else:
-                    # Если нет сохранённой цены, используем reward как прокси
-                    price_change = (exp['reward'] / self.reward_scaling)  # приблизительно
+                    price_change = exp['reward'] / self.reward_scaling
 
                 # Преобразуем в класс: 0=падение, 1=нейтрально, 2=рост
                 if price_change < -self.price_change_threshold:
@@ -1408,7 +1438,8 @@ class AdvancedTraderModel:
             price_loss = nn.CrossEntropyLoss()(price_pred, price_targets)
 
             # Коэффициент для предсказания (можно настраивать)
-            PRICE_PREDICTION_WEIGHT = 0.1
+            PRICE_PREDICTION_WEIGHT = self.rl_config.get('price_prediction_weight', 0.1)
+
 
             # Общий loss
             total_loss = value_loss + policy_loss - entropy_bonus + PRICE_PREDICTION_WEIGHT * price_loss
