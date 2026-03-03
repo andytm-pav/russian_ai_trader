@@ -2083,7 +2083,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": -0.04662696231044438,
+  "market_sentiment": -0.053907803324594064,
   "sentiment_history": [
     0.030761904761904758,
     0.05844761904761904,
@@ -2102,10 +2102,11 @@
     -0.0053566348046851404,
     -0.024812388387823736,
     -0.041978259286804404,
-    -0.04662696231044438
+    -0.04662696231044438,
+    -0.053907803324594064
   ],
-  "volatility_index": 0.7905368676374288,
-  "memory_size": 309,
+  "volatility_index": 0.7992306208854606,
+  "memory_size": 306,
   "total_experiences": 0,
   "strategy_performance": {
     "news_aggressive": {
@@ -6954,8 +6955,8 @@
       "tech_weight": 0.2,
       "risk_multiplier": 0.5,
       "target_hold_time_hours": 24,
-      "stop_loss_percent": 3.581073735274858,
-      "take_profit_percent": 7.162147470549716,
+      "stop_loss_percent": 3.598461241770921,
+      "take_profit_percent": 7.196922483541842,
       "max_positions": 2,
       "conditions": {
         "min_confidence": 0.75,
@@ -6970,8 +6971,8 @@
       "tech_weight": 0.8,
       "risk_multiplier": 0.5,
       "target_hold_time_hours": 24,
-      "stop_loss_percent": 3.581073735274858,
-      "take_profit_percent": 7.162147470549716,
+      "stop_loss_percent": 3.598461241770921,
+      "take_profit_percent": 7.196922483541842,
       "max_positions": 3,
       "conditions": {
         "min_confidence": 0.65,
@@ -6986,8 +6987,8 @@
       "tech_weight": 0.5,
       "risk_multiplier": 0.5,
       "target_hold_time_hours": 24,
-      "stop_loss_percent": 3.581073735274858,
-      "take_profit_percent": 7.162147470549716,
+      "stop_loss_percent": 3.598461241770921,
+      "take_profit_percent": 7.196922483541842,
       "max_positions": 4,
       "conditions": {
         "min_confidence": 0.7,
@@ -7001,8 +7002,8 @@
       "tech_weight": 0.7,
       "risk_multiplier": 0.5,
       "target_hold_time_hours": 24,
-      "stop_loss_percent": 3.581073735274858,
-      "take_profit_percent": 7.162147470549716,
+      "stop_loss_percent": 3.598461241770921,
+      "take_profit_percent": 7.196922483541842,
       "max_positions": 5,
       "conditions": {
         "min_confidence": 0.6,
@@ -7012,5 +7013,5 @@
       }
     }
   },
-  "save_time": "2026-03-03T19:32:53.398029"
+  "save_time": "2026-03-03T19:44:45.709667"
 }
