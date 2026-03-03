@@ -1755,12 +1755,12 @@
       "last_trade": null
     },
     "CNRU": {
-      "total_trades": 3,
+      "total_trades": 4,
       "profitable_trades": 2,
       "total_pnl": -0.00785377551650851,
-      "avg_hold_time": 6.700306001813324,
-      "success_rate": 0.6666666666666666,
-      "last_trade": "2026-03-01T19:38:23.502310"
+      "avg_hold_time": 5.464374018096262,
+      "success_rate": 0.5,
+      "last_trade": "2026-03-03T19:07:49.594735"
     },
     "TGKA": {
       "total_trades": 1,
@@ -2105,7 +2105,7 @@
     -0.04662696231044438
   ],
   "volatility_index": 0.7905368676374288,
-  "memory_size": 307,
+  "memory_size": 309,
   "total_experiences": 0,
   "strategy_performance": {
     "news_aggressive": {
@@ -2116,11 +2116,11 @@
       "win_rate": 0.25
     },
     "tech_conservative": {
-      "total_trades": 436,
+      "total_trades": 438,
       "profitable_trades": 197,
-      "total_pnl": -216.6486001964572,
-      "avg_pnl": -0.49690045916618625,
-      "win_rate": 0.4518348623853211
+      "total_pnl": -218.40060019645722,
+      "avg_pnl": -0.49863150729784755,
+      "win_rate": 0.4497716894977169
     },
     "balanced": {
       "total_trades": 50,
@@ -6929,6 +6929,22 @@
       "hold_time": 7184.426157712936,
       "win_rate": 0.4518348623853211,
       "timestamp": "2026-03-03T18:56:49.365024"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0,
+      "hold_time": 1.756578066945076,
+      "win_rate": 0.45080091533180777,
+      "timestamp": "2026-03-03T19:07:49.594750"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -1.752,
+      "hold_time": 6324.123502969742,
+      "win_rate": 0.4497716894977169,
+      "timestamp": "2026-03-03T19:07:49.595160"
     }
   ],
   "strategies": {
@@ -6996,5 +7012,5 @@
       }
     }
   },
-  "save_time": "2026-03-03T19:02:43.917112"
+  "save_time": "2026-03-03T19:32:53.398029"
 }

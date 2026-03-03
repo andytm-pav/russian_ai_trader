@@ -185,8 +185,11 @@ class PortfolioManager:
             total_required = cost + estimated_commission
 
             # ✅ 3. ЕДИНСТВЕННАЯ проверка доступности средств
-            if total_required > self.cash:
-                logger.error(f"Недостаточно средств: нужно {total_required:,.0f}₽, есть {self.cash:,.0f}₽")
+            available_cash = self.cash - self.reserved_cash
+            if total_required > available_cash:
+                logger.error(f"Недостаточно средств: нужно {total_required:,.0f}₽, "
+                             f"доступно {available_cash:,.0f}₽ (cash: {self.cash:,.0f}₽, "
+                             f"резерв: {self.reserved_cash:,.0f}₽)")
                 return False
 
             # Выполнение покупки
