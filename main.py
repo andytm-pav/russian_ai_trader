@@ -58,7 +58,8 @@ def main():
     scheduler = TradingScheduler()
 
     # 2. Инициализация SmartBroker
-    broker = SmartPortfolioBroker(settings)
+    broker = SmartPortfolioBroker(settings, scheduler)
+
 
     # 3. Запуск веб-сервера в отдельном потоке
     web_thread = threading.Thread(
@@ -106,6 +107,8 @@ def main():
 
     # Graceful shutdown
     logger.info("Завершение работы...")
+    broker.shutdown()  # ✅ вызываем shutdown broker
+    logger.info("Работа завершена")
 
     # Сохранение состояния
     try:

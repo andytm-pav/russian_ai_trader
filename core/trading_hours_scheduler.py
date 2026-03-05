@@ -56,6 +56,12 @@ class TradingScheduler:
 
         date_str = check_date.strftime('%Y-%m-%d')
 
+        # --- СБРОС КЭША  ---
+        if self.today_cache is not None and self.today_cache != date_str:
+            # logger.debug(f"is_trading_day: смена даты {self.today_cache} -> {date_str}")
+            self.today_cache = None
+            self.is_trading_day_cache = None
+
         # Проверка кэша
         if self.today_cache == date_str and self.is_trading_day_cache is not None:
             return self.is_trading_day_cache
@@ -134,6 +140,14 @@ class TradingScheduler:
         """Проверка, идет ли сейчас торговая сессия"""
         if check_datetime is None:
             check_datetime = datetime.now(self.moscow_tz)
+
+        # --- Принудительный сброс кэша при смене дня ---
+        #current_date_str = check_datetime.strftime('%Y-%m-%d')
+        #if self.today_cache is not None and self.today_cache != current_date_str:
+        #    # Дата изменилась, сбрасываем кэш
+        #    logger.debug(f"Смена даты: {self.today_cache} -> {current_date_str}. Сброс кэша.")
+        #    self.today_cache = None
+        #    self.is_trading_day_cache = None
 
         # Проверка дня
         if not self.is_trading_day(check_datetime):

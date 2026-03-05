@@ -28,20 +28,29 @@ logger = None
 class SmartPortfolioBroker:
     """Умный брокер с интеграцией всех торговых ядер"""
 
-    def __init__(self, settings: Dict):
+    def __init__(self, settings: Dict, scheduler: TradingScheduler = None):
         self.rl_config = None
         self.settings = settings
         self.moex = MoexFetcher()
 
-        # ✅ ИСПРАВЛЕНО: используем OptimizedNewsFetcher вместо RSSFetcher и NewsTraderCore
+        from core.core_technical_trader import TechnicalTraderCore
+        self.technical_core = TechnicalTraderCore()
+
+        # ✅ используем переданный scheduler или создаем новый
+        if scheduler:
+            self.scheduler = scheduler
+        else:
+            self.scheduler = TradingScheduler()
+
+        # ✅ используем OptimizedNewsFetcher вместо RSSFetcher и NewsTraderCore
         self.news_fetcher = OptimizedNewsFetcher("config/rss_sources.json")
         self.news_fetcher.get_last_news(limit=100)  # Прогрев кэша
 
 
-        self.technical_core = TechnicalTraderCore()
+        # self.technical_core = TechnicalTraderCore()
         self.risk_manager = RiskManager()
         self.scheduler = TradingScheduler()
-        self.auction_mode = False
+
 
         self.auction_mode = False
         self.portfolio = PortfolioManager()
@@ -582,7 +591,7 @@ class SmartPortfolioBroker:
                         td_error=td_error * 3, # 🔥 УСИЛЕННЫЙ ПРИОРИТЕТ
                         sentiment_data=exp.get('sentiment_data'),
                         pnl_rub=pnl_rub,  # рубли для лога
-                        pnl_percent=pnl_percent # проценты для лога
+                        # pnl_percent=pnl_percent # проценты для лога
                     )
                     logger.warning(f"🔥 КРИТИЧЕСКАЯ ОШИБКА: {ticker} - {critical_reason} (PnL: {pnl:.2f})")
 
@@ -1189,6 +1198,9 @@ class SmartPortfolioBroker:
                 self.portfolio.positions = state.get('positions', {})
                 self.portfolio.cash = state.get('cash', self.settings["initial_capital_rub"])
 
+                self.portfolio.reserved_cash = state.get('reserved_cash', 0)
+                self.portfolio.pending_commissions = state.get('pending_commissions', [])
+
                 for ticker, pos in self.portfolio.positions.items():
                     if 'buy_time' not in pos:
                         pos['buy_time'] = time.time()
@@ -1208,7 +1220,9 @@ class SmartPortfolioBroker:
                 'cash': self.portfolio.cash,
                 'positions': self.portfolio.positions,
                 'last_update': datetime.now().isoformat(),
-                'initial_capital': self.settings["initial_capital_rub"]
+                'initial_capital': self.settings["initial_capital_rub"],
+                'reserved_cash': getattr(self.portfolio, 'reserved_cash', 0),
+                'pending_commissions': getattr(self.portfolio, 'pending_commissions', [])
             }
 
             with open('data/portfolio_state.json', 'w', encoding='utf-8') as f:

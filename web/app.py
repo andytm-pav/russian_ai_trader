@@ -750,7 +750,7 @@ def update_dashboard(n_intervals, refresh_clicks):
         system_status = "АКТИВНА" if broker_instance.trading_enabled else "ПАУЗА"
 
         # Статус рынка
-        market_status = "Рынок открыт" if session_info.get('is_trading_time') else "Рынок закрыт"
+        market_status = "Рынок открыт" if session_info.get('is_trading_time', False) else "Рынок закрыт"
 
         # Капитал
         total_value = summary.get('total_value', 0)
