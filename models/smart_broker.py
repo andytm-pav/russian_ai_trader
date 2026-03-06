@@ -304,7 +304,7 @@ class SmartPortfolioBroker:
 
         executed_count = 0
 
-        for signal in signals[:5]:  # Обрабатываем только топ-5 сигналов
+        for signal in all_signals_with_horizon[:5]:  # Обрабатываем только топ-5 сигналов
             ticker = signal['ticker']
             action_str = signal['action']  # 'BUY', 'SELL'
             confidence = signal['confidence']

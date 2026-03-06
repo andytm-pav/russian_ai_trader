@@ -282,8 +282,15 @@ class RiskManager:
                 max_positions = self.config.get('max_positions', 10)
                 current_positions = len(self.portfolio_state.get('positions', {}))
 
-                if ticker not in self.portfolio_state.get('positions', {}) and current_positions >= max_positions:
-                    logger.warning(f"Достигнут лимит позиций: {current_positions}/{max_positions}")
+                # ✅ ВСЕГДА проверяем, даже если это существующая позиция
+                if current_positions >= max_positions:
+                    # Если это новая позиция - блокируем
+                    if ticker not in self.portfolio_state.get('positions', {}):
+                        logger.warning(f"Достигнут лимит позиций: {current_positions}/{max_positions}")
+                        return False
+                    # Если это существующая позиция - разрешаем докупку (уже в лимите)
+                    else:
+                        logger.debug(f"Докупка существующей позиции {ticker} (всего позиций: {current_positions})")
                     return False
 
                 # 2. ПРОВЕРКА МАКСИМАЛЬНОГО ВЕСА ПОЗИЦИИ (из конфига)
