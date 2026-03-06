@@ -748,81 +748,73 @@ class SmartPortfolioBroker:
         self.pending_experiences = [exp for exp in self.pending_experiences if not exp['completed']]
 
     def _calculate_reward(self, pnl: float, hold_time: float, strategy: str) -> float:
-
-        global logger
-
-        """
-        ЕДИНАЯ функция награды, объединяющая оба подхода
-        """
         global logger
         if logger is None:
             from utils.logger import get_logger
             logger = get_logger('SMART_BROKER')
 
-        # 1. Получаем параметры из конфига
-        reward_calc = self.rl_config.get("reward_calculation", {})
-        base_reward_multiplier = reward_calc.get("base_reward_multiplier", 100.0)
-        speed_bonus_multiplier = reward_calc.get("speed_bonus_multiplier", 50.0)
-        time_penalty_multiplier = reward_calc.get("time_penalty_multiplier", 200.0)
+        # 1. Получаем параметры из конфига profit_optimization
+        profit_config = self.profit_config  # уже загружен в __init__
+
+        # Загружаем множители (с дефолтами для обратной совместимости)
+        base_multiplier = profit_config.get('base_reward_multiplier', 1.0)  # было 100.0
+        speed_bonus_mult = profit_config.get('speed_bonus_multiplier', 0.5)  # было 50.0
+        time_penalty_mult = profit_config.get('time_penalty_multiplier', 2.0)  # было 200.0
+        concentration_penalty = profit_config.get('concentration_penalty', 5.0)  # штраф за позиции
+        patience_bonus_mult = profit_config.get('patience_bonus_multiplier', 0.3)
 
         # 2. Параметры стратегии
         strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
         target_time = strategy_params.get('target_hold_time_hours', 6)
 
-        # 3. БАЗОВАЯ НАГРАДА ЗА ПРИБЫЛЬ
-        base_reward = pnl * base_reward_multiplier
+        # 3. БАЗОВАЯ НАГРАДА ЗА ПРИБЫЛЬ (теперь 1x вместо 100x)
+        base_reward = pnl * base_multiplier
 
-        # 4. БОНУС/ШТРАФ ЗА СКОРОСТЬ (объединенная логика)
+        # 4. БОНУС/ШТРАФ ЗА СКОРОСТЬ
         if pnl > 0:
-            # Прибыль: чем быстрее, тем лучше (НО не скальпинг)
-            if hold_time < 0.25:  # меньше 15 минут - это скальпинг
-                speed_component = -abs(pnl) * 2  # штраф за скальпинг
+            if hold_time < 0.25:  # скальпинг
+                speed_component = -abs(pnl) * 0.5  # маленький штраф
                 logger.debug(f"⚠️ Штраф за скальпинг: {speed_component:.2f}")
             else:
-                # Нормальная быстрая прибыль - бонус
                 speed_ratio = max(0, (target_time - hold_time) / target_time)
-                speed_component = speed_ratio * speed_bonus_multiplier
+                speed_component = speed_ratio * speed_bonus_mult
                 logger.debug(f"🏆 Бонус за быструю прибыль: {speed_component:.2f}")
         else:
-            # Убыток: чем быстрее, тем лучше (меньше убыток)
             if hold_time < 0.25:
-                # Быстрый убыток - меньший штраф
-                speed_component = abs(pnl) * speed_bonus_multiplier * 0.5
+                speed_component = abs(pnl) * 0.3  # меньший штраф за быстрый убыток
                 logger.debug(f"✅ Быстрый убыток (меньший штраф): {speed_component:.2f}")
             else:
-                # Долгий убыток - большой штраф
-                speed_component = -abs(pnl) * time_penalty_multiplier
+                speed_component = -abs(pnl) * time_penalty_mult
                 logger.debug(f"⚠️ Штраф за долгий убыток: {speed_component:.2f}")
 
         # 5. ШТРАФ ЗА КОНЦЕНТРАЦИЮ
-        concentration_penalty = 0
+        concentration_penalty_val = 0
         if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'positions'):
             positions_count = len(self.portfolio.positions)
             if positions_count > 5:
-                concentration_penalty = -10 * (positions_count - 5)
-                logger.debug(f"⚠️ Штраф за концентрацию ({positions_count} позиций): {concentration_penalty:.2f}")
+                concentration_penalty_val = -concentration_penalty * (positions_count - 5)
+                logger.debug(f"⚠️ Штраф за концентрацию ({positions_count} позиций): {concentration_penalty_val:.2f}")
 
-        # 6. БОНУС ЗА ТЕРПЕНИЕ (для долгих прибыльных)
+        # 6. БОНУС ЗА ТЕРПЕНИЕ
         patience_bonus = 0
         if pnl > 0 and hold_time > target_time * 2:
-            patience_bonus = pnl * 30
+            patience_bonus = pnl * patience_bonus_mult
             logger.debug(f"🏆 Бонус за терпение: {patience_bonus:.2f}")
 
-        # 7. Объединяем все компоненты
-        pre_multiplier_reward = (base_reward + speed_component +
-                                 concentration_penalty + patience_bonus)
+        # 7. Объединяем
+        pre_multiplier_reward = base_reward + speed_component + concentration_penalty_val + patience_bonus
 
         # 8. Применяем стратегический множитель
         final_reward = pre_multiplier_reward * strategy_params.get('risk_multiplier', 1.0)
 
         # 9. Лимиты из конфига
-        max_reward = self.max_reward
-        min_reward = self.min_reward
+        max_reward = profit_config.get('max_reward', 10.0)
+        min_reward = profit_config.get('min_reward', -10.0)
         limited_reward = max(min_reward, min(max_reward, final_reward))
 
         logger.debug(f"Reward расчет: pnl={pnl:.2f}, hold={hold_time:.2f}ч, "
                      f"base={base_reward:.2f}, speed={speed_component:.2f}, "
-                     f"concentration={concentration_penalty:.2f}, patience={patience_bonus:.2f}, "
+                     f"concentration={concentration_penalty_val:.2f}, patience={patience_bonus:.2f}, "
                      f"strategy_mult={strategy_params.get('risk_multiplier', 1.0):.2f}, "
                      f"final={limited_reward:.2f}")
 

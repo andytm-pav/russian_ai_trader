@@ -1578,12 +1578,12 @@
       "last_trade": null
     },
     "DATA": {
-      "total_trades": 22,
+      "total_trades": 23,
       "profitable_trades": 14,
-      "total_pnl": -0.011177205454281944,
-      "avg_hold_time": 5.483705770903163,
-      "success_rate": 0.6363636363636364,
-      "last_trade": "2026-03-06T22:06:01.032828"
+      "total_pnl": -0.012676675641482523,
+      "avg_hold_time": 5.3235642781464945,
+      "success_rate": 0.6086956521739131,
+      "last_trade": "2026-03-06T23:35:08.597103"
     },
     "RNFT": {
       "total_trades": 39,
@@ -1770,12 +1770,12 @@
       "last_trade": "2026-03-06T17:43:35.437286"
     },
     "RUAL": {
-      "total_trades": 10,
+      "total_trades": 11,
       "profitable_trades": 4,
-      "total_pnl": -0.0020194145469614884,
-      "avg_hold_time": 1.2078518105281724,
-      "success_rate": 0.4,
-      "last_trade": "2026-03-06T22:06:01.814436"
+      "total_pnl": -0.0022464808503220245,
+      "avg_hold_time": 1.2307258683142035,
+      "success_rate": 0.36363636363636365,
+      "last_trade": "2026-03-06T23:30:35.017119"
     },
     "MGNT": {
       "total_trades": 0,
@@ -2338,12 +2338,12 @@
       "last_trade": null
     },
     "SVETP": {
-      "total_trades": 6,
+      "total_trades": 7,
       "profitable_trades": 5,
-      "total_pnl": 0.022409022658276403,
-      "avg_hold_time": 4.382852629533521,
-      "success_rate": 0.8333333333333334,
-      "last_trade": "2026-03-06T22:05:56.874859"
+      "total_pnl": 0.014974078420358215,
+      "avg_hold_time": 4.264146602040246,
+      "success_rate": 0.7142857142857143,
+      "last_trade": "2026-03-06T23:15:47.476245"
     },
     "BLNG": {
       "total_trades": 0,
@@ -2362,7 +2362,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": -0.0690400606547189,
+  "market_sentiment": -0.06297330976791761,
   "sentiment_history": [
     0.030761904761904758,
     0.05844761904761904,
@@ -2392,10 +2392,12 @@
     -0.07961616395090747,
     -0.06751978237875467,
     -0.07350765576013726,
-    -0.0690400606547189
+    -0.0690400606547189,
+    -0.06667164703215078,
+    -0.06297330976791761
   ],
-  "volatility_index": 0.7624347307833907,
-  "memory_size": 703,
+  "volatility_index": 0.7700163712178449,
+  "memory_size": 706,
   "total_experiences": 5,
   "strategy_performance": {
     "news_aggressive": {
@@ -2406,11 +2408,11 @@
       "win_rate": 0.3018867924528302
     },
     "tech_conservative": {
-      "total_trades": 935,
+      "total_trades": 941,
       "profitable_trades": 421,
-      "total_pnl": -471.29004790257085,
-      "avg_pnl": -0.5040535271685249,
-      "win_rate": 0.4502673796791444
+      "total_pnl": -476.1430730104899,
+      "avg_pnl": -0.505996889490425,
+      "win_rate": 0.44739638682252925
     },
     "balanced": {
       "total_trades": 91,
@@ -2420,11 +2422,11 @@
       "win_rate": 0.3516483516483517
     },
     "momentum": {
-      "total_trades": 83,
+      "total_trades": 85,
       "profitable_trades": 21,
-      "total_pnl": -90.61391609174771,
-      "avg_pnl": -1.0917339288162375,
-      "win_rate": 0.25301204819277107
+      "total_pnl": -91.46165103598562,
+      "avg_pnl": -1.076019423952772,
+      "win_rate": 0.24705882352941178
     }
   },
   "strategy_memory": [
@@ -12147,6 +12149,70 @@
       "hold_time": 0.06164238923125797,
       "win_rate": 0.4502673796791444,
       "timestamp": "2026-03-06T23:03:00.660310"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -1.0459499999999944,
+      "hold_time": 16725.970203638077,
+      "win_rate": 0.4497863247863248,
+      "timestamp": "2026-03-06T23:15:16.937543"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": -0.007434944237918188,
+      "hold_time": 3.551910437080595,
+      "win_rate": 0.25,
+      "timestamp": "2026-03-06T23:15:47.476270"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": -0.8402999999999944,
+      "hold_time": 12787.018768072128,
+      "win_rate": 0.24705882352941178,
+      "timestamp": "2026-03-06T23:15:47.476864"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.00022706630336053612,
+      "hold_time": 1.4594664461745157,
+      "win_rate": 0.44930629669156885,
+      "timestamp": "2026-03-06T23:30:35.017142"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -1.4208999999999659,
+      "hold_time": 5254.562413692474,
+      "win_rate": 0.4488272921108742,
+      "timestamp": "2026-03-06T23:30:35.373627"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -1.4208999999999659,
+      "hold_time": 5315.617639780045,
+      "win_rate": 0.4483493077742279,
+      "timestamp": "2026-03-06T23:31:36.428847"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.0014994701872005792,
+      "hold_time": 1.800451437499788,
+      "win_rate": 0.4478723404255319,
+      "timestamp": "2026-03-06T23:35:08.597118"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.9635485714285836,
+      "hold_time": 6481.738456487656,
+      "win_rate": 0.44739638682252925,
+      "timestamp": "2026-03-06T23:35:08.597505"
     }
   ],
   "strategies": {
@@ -12156,8 +12222,8 @@
       "tech_weight": 0.2,
       "risk_multiplier": 0.5,
       "target_hold_time_hours": 24,
-      "stop_loss_percent": 3.5248694615667815,
-      "take_profit_percent": 7.049738923133563,
+      "stop_loss_percent": 3.54003274243569,
+      "take_profit_percent": 7.08006548487138,
       "max_positions": 2,
       "conditions": {
         "min_confidence": 0.75,
@@ -12172,8 +12238,8 @@
       "tech_weight": 0.8,
       "risk_multiplier": 0.5,
       "target_hold_time_hours": 24,
-      "stop_loss_percent": 3.5248694615667815,
-      "take_profit_percent": 7.049738923133563,
+      "stop_loss_percent": 3.54003274243569,
+      "take_profit_percent": 7.08006548487138,
       "max_positions": 3,
       "conditions": {
         "min_confidence": 0.65,
@@ -12188,8 +12254,8 @@
       "tech_weight": 0.5,
       "risk_multiplier": 0.5,
       "target_hold_time_hours": 24,
-      "stop_loss_percent": 3.5248694615667815,
-      "take_profit_percent": 7.049738923133563,
+      "stop_loss_percent": 3.54003274243569,
+      "take_profit_percent": 7.08006548487138,
       "max_positions": 4,
       "conditions": {
         "min_confidence": 0.7,
@@ -12203,8 +12269,8 @@
       "tech_weight": 0.7,
       "risk_multiplier": 0.5,
       "target_hold_time_hours": 24,
-      "stop_loss_percent": 3.5248694615667815,
-      "take_profit_percent": 7.049738923133563,
+      "stop_loss_percent": 3.54003274243569,
+      "take_profit_percent": 7.08006548487138,
       "max_positions": 5,
       "conditions": {
         "min_confidence": 0.6,
@@ -12214,5 +12280,5 @@
       }
     }
   },
-  "save_time": "2026-03-06T23:03:01.316766"
+  "save_time": "2026-03-06T23:40:25.027356"
 }
