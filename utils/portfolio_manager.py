@@ -151,7 +151,7 @@ class PortfolioManager:
             logger.error(f"Ошибка сохранения портфеля: {e}")
             return False
 
-    def buy(self, ticker: str, quantity: int, price: float, strategy: str = None, **kwargs) -> bool:
+    def buy(self, ticker: str, quantity: int, price: float, strategy: str = None, time_horizon: str = 'balanced', **kwargs) -> bool:
         """Покупка акций с указанием стратегии"""
         try:
             # Получение информации о бумаге
@@ -206,6 +206,9 @@ class PortfolioManager:
                 if strategy and 'strategy' not in pos:
                     pos['strategy'] = strategy
 
+                if time_horizon and 'time_horizon' not in pos:
+                    pos['time_horizon'] = time_horizon
+
                 if kwargs:
                     for key, value in kwargs.items():
                         pos[key] = value
@@ -217,7 +220,8 @@ class PortfolioManager:
                     'qty': quantity,
                     'avg_price': price,
                     'buy_time': time.time(),
-                    'total_cost': cost
+                    'total_cost': cost,
+                    'time_horizon': time_horizon
                 }
 
                 if strategy:

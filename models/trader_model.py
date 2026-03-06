@@ -495,6 +495,21 @@ class AdvancedTraderModel:
               f"{len(self.memory)} опытов, sentiment={self.market_sentiment:.3f}")
         print(f"[TraderModel] Размерность состояния: {self.policy_net.state_dim}")
 
+    def get_price_pred_probs(self, price_pred):
+        """Универсальное получение вероятностей из price_pred"""
+        if price_pred.dim() == 1:
+            # Вектор (3,)
+            return torch.softmax(price_pred, dim=0).cpu().numpy()
+        elif price_pred.dim() == 2 and price_pred.shape[0] == 1:
+            # Матрица (1,3)
+            return torch.softmax(price_pred, dim=1).cpu().numpy()[0]
+        elif price_pred.dim() == 2:
+            # Батч (batch_size, 3)
+            return torch.softmax(price_pred, dim=1).cpu().numpy()
+        else:
+            logger.error(f"Неожиданная размерность price_pred: {price_pred.shape}")
+            return np.array([0.33, 0.34, 0.33])  # fallback
+
     def _load_strategy_config(self, config_path: str = "config/strategies.json") -> Dict:
 
         """Загрузка конфигурации стратегий"""
@@ -683,6 +698,15 @@ class AdvancedTraderModel:
 
             with torch.no_grad():
                 action_probs, state_value, price_pred = self.policy_net(strategy_state)
+
+                # Логирование предсказания цены (каждые 10 вызовов для экономии логов)
+                if np.random.random() < 0.1:  # 10% вызовов
+                    pred_probs = self.get_price_pred_probs(price_pred)
+                    logger.debug(f"📈 Предсказание цены {ticker}: "
+                                 f"падение={pred_probs[0]:.2f}, "
+                                 f"нейтрально={pred_probs[1]:.2f}, "
+                                 f"рост={pred_probs[2]:.2f}")
+
 
             # Модель учится на win_rate стратегий - это обратная связь от реальных результатов!
             perf = self.strategy_performance[strategy_name]

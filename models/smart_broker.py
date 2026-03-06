@@ -120,6 +120,70 @@ class SmartPortfolioBroker:
         self.pending_experiences = []  # Опыты для обучения
         self.strategy_tracker = defaultdict(list)  # История стратегий по тикерам
 
+    def _allocate_by_time_horizon(self, signals: List[Dict]) -> Dict[str, List[Dict]]:
+        """Распределение сигналов по временным горизонтам на основе предсказаний модели"""
+        horizons = self.settings.get('time_horizons', {})
+
+        # Маппинг стратегий на временные горизонты
+        strategy_to_horizon = {
+            'news_aggressive': 'day_session',  # агрессивные новости - быстрые сделки
+            'momentum': 'day_session',  # моментум - тоже быстрые
+            'balanced': 'three_days',  # сбалансированные - средний срок
+            'tech_conservative': 'week'  # консервативные - долгий срок
+        }
+
+        allocation = {
+            'day_session': [],
+            'three_days': [],
+            'week': []
+        }
+
+        if not signals:
+            return allocation
+
+        for signal in signals:
+            ticker = signal['ticker']
+            strategy = signal.get('strategy', 'balanced')  # стратегия из сигнала
+
+            if ticker in self.ticker_states:
+                state = self.ticker_states[ticker]
+
+                with torch.no_grad():
+                    _, _, price_pred = self.model.policy_net(state.unsqueeze(0))
+                    pred_probs = self.model.get_price_pred_probs(price_pred)
+
+                    # Используем pred_probs для определения горизонта
+                    if pred_probs[2] > 0.6:
+                        horizon = 'day_session'
+                    elif pred_probs[2] > 0.4 or pred_probs[1] > 0.5:
+                        horizon = 'three_days'
+                    else:
+                        horizon = 'week'
+            else:
+                # Для новых тикеров используем маппинг на основе стратегии
+                horizon = strategy_to_horizon.get(strategy, 'week')
+
+            signal['horizon'] = horizon
+            signal['assigned_horizon'] = horizon  # для обратной совместимости
+
+            # Добавляем в соответствующий список
+            if horizon in allocation:
+                allocation[horizon].append(signal)
+            else:
+                # Если горизонт не найден, используем week как fallback
+                logger.warning(f"Неизвестный горизонт {horizon} для {ticker}, использую week")
+                allocation['week'].append(signal)
+
+        # Ограничиваем количество сигналов согласно весам
+        for horizon, config in horizons.items():
+            if horizon in allocation:
+                max_signals = int(len(signals) * config.get('weight', 0.33))
+                allocation[horizon] = allocation[horizon][:max_signals]
+                logger.debug(f"Горизонт {horizon}: {len(allocation[horizon])} сигналов (max={max_signals})")
+
+        return allocation
+
+
     def _load_rl_config(self) -> Dict:
         """Загрузка RL конфига"""
         try:
@@ -225,6 +289,17 @@ class SmartPortfolioBroker:
     def _execute_trading_decisions(self, signals: List[Dict],
                                    prices: Dict[str, float], securities: Dict):
         """Исполнение торговых решений с RL и учетом лотности"""
+
+        # Распределяем сигналы по временным горизонтам
+        allocated_signals = self._allocate_by_time_horizon(signals)
+
+        # Объединяем все сигналы с их горизонтами
+        all_signals_with_horizon = []
+        for horizon, sig_list in allocated_signals.items():
+            for sig in sig_list:
+                sig['assigned_horizon'] = horizon
+                all_signals_with_horizon.append(sig)
+
         logger.debug(f"[DEBUG] Исполнение {len(signals)} сигналов")
 
         executed_count = 0
@@ -233,6 +308,7 @@ class SmartPortfolioBroker:
             ticker = signal['ticker']
             action_str = signal['action']  # 'BUY', 'SELL'
             confidence = signal['confidence']
+            horizon = signal.get('assigned_horizon', 'balanced')
 
             if ticker not in prices or ticker not in securities:
                 continue
@@ -266,7 +342,8 @@ class SmartPortfolioBroker:
             if action_str == 'BUY':
                 # 2. Выбор стратегии для покупки
                 strategy, stop_loss, take_profit = self._select_buy_strategy(
-                    ticker, price, confidence, current_state
+                    ticker, price, confidence, current_state,
+                    assigned_horizon=signal.get('assigned_horizon', 'week')  # ← добавить
                 )
 
                 # 3. Получение множителя стратегии
@@ -329,7 +406,8 @@ class SmartPortfolioBroker:
                                           lot_size=lot_size,
                                           min_step=min_step,
                                           stop_loss=stop_loss,
-                                          take_profit=take_profit):
+                                          take_profit=take_profit,
+                                          time_horizon=horizon):
 
                         # 5. Запись RL-опыта с сентиментом
                         self._record_rl_experience(
@@ -796,7 +874,8 @@ class SmartPortfolioBroker:
         return state
 
     def _select_buy_strategy(self, ticker: str, price: float,
-                             confidence: float, base_state: torch.Tensor) -> Tuple[str, float, float]:
+                             confidence: float, base_state: torch.Tensor,
+                             assigned_horizon: str = 'week') -> Tuple[str, float, float]:
         # ✅ Проверяем тип base_state
         print(f"   base_state.dtype: {base_state.dtype}")
         if base_state.dtype != torch.float32:
@@ -818,6 +897,7 @@ class SmartPortfolioBroker:
             'confidence': confidence,
             'time_of_day': datetime.now().hour / 24.0,
             'ticker_sentiment': sentiment_score,
+            'assigned_horizon': assigned_horizon,
             # НЕТ sentiment_category - модель сама разберется!
         }
 
