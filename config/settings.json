@@ -110,7 +110,7 @@
      "base_reward_multiplier": 1.0,
     "speed_bonus_multiplier": 0.5,
     "time_penalty_multiplier": 2.0,
-    "concentration_penalty": 5.0,
+    "concentration_penalty": 0.5,
     "patience_bonus_multiplier": 0.3,
     "fast_learning_cycles": 5,
     "strategy_adaptation_cycles": 20,

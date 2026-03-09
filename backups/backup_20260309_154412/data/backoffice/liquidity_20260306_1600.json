@@ -1,0 +1,131 @@
+{
+  "timestamp": "2026-03-06T16:00:00.061247",
+  "cash": 246.52093000000536,
+  "total_exposure": 10544.529999999999,
+  "liquidity_ratio": 0.023379034437761133,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 20,
+  "positions": [
+    {
+      "ticker": "APTK",
+      "value": 83.0,
+      "qty": 10,
+      "price": 8.3
+    },
+    {
+      "ticker": "MSTT",
+      "value": 1146.5,
+      "qty": 10,
+      "price": 114.65
+    },
+    {
+      "ticker": "SVET",
+      "value": 74.80000000000001,
+      "qty": 5,
+      "price": 14.96
+    },
+    {
+      "ticker": "SELG",
+      "value": 1132.8,
+      "qty": 20,
+      "price": 56.64
+    },
+    {
+      "ticker": "DATA",
+      "value": 430.48,
+      "qty": 4,
+      "price": 107.62
+    },
+    {
+      "ticker": "OGKB",
+      "value": 345.2,
+      "qty": 1000,
+      "price": 0.3452
+    },
+    {
+      "ticker": "WUSH",
+      "value": 295.89,
+      "qty": 3,
+      "price": 98.63
+    },
+    {
+      "ticker": "MTLR",
+      "value": 214.62,
+      "qty": 3,
+      "price": 71.54
+    },
+    {
+      "ticker": "SGZH",
+      "value": 122.35000000000001,
+      "qty": 100,
+      "price": 1.2235
+    },
+    {
+      "ticker": "SPBE",
+      "value": 1661.1000000000001,
+      "qty": 7,
+      "price": 237.3
+    },
+    {
+      "ticker": "SVCB",
+      "value": 1360.5,
+      "qty": 100,
+      "price": 13.605
+    },
+    {
+      "ticker": "SBER",
+      "value": 629.3,
+      "qty": 2,
+      "price": 314.65
+    },
+    {
+      "ticker": "CBOM",
+      "value": 572.9,
+      "qty": 100,
+      "price": 5.729
+    },
+    {
+      "ticker": "UGLD",
+      "value": 784.9000000000001,
+      "qty": 1000,
+      "price": 0.7849
+    },
+    {
+      "ticker": "FIXR",
+      "value": 598.0,
+      "qty": 1000,
+      "price": 0.598
+    },
+    {
+      "ticker": "RAGR",
+      "value": 120.98,
+      "qty": 1,
+      "price": 120.98
+    },
+    {
+      "ticker": "AFLT",
+      "value": 519.0999999999999,
+      "qty": 10,
+      "price": 51.91
+    },
+    {
+      "ticker": "VKCO",
+      "value": 301.3,
+      "qty": 1,
+      "price": 301.3
+    },
+    {
+      "ticker": "UWGN",
+      "value": 29.06,
+      "qty": 1,
+      "price": 29.06
+    },
+    {
+      "ticker": "EUTR",
+      "value": 121.75,
+      "qty": 1,
+      "price": 121.75
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "date": "2026-01-08",
+  "portfolio_value": 9927.1,
+  "cash": 7900.116,
+  "positions_count": 4,
+  "daily_pnl": -17.499999999999982,
+  "daily_trades": 1,
+  "market_sentiment": 0.026658392493067937,
+  "signals_generated": 10,
+  "risk_metrics": {
+    "portfolio_value": 9944.6,
+    "daily_pnl": -17.499999999999982,
+    "daily_trades": 1,
+    "max_daily_loss": 5,
+    "current_daily_loss_pct": -0.17597490095126986,
+    "risk_per_trade": 1.5,
+    "positions_count": 5,
+    "max_positions": 5,
+    "can_trade": true
+  }
+}

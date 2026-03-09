@@ -1,0 +1,14 @@
+{
+  "timestamp": "20260309_154412",
+  "backup_dir": "backups/backup_20260309_154412",
+  "directories": [
+    "models/saved_trader",
+    "data"
+  ],
+  "files": [
+    "config/rl_config.json",
+    "config/strategies.json",
+    "config/settings.json"
+  ],
+  "description": "\u041f\u043e\u043b\u043d\u044b\u0439 \u0431\u044d\u043a\u0430\u043f \u043f\u0435\u0440\u0435\u0434 \u043e\u0447\u0438\u0441\u0442\u043a\u043e\u0439"
+}

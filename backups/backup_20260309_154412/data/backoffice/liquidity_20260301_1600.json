@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-03-01T16:00:00.842209",
+  "cash": 445.3759300000089,
+  "total_exposure": 10493.5,
+  "liquidity_ratio": 0.042443029494449794,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 14,
+  "positions": [
+    {
+      "ticker": "GECO",
+      "value": 1247.5,
+      "qty": 50,
+      "price": 24.95
+    },
+    {
+      "ticker": "LMBZ",
+      "value": 884.0,
+      "qty": 2,
+      "price": 442.0
+    },
+    {
+      "ticker": "ELFV",
+      "value": 505.2,
+      "qty": 1000,
+      "price": 0.5052
+    },
+    {
+      "ticker": "APTK",
+      "value": 84.16,
+      "qty": 10,
+      "price": 8.416
+    },
+    {
+      "ticker": "ELMT",
+      "value": 277.3,
+      "qty": 2000,
+      "price": 0.13865
+    },
+    {
+      "ticker": "MVID",
+      "value": 74.25,
+      "qty": 1,
+      "price": 74.25
+    },
+    {
+      "ticker": "ENPG",
+      "value": 496.3,
+      "qty": 1,
+      "price": 496.3
+    },
+    {
+      "ticker": "SPBE",
+      "value": 2008.0,
+      "qty": 8,
+      "price": 251.0
+    },
+    {
+      "ticker": "VKCO",
+      "value": 1238.8,
+      "qty": 4,
+      "price": 309.7
+    },
+    {
+      "ticker": "SBERP",
+      "value": 314.71,
+      "qty": 1,
+      "price": 314.71
+    },
+    {
+      "ticker": "OZPH",
+      "value": 1032.8,
+      "qty": 20,
+      "price": 51.64
+    },
+    {
+      "ticker": "ROLO",
+      "value": 599.8,
+      "qty": 1000,
+      "price": 0.5998
+    },
+    {
+      "ticker": "GMKN",
+      "value": 1644.6000000000001,
+      "qty": 10,
+      "price": 164.46
+    },
+    {
+      "ticker": "VTBR",
+      "value": 86.08,
+      "qty": 1,
+      "price": 86.08
+    }
+  ]
+}

@@ -560,13 +560,13 @@ class SmartPortfolioBroker:
 
         print(f"\n🔍🔍🔍 _complete_rl_experience for {ticker}")
         print(f"   pending_experiences before: {len(self.pending_experiences)}")
-        for i, exp in enumerate(self.pending_experiences):
-            print(f"   exp {i}: ticker={exp['ticker']}, completed={exp['completed']}")
 
-        found = False
+        found_any = False
+
+        # 🔥 ИСПРАВЛЕНИЕ: обрабатываем ВСЕ опыты для этого тикера
         for exp in self.pending_experiences:
             if exp['ticker'] == ticker and not exp['completed']:
-                found = True
+                found_any = True
                 print(f"   ✅ НАЙДЕН ОПЫТ!")
                 print(f"   exp['start_state'].shape: {exp['start_state'].shape}")
                 print(f"   exp['strategy']: {exp['strategy']}")
@@ -708,11 +708,8 @@ class SmartPortfolioBroker:
                     print(f"💾 Сохраняем память после {len(self.model.memory)} опытов")
                     self.model.save_memory()
 
-                break
 
-
-
-        if not found:
+        if not found_any:
             print(f"   ❌ ОПЫТ ДЛЯ {ticker} НЕ НАЙДЕН!")
             # ✅ ВАЖНО: создаем опыт "на лету" для позиций из файла
             if ticker in self.portfolio.positions:
@@ -744,6 +741,8 @@ class SmartPortfolioBroker:
                 self._complete_rl_experience(ticker, exit_price)
                 return
 
+
+
         print(f"   pending_experiences after: {len(self.pending_experiences)}")
         self.pending_experiences = [exp for exp in self.pending_experiences if not exp['completed']]
 
@@ -753,27 +752,39 @@ class SmartPortfolioBroker:
             from utils.logger import get_logger
             logger = get_logger('SMART_BROKER')
 
-        # 1. Получаем параметры из конфига profit_optimization
-        profit_config = self.profit_config  # уже загружен в __init__
+        # 🔥 НОВОЕ: проверка в самом начале
+        hold_config = self.rl_config.get('hold_reward', {})
+        if hold_config.get('enabled', False) and pnl == 0 and hold_time > 0:
+            strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
+            target_time = strategy_params.get('target_hold_time_hours', 6)
 
-        # Загружаем множители (с дефолтами для обратной совместимости)
-        base_multiplier = profit_config.get('base_reward_multiplier', 1.0)  # было 100.0
-        speed_bonus_mult = profit_config.get('speed_bonus_multiplier', 0.5)  # было 50.0
-        time_penalty_mult = profit_config.get('time_penalty_multiplier', 2.0)  # было 200.0
-        concentration_penalty = profit_config.get('concentration_penalty', 5.0)  # штраф за позиции
+            time_ratio = min(hold_time / target_time, 1.0)
+            hold_reward = time_ratio * hold_config.get('max_bonus', 0.1)
+
+            if hold_time > target_time * hold_config.get('overhold_threshold', 1.5):
+                hold_reward -= hold_config.get('overhold_penalty', 0.05)
+
+            logger.debug(f"🏆 HOLD reward: {hold_reward:.2f} (ratio={time_ratio:.2f})")
+            return hold_reward
+
+        #
+        profit_config = self.profit_config
+
+        base_multiplier = profit_config.get('base_reward_multiplier', 1.0)
+        speed_bonus_mult = profit_config.get('speed_bonus_multiplier', 0.5)
+        time_penalty_mult = profit_config.get('time_penalty_multiplier', 2.0)
+        concentration_penalty = profit_config.get('concentration_penalty', 5.0)
         patience_bonus_mult = profit_config.get('patience_bonus_multiplier', 0.3)
 
-        # 2. Параметры стратегии
         strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
         target_time = strategy_params.get('target_hold_time_hours', 6)
 
-        # 3. БАЗОВАЯ НАГРАДА ЗА ПРИБЫЛЬ (теперь 1x вместо 100x)
         base_reward = pnl * base_multiplier
 
-        # 4. БОНУС/ШТРАФ ЗА СКОРОСТЬ
+        # БОНУС/ШТРАФ ЗА СКОРОСТЬ
         if pnl > 0:
-            if hold_time < 0.25:  # скальпинг
-                speed_component = -abs(pnl) * 0.5  # маленький штраф
+            if hold_time < 0.25:
+                speed_component = -abs(pnl) * 0.5
                 logger.debug(f"⚠️ Штраф за скальпинг: {speed_component:.2f}")
             else:
                 speed_ratio = max(0, (target_time - hold_time) / target_time)
@@ -781,42 +792,34 @@ class SmartPortfolioBroker:
                 logger.debug(f"🏆 Бонус за быструю прибыль: {speed_component:.2f}")
         else:
             if hold_time < 0.25:
-                speed_component = abs(pnl) * 0.3  # меньший штраф за быстрый убыток
-                logger.debug(f"✅ Быстрый убыток (меньший штраф): {speed_component:.2f}")
+                speed_component = abs(pnl) * 0.3
+                logger.debug(f"✅ Быстрый убыток: {speed_component:.2f}")
             else:
                 speed_component = -abs(pnl) * time_penalty_mult
                 logger.debug(f"⚠️ Штраф за долгий убыток: {speed_component:.2f}")
 
-        # 5. ШТРАФ ЗА КОНЦЕНТРАЦИЮ
+        # ШТРАФ ЗА КОНЦЕНТРАЦИЮ
         concentration_penalty_val = 0
         if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'positions'):
             positions_count = len(self.portfolio.positions)
             if positions_count > 5:
                 concentration_penalty_val = -concentration_penalty * (positions_count - 5)
-                logger.debug(f"⚠️ Штраф за концентрацию ({positions_count} позиций): {concentration_penalty_val:.2f}")
+                logger.debug(f"⚠️ Штраф за концентрацию: {concentration_penalty_val:.2f}")
 
-        # 6. БОНУС ЗА ТЕРПЕНИЕ
+        # БОНУС ЗА ТЕРПЕНИЕ
         patience_bonus = 0
         if pnl > 0 and hold_time > target_time * 2:
             patience_bonus = pnl * patience_bonus_mult
             logger.debug(f"🏆 Бонус за терпение: {patience_bonus:.2f}")
 
-        # 7. Объединяем
         pre_multiplier_reward = base_reward + speed_component + concentration_penalty_val + patience_bonus
-
-        # 8. Применяем стратегический множитель
         final_reward = pre_multiplier_reward * strategy_params.get('risk_multiplier', 1.0)
 
-        # 9. Лимиты из конфига
-        max_reward = profit_config.get('max_reward', 10.0)
-        min_reward = profit_config.get('min_reward', -10.0)
+        max_reward = profit_config.get('max_reward', 0.5)
+        min_reward = profit_config.get('min_reward', -0.5)
         limited_reward = max(min_reward, min(max_reward, final_reward))
 
-        logger.debug(f"Reward расчет: pnl={pnl:.2f}, hold={hold_time:.2f}ч, "
-                     f"base={base_reward:.2f}, speed={speed_component:.2f}, "
-                     f"concentration={concentration_penalty_val:.2f}, patience={patience_bonus:.2f}, "
-                     f"strategy_mult={strategy_params.get('risk_multiplier', 1.0):.2f}, "
-                     f"final={limited_reward:.2f}")
+        logger.debug(f"Reward: pnl={pnl:.2f}, hold={hold_time:.2f}ч, final={limited_reward:.2f}")
 
         return limited_reward
 
@@ -1440,6 +1443,34 @@ class SmartPortfolioBroker:
 
             # 5. Проверка стоп-лоссов и тейк-профитов
             self.check_stops_and_tp(prices)
+
+            # 🔥Добавляем HOLD-опыты для открытых позиций
+            hold_config = self.rl_config.get('hold_reward', {})
+            if hold_config.get('enabled', False):
+                # Проверяем частоту (каждые N циклов)
+                hold_interval = hold_config.get('interval_cycles', 5)
+                if self.cycle_count % hold_interval == 0:
+                    # Максимум позиций за цикл
+                    max_positions = hold_config.get('max_positions_per_cycle', 3)
+
+                    for ticker, pos in list(self.portfolio.positions.items())[:max_positions]:
+                        if ticker in self.ticker_states:
+                            current_price = self.moex.get_price(ticker)
+                            if current_price:
+                                current_state = self.ticker_states[ticker]
+                                next_state = self._create_next_state(ticker, current_price)
+                                hold_time = (time.time() - pos.get('buy_time', time.time())) / 3600
+
+                                hold_reward = self._calculate_reward(0, hold_time, pos.get('strategy', 'balanced'))
+
+                                self.model.remember_experience(
+                                    state=current_state,
+                                    action=1,  # HOLD
+                                    reward=hold_reward,
+                                    next_state=next_state,
+                                    done=False,
+                                    pnl_rub=0
+                                )
 
             # 6. Исполнение торговых решений
             if filtered_signals and self.risk_manager.check_daily_limits():

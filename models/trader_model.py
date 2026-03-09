@@ -897,8 +897,11 @@ class AdvancedTraderModel:
                 self.volatility_index = state.get('volatility_index', 1.0)
 
                 # Восстанавливаем стратегии
-                if 'strategies' in state:
+                if 'strategies' in state and state['strategies']:
                     self.strategies = state['strategies']
+                    print(f"[TraderModel] ✓ Восстановлены стратегии из состояния")
+                else:
+                    print(f"[TraderModel] ⚠ Стратегии в состоянии пусты, оставляю загруженные из конфига")
 
                 # Восстанавливаем статистику стратегий
                 if 'strategy_performance' in state:

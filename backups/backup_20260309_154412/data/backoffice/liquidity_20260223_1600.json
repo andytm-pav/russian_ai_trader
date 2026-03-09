@@ -1,0 +1,83 @@
+{
+  "timestamp": "2026-02-23T16:00:01.742776",
+  "cash": 876.5209300000084,
+  "total_exposure": 9959.86,
+  "liquidity_ratio": 0.08800534646069406,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 12,
+  "positions": [
+    {
+      "ticker": "HYDR",
+      "value": 0.0,
+      "qty": 0,
+      "price": 0.4341
+    },
+    {
+      "ticker": "GECO",
+      "value": 993.6,
+      "qty": 40,
+      "price": 24.84
+    },
+    {
+      "ticker": "HIMCP",
+      "value": 2124.0,
+      "qty": 100,
+      "price": 21.24
+    },
+    {
+      "ticker": "EUTR",
+      "value": 1200.6000000000001,
+      "qty": 9,
+      "price": 133.4
+    },
+    {
+      "ticker": "LMBZ",
+      "value": 891.0,
+      "qty": 2,
+      "price": 445.5
+    },
+    {
+      "ticker": "HNFG",
+      "value": 493.0,
+      "qty": 1,
+      "price": 493.0
+    },
+    {
+      "ticker": "DATA",
+      "value": 219.0,
+      "qty": 2,
+      "price": 109.5
+    },
+    {
+      "ticker": "ASTR",
+      "value": 1308.25,
+      "qty": 5,
+      "price": 261.65
+    },
+    {
+      "ticker": "KMAZ",
+      "value": 871.0,
+      "qty": 10,
+      "price": 87.1
+    },
+    {
+      "ticker": "GLRX",
+      "value": 63.41,
+      "qty": 1,
+      "price": 63.41
+    },
+    {
+      "ticker": "FEES",
+      "value": 750.0,
+      "qty": 10000,
+      "price": 0.075
+    },
+    {
+      "ticker": "BISVP",
+      "value": 1046.0,
+      "qty": 100,
+      "price": 10.46
+    }
+  ]
+}
