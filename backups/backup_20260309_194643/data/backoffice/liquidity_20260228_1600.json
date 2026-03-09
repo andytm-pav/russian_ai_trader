@@ -1,0 +1,107 @@
+{
+  "timestamp": "2026-02-28T16:00:00.050541",
+  "cash": 244.8709300000089,
+  "total_exposure": 10679.710000000001,
+  "liquidity_ratio": 0.022928612293780345,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 16,
+  "positions": [
+    {
+      "ticker": "GECO",
+      "value": 1256.0,
+      "qty": 50,
+      "price": 25.12
+    },
+    {
+      "ticker": "LMBZ",
+      "value": 889.0,
+      "qty": 2,
+      "price": 444.5
+    },
+    {
+      "ticker": "ELFV",
+      "value": 503.4,
+      "qty": 1000,
+      "price": 0.5034
+    },
+    {
+      "ticker": "APTK",
+      "value": 84.33999999999999,
+      "qty": 10,
+      "price": 8.434
+    },
+    {
+      "ticker": "ELMT",
+      "value": 277.9,
+      "qty": 2000,
+      "price": 0.13895
+    },
+    {
+      "ticker": "OGKB",
+      "value": 353.6,
+      "qty": 1000,
+      "price": 0.3536
+    },
+    {
+      "ticker": "MVID",
+      "value": 74.65,
+      "qty": 1,
+      "price": 74.65
+    },
+    {
+      "ticker": "UNAC",
+      "value": 896.0,
+      "qty": 2000,
+      "price": 0.448
+    },
+    {
+      "ticker": "DATA",
+      "value": 442.4,
+      "qty": 4,
+      "price": 110.6
+    },
+    {
+      "ticker": "CNRU",
+      "value": 1192.4,
+      "qty": 2,
+      "price": 596.2
+    },
+    {
+      "ticker": "MTLR",
+      "value": 584.4,
+      "qty": 8,
+      "price": 73.05
+    },
+    {
+      "ticker": "HYDR",
+      "value": 2215.0,
+      "qty": 5000,
+      "price": 0.443
+    },
+    {
+      "ticker": "BELU",
+      "value": 441.6,
+      "qty": 1,
+      "price": 441.6
+    },
+    {
+      "ticker": "SBER",
+      "value": 942.42,
+      "qty": 3,
+      "price": 314.14
+    },
+    {
+      "ticker": "SGZH",
+      "value": 129.1,
+      "qty": 100,
+      "price": 1.291
+    },
+    {
+      "ticker": "EUTR",
+      "value": 397.5,
+      "qty": 3,
+      "price": 132.5
+    }
+  ]
+}

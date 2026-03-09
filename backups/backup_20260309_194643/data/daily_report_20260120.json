@@ -1,0 +1,36 @@
+{
+  "date": "2026-01-20",
+  "portfolio_value": 9811.794000000002,
+  "cash": 7098.424000000001,
+  "positions_count": 5,
+  "daily_pnl": 10.525999999999986,
+  "daily_trades": 10,
+  "market_sentiment": 0.04459790157673531,
+  "signals_generated": 10,
+  "risk_metrics": {
+    "portfolio_value": 9657.212000000003,
+    "cash": 6253.476000000004,
+    "daily_pnl": 10.525999999999986,
+    "daily_trades": 10,
+    "max_daily_drawdown": 0.0,
+    "daily_high_watermark": 9657.212000000003,
+    "current_drawdown_pct": 0.0,
+    "risk_per_trade_pct": 1.5,
+    "positions_count": 4,
+    "max_positions": 10,
+    "can_trade": true,
+    "last_update": "2026-01-20T18:51:00.097257",
+    "portfolio_in_positions_pct": 35.24553463256267,
+    "max_position_weight_pct": 19.746900036987896,
+    "gini_coefficient": 0.3988258783877481,
+    "config": {
+      "daily_loss_limit_pct": 5,
+      "max_position_weight_pct": 40,
+      "use_atr_for_stops": true,
+      "atr_multiplier": 2.0,
+      "max_adv_percent": 5.0,
+      "max_sector_weight_pct": 40.0,
+      "correlation_threshold": 0.7
+    }
+  }
+}

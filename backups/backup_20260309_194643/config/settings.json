@@ -1,0 +1,141 @@
+{
+  "initial_capital_rub": 10000,
+  "max_positions": 10,
+  "max_position_weight_percent": 30,
+  "risk_per_trade_percent": 3.0,
+  "daily_loss_limit_percent": 5,
+
+  "trading_hours": {
+    "main_session": "06:50-18:50",
+    "evening_session": "19:00-23:50",
+    "weekend_trading_enabled": true,
+    "trade_on_weekend": true,
+    "force_247": false
+  },
+
+  "moex_schedule": {
+    "periods": {
+      "auction_open": {"start": "09:50", "end": "09:59"},
+      "continuous_trading": {"start": "10:00", "end": "18:40"},
+      "auction_close": {"start": "18:40", "end": "18:50"},
+      "evening_auction_open": {"start": "19:00", "end": "19:05"},
+      "evening_continuous": {"start": "19:05", "end": "23:50"}
+    },
+    "pre_market_start": "06:30",
+    "post_market_start": "19:00",
+
+    "clearing": {
+      "fixation_time": "16:00",
+      "clearing_17": "17:00",
+      "clearing_19": "19:00",
+      "settlement_17": "18:00",
+      "settlement_19": "20:00",
+      "deadlines": {
+        "z0": "16:50",
+        "t0_rb": "17:00",
+        "limits_securities": "16:00",
+        "limits_cash": "16:45"
+      }
+    },
+
+    "commission": {
+      "charge_day": "T+1",
+      "charge_time": "14:00",
+      "rate_percent": 0.3,
+      "rate_decimal": 0.003,
+      "reserve_required": true,
+      "reserve_account": "commission",
+
+      "tbank": {
+        "enabled": true,
+        "settlement_time": "14:00",
+        "default_settlement_days": 1,
+        "weekday_settlement_map": {
+          "4": 3,
+          "5": 2,
+          "6": 1
+        },
+        "check_start_hour": 9,
+        "check_end_hour": 14,
+        "check_interval_cycles": 60
+      }
+    }
+  },
+
+  "back_office": {
+    "enable_auto_liquidity_check": true,
+    "min_liquidity_ratio": 0.2,
+    "auto_close_positions_at_deadline": false,
+    "max_position_close_percent": 50,
+    "commission_account": "commission",
+    "alert_email": "backoffice@example.com",
+    "alert_on_low_liquidity": true,
+    "daily_report_enabled": true
+  },
+
+  "use_atr_for_stops": true,
+  "atr_multiplier": 2.0,
+  "max_adv_percent": 5.0,
+  "max_sector_weight_percent": 40.0,
+  "correlation_threshold": 0.7,
+  "min_risk_per_share_percent": 0.1,
+  "consecutive_loss_limit": 4,
+  "consecutive_trades_window": 5,
+  "risk_multiplier_on_high_confidence": 1.2,
+  "max_daily_trades": 50,
+  "confidence_weight_min": 0.5,
+  "confidence_weight_max": 1.0,
+  "news_sensitivity_score": 0.7,
+  "enable_technical_core": true,
+  "enable_news_core": true,
+  "min_cash_per_trade": 1000,
+  "target_positions": 4,
+  "stop_loss_percent": 3,
+  "take_profit_percent": 6,
+  "commission_percent": 0.05,
+  "slippage_percent": 0.1,
+  "model_confidence_threshold": 0.65,
+  "rss_update_interval_seconds": 60,
+  "price_update_interval_seconds": 30,
+  "portfolio_rebalance_hours": [10, 14, 16],
+  "logging_level": "DEBUG",
+  "simulation_mode": true,
+  "paper_trading": true,
+
+  "profit_optimization": {
+    "extreme_pnl_threshold": 0.08,
+    "max_reward": 10.0,
+    "min_reward": -10.0,
+    "reward_scaling_profit": 1.0,
+     "base_reward_multiplier": 1.0,
+    "speed_bonus_multiplier": 0.5,
+    "time_penalty_multiplier": 2.0,
+    "concentration_penalty": 0.5,
+    "patience_bonus_multiplier": 0.3,
+    "fast_learning_cycles": 5,
+    "strategy_adaptation_cycles": 20,
+    "enable_extreme_learning": true,
+    "enable_aggressive_adaptation": true
+  },
+
+  "portfolio_manager": {
+    "preserve_buy_time_on_partial_sell": true
+  },
+  "time_horizons": {
+    "day_session": {
+      "weight": 0.4,
+      "target_hours": 1,
+      "description": "40% - внутри дня (1 дневная + вечерняя сессия)"
+    },
+    "three_days": {
+      "weight": 0.3,
+      "target_hours": 3,
+      "description": "30% - 3 торговых сессии"
+    },
+    "week": {
+      "weight": 0.3,
+      "target_hours": 7,
+      "description": "30% - 1 неделя"
+    }
+  }
+}

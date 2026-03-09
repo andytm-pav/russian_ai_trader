@@ -1,0 +1,133 @@
+{
+  "execution": {
+    "max_signals_per_cycle": 5,
+    "sell_fraction": 0.5,
+    "min_sell_quantity": 1,
+    "position_sizing": {
+      "min_position_value_rub": 1000,
+      "max_position_weight_percent": 20,
+      "risk_per_trade_percent": 2
+    }
+  },
+  "reward_calculation": {
+    "pnl_normalization": 100,
+    "time_penalty_factor": 0.1,
+    "loss_penalty_factor": 0.2,
+    "profit_bonus_factor": 0.3,
+    "max_hold_time_penalty": 2.0,
+    "min_hold_time_hours": 0.5,
+    "max_hold_time_hours": 72,
+    "speed_bonus_multiplier": 50.0,
+    "time_penalty_multiplier": 200.0,
+    "base_reward_multiplier": 100.0
+  },
+  "strategy_adaptation": {
+    "success_win_rate_threshold": 0.6,
+    "failure_win_rate_threshold": 0.4,
+    "increase_factor": 1.1,
+    "decrease_factor": 0.9,
+    "max_risk_multiplier": 2.0,
+    "min_risk_multiplier": 0.5,
+    "min_trades_for_adaptation": 10,
+    "adaptation_check_interval_days": 7,
+    "aggressive_win_rate_high": 0.7,
+    "aggressive_win_rate_low": 0.3,
+    "profit_threshold_fast": 0.02,
+    "loss_threshold_fast": -0.01,
+    "min_trades_for_fast_adaptation": 5,
+    "aggressive_increase_factor": 1.3,
+    "aggressive_decrease_factor": 0.7
+  },
+  "learning": {
+    "min_experiences_for_learning": 25,
+    "batch_size": 32,
+    "target_update_interval": 10,
+    "gamma": 0.95,
+    "tau": 0.005,
+    "learning_rate": 0.0005,
+    "evaluation_cycle_interval": 50,
+    "save_model_interval": 100,
+    "extreme_batch_size": 16,
+    "aggressive_lr_multiplier": 3.0,
+    "extreme_training_steps": 3
+  },
+  "exploration": {
+    "initial_exploration_rate": 0.3,
+    "final_exploration_rate": 0.1,
+    "exploration_decay_steps": 10000,
+    "action_exploration_rate": 0.2
+  },
+  "sentiment_integration": {
+    "market_sentiment_weight": 0.3,
+    "ticker_sentiment_weight": 0.4,
+    "reward_sentiment_bonus": 0.5,
+    "min_news_for_market_sentiment": 10,
+    "sentiment_time_decay_hours": 24,
+    "high_impact_multiplier": 2.0,
+    "market_sentiment_cache_minutes": 5
+  },
+  "state_parameters": {
+    "state_vector_size": 153,
+    "news_features_size": 128,
+    "strategy_params_size": 3,
+    "market_features_count": 22
+  },
+  "memory_persistence": {
+    "enable_memory_save": true,
+    "enable_autosave": true,
+    "autosave_interval": 10,
+    "memory_file": "models/saved_trader/memory_buffer.pkl",
+    "auto_save_interval_cycles": 20,
+    "max_memory_to_save": 5000,
+    "compress": true,
+    "compression": true
+  },
+  "memory_serialization": {
+    "enable_autosave": true,
+    "autosave_interval": 10,
+    "memory_file": "models/saved_trader/memory_buffer.pkl",
+    "max_memory_to_save": 5000,
+    "compression": true
+  },
+  "reward_scaling": 0.001,
+  "price_change_threshold": 0.01,
+  "reward_clip_min": -0.5,
+  "reward_clip_max": 0.5,
+  "hold_time_deviation_penalty": 0.3,
+  "max_hold_time_deviation": 0.5,
+  "quick_trade_penalty": 0.5,
+  "good_profit_bonus": 1.0,
+  "big_loss_penalty": 1.5,
+  "small_profit_bonus": 0.2,
+  "sentiment_positive_threshold": 0.1,
+  "sentiment_negative_threshold": -0.1,
+  "sentiment_positive_bonus_multiplier": 0.5,
+  "sentiment_negative_bonus_multiplier": 0.3,
+
+  "learning_rate": 0.0005,
+  "gamma": 0.95,
+  "batch_size": 32,
+  "memory_size": 5000,
+  "target_update_interval": 100,
+  "tau": 0.005,
+  "optimizer": "adam",
+  "loss_function": "smooth_l1",
+  "gradient_clip": 1.0,
+  "risk_calculation": {
+    "failure_penalty_rate": 0.08,
+    "max_failure_penalty": 0.8,
+    "loss_penalty_multiplier": 1.5,
+    "max_loss_penalty": 0.6,
+    "success_bonus_rate": 0.3,
+    "base_sentiment_factor": 1.2,
+    "volatility_multiplier": 0.4,
+    "base_volatility_factor": 0.8
+  },
+  "hold_reward": {
+    "max_bonus": 0.1,
+    "overhold_penalty": 0.02,
+    "overhold_threshold": 1.5,
+    "interval_cycles": 5,
+    "max_positions_per_cycle": 3
+  }
+}
