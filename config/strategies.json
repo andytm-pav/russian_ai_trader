@@ -10,6 +10,7 @@
       "take_profit_percent": 5.0,
       "max_positions": 2,
       "min_win_rate": 0.4,
+      "prediction_weight": 0.1,
       "conditions": {
         "min_confidence": 0.75,
         "market_sentiment_threshold": 0.3,
@@ -27,6 +28,7 @@
       "take_profit_percent": 4.0,
       "max_positions": 3,
       "min_win_rate": 0.45,
+      "prediction_weight": 0.1,
       "conditions": {
         "min_confidence": 0.65,
         "rsi_threshold_low": 30,
@@ -44,6 +46,7 @@
       "take_profit_percent": 5.0,
       "max_positions": 4,
       "min_win_rate": 0.5,
+      "prediction_weight": 0.1,
       "conditions": {
         "min_confidence": 0.7,
         "volatility_threshold": 0.02,
@@ -60,6 +63,7 @@
       "take_profit_percent": 3.0,
       "max_positions": 5,
       "min_win_rate": 0.35,
+      "prediction_weight": 0.1,
       "conditions": {
         "min_confidence": 0.6,
         "momentum_threshold": 1.0,
@@ -77,6 +81,7 @@
       "take_profit_percent": 15.0,
       "max_positions": 2,
       "min_win_rate": 0.45,
+      "prediction_weight": 0.1,
       "conditions": {
         "min_confidence": 0.65,
         "trend_strength_min": 0.6,
@@ -84,7 +89,7 @@
         "min_volume_ratio": 1.2
       }
     },
-  "mean_reversion": {
+    "mean_reversion": {
       "description": "Возврат к среднему (против тренда)",
       "news_weight": 0.4,
       "tech_weight": 0.6,
@@ -94,6 +99,7 @@
       "take_profit_percent": 4.0,
       "max_positions": 3,
       "min_win_rate": 0.4,
+      "prediction_weight": 0.1,
       "conditions": {
         "min_confidence": 0.7,
         "rsi_threshold_low": 25,
@@ -102,7 +108,7 @@
         "bb_position_max": 0.2
       }
     },
-  "breakout": {
+    "breakout": {
       "description": "Торговля на пробой уровней",
       "news_weight": 0.3,
       "tech_weight": 0.7,
@@ -112,12 +118,25 @@
       "take_profit_percent": 8.0,
       "max_positions": 2,
       "min_win_rate": 0.4,
+      "prediction_weight": 0.1,
       "conditions": {
         "min_confidence": 0.7,
         "volume_ratio_min": 2.5,
         "volatility_threshold": 0.04,
         "atr_multiplier": 1.5
       }
+    },
+    "price_prediction": {
+      "description": "Торговля на основе предсказаний модели",
+      "news_weight": 0.3,
+      "tech_weight": 0.7,
+      "risk_multiplier": 1.0,
+      "target_hold_time_hours": 2,
+      "stop_loss_percent": 2.0,
+      "take_profit_percent": 4.0,
+      "max_positions": 3,
+      "min_win_rate": 0.45,
+      "prediction_weight": 0.5
     }
   },
   "strategy_selection": {
@@ -136,68 +155,7 @@
       "critical_pnl_threshold": 0.05
     }
   },
-  "sentiment_integration": {
-    "enabled": true,
-    "market_sentiment_aggregation": {
-    "window_hours": 24,
-    "min_sources": 3,
-    "weight_by_source_priority": true
-    },
-    "sentiment_thresholds": {
-      "very_positive": 0.3,
-      "positive": 0.1,
-      "neutral": 0.0,
-      "negative": -0.1,
-      "very_negative": -0.3
-    },
-    "strategy_mapping": {
-      "very_positive": "news_aggressive",
-      "positive": "momentum",
-      "neutral": "balanced",
-      "negative": "tech_conservative",
-      "very_negative": "tech_conservative"
-    },
-    "position_sizing_multipliers": {
-      "very_positive": 1.3,
-      "positive": 1.1,
-      "neutral": 1.0,
-      "negative": 0.8,
-      "very_negative": 0.5
-    },
-    "trading_frequency": {
-    "high_sentiment": {"max_trades_per_hour": 3},
-    "low_sentiment": {"max_trades_per_hour": 1}
-    },
-    "risk_adjustment": {
-      "very_positive": {
-        "stop_loss_multiplier": 1.2,
-        "take_profit_multiplier": 1.3
-      },
-      "positive": {
-        "stop_loss_multiplier": 1.1,
-        "take_profit_multiplier": 1.2
-      },
-      "neutral": {
-        "stop_loss_multiplier": 1.0,
-        "take_profit_multiplier": 1.0
-      },
-      "negative": {
-        "stop_loss_multiplier": 0.9,
-        "take_profit_multiplier": 0.9
-      },
-      "very_negative": {
-        "stop_loss_multiplier": 0.8,
-        "take_profit_multiplier": 0.8
-      }
-    },
-    "news_impact_levels": {
-      "high_impact": 2.0,
-      "medium_impact": 1.5,
-      "low_impact": 1.0
-    },
-    "cache_time_minutes": 10,
-    "update_interval_minutes": 5
-  },
+  "default_prediction_weight": 0.1,
   "fallback_strategy": "balanced",
   "default_strategy_parameters": {
     "min_position_size_rub": 500,

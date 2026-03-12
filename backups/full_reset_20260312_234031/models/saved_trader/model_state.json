@@ -1,0 +1,3078 @@
+{
+  "error_memory": {
+    "SBER": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "CHMF": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SVCB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BANEP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BAZA": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TRNFP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "DOMRF": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MGNT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "FIXR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "AFLT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LENT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "HYDR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "EUTR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "OZPH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "VTBR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "UWGN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SGZH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LKOH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SIBN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "T": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ENPG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MVID": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "PHOR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "YDEX": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SMLT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "VKCO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RTKM": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ROSN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "PLZL": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MRKC": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MAGN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MGKL": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "KMAZ": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MSNG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BANE": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "PMSBP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TATN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SNGSP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BSPB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MTLR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "CNRU": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SOFL": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SFIN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "OZON": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "FESH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "GTRK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "CHGZ": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RTGZ": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "VJGZP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SELG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "IVAT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ETLN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MFGS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RENI": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RAGR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SPBE": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "WUSH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "FLOT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "GMKN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "NLMK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MOEX": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SBERP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ALRS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BELU": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "IRKT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "CBOM": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "YAKG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "AFKS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TATNP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "VSEH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "PIKK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "PRMD": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RASP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "JNOSP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MRKP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "NVTK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MRKV": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LNZL": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "X5": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "DIAS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "UPRO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "OGKB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TGKN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "DELI": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RNFT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SNGS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BSPBP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ELMT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SVAV": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "DATA": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "GAZP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "NMTP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MRKU": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "AKRN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "UNAC": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TRMK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MBNK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "POSI": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "UGLD": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MDMG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MTLRP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LSNGP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MSRS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LSRG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "IRAO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ASTR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TGKA": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RTKMP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "KAZT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "AQUA": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ROLO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "FEES": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LEAS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "GCHE": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "VSMO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "HEAD": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MTSS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    }
+  },
+  "ticker_stats": {
+    "SBER": {
+      "total_trades": 4,
+      "profitable_trades": 4,
+      "total_pnl": 0.002275816291051703,
+      "avg_hold_time": 0.296187332438098,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T21:19:26.556282"
+    },
+    "CHMF": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SVCB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BANEP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BAZA": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TRNFP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "DOMRF": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MGNT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "FIXR": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "AFLT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "LENT": {
+      "total_trades": 1,
+      "profitable_trades": 0,
+      "total_pnl": -0.00045682960255824577,
+      "avg_hold_time": 0.5776025748915142,
+      "success_rate": 0.0,
+      "last_trade": "2026-03-12T23:09:10.717272"
+    },
+    "HYDR": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "EUTR": {
+      "total_trades": 5,
+      "profitable_trades": 0,
+      "total_pnl": -5.903969553469881e-16,
+      "avg_hold_time": 1.5247278422117234,
+      "success_rate": 0.0,
+      "last_trade": "2026-03-12T23:09:09.973993"
+    },
+    "OZPH": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "VTBR": {
+      "total_trades": 12,
+      "profitable_trades": 6,
+      "total_pnl": -0.002357508078570958,
+      "avg_hold_time": 0.5278838780522347,
+      "success_rate": 0.5,
+      "last_trade": "2026-03-12T22:30:43.557195"
+    },
+    "UWGN": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SGZH": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "LKOH": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SIBN": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "T": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "ENPG": {
+      "total_trades": 1,
+      "profitable_trades": 0,
+      "total_pnl": -1.1185245741992917e-16,
+      "avg_hold_time": 0.009242782261636523,
+      "success_rate": 0.0,
+      "last_trade": "2026-03-12T23:09:11.965889"
+    },
+    "MVID": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "PHOR": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "YDEX": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SMLT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "VKCO": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "RTKM": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "ROSN": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "PLZL": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MRKC": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MAGN": {
+      "total_trades": 4,
+      "profitable_trades": 2,
+      "total_pnl": 0.001110771772868311,
+      "avg_hold_time": 0.788297545876768,
+      "success_rate": 0.5,
+      "last_trade": "2026-03-12T22:48:44.531391"
+    },
+    "MGKL": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "KMAZ": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MSNG": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BANE": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "PMSBP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TATN": {
+      "total_trades": 2,
+      "profitable_trades": 2,
+      "total_pnl": 0.0015748031496062992,
+      "avg_hold_time": 0.8166579451494747,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T22:10:29.102776"
+    },
+    "SNGSP": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.003848620910840276,
+      "avg_hold_time": 0.8660665108097925,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T21:28:42.593991"
+    },
+    "BSPB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MTLR": {
+      "total_trades": 2,
+      "profitable_trades": 2,
+      "total_pnl": 0.0019172829361820704,
+      "avg_hold_time": 0.4208496049046516,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T21:42:18.383644"
+    },
+    "CNRU": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SOFL": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SFIN": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "OZON": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "FESH": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "GTRK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "CHGZ": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "RTGZ": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "VJGZP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SELG": {
+      "total_trades": 2,
+      "profitable_trades": 0,
+      "total_pnl": -0.002422145328719979,
+      "avg_hold_time": 0.9551189447111554,
+      "success_rate": 0.0,
+      "last_trade": "2026-03-12T23:09:10.552423"
+    },
+    "IVAT": {
+      "total_trades": 6,
+      "profitable_trades": 2,
+      "total_pnl": 0.01014150943396229,
+      "avg_hold_time": 0.6841495697145108,
+      "success_rate": 0.3333333333333333,
+      "last_trade": "2026-03-12T23:09:11.408875"
+    },
+    "ETLN": {
+      "total_trades": 1,
+      "profitable_trades": 0,
+      "total_pnl": -0.0005027652086476401,
+      "avg_hold_time": 2.4798432866070006,
+      "success_rate": 0.0,
+      "last_trade": "2026-03-12T23:09:08.703523"
+    },
+    "MFGS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "RENI": {
+      "total_trades": 1,
+      "profitable_trades": 0,
+      "total_pnl": -0.0004318721658389792,
+      "avg_hold_time": 4.18898722714848,
+      "success_rate": 0.0,
+      "last_trade": "2026-03-12T21:11:35.820490"
+    },
+    "RAGR": {
+      "total_trades": 4,
+      "profitable_trades": 4,
+      "total_pnl": 0.004165220409579671,
+      "avg_hold_time": 0.28539396272765266,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T23:02:51.542683"
+    },
+    "SPBE": {
+      "total_trades": 12,
+      "profitable_trades": 11,
+      "total_pnl": 0.006487013045265678,
+      "avg_hold_time": 0.7110148289027037,
+      "success_rate": 0.9166666666666666,
+      "last_trade": "2026-03-12T23:09:11.627397"
+    },
+    "WUSH": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "FLOT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "GMKN": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "NLMK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MOEX": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SBERP": {
+      "total_trades": 1,
+      "profitable_trades": 0,
+      "total_pnl": -0.00044210060946740516,
+      "avg_hold_time": 2.4538650072283215,
+      "success_rate": 0.0,
+      "last_trade": "2026-03-12T23:09:08.859110"
+    },
+    "ALRS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BELU": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "IRKT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "CBOM": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "YAKG": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "AFKS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TATNP": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.001686056314280897,
+      "avg_hold_time": 0.7505177009105682,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T23:00:45.956264"
+    },
+    "VSEH": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "PIKK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "PRMD": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0034880923743083676,
+      "avg_hold_time": 0.5137492326233122,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T22:11:06.530463"
+    },
+    "RASP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "JNOSP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MRKP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "NVTK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MRKV": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "LNZL": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "X5": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "DIAS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "UPRO": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "OGKB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TGKN": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "DELI": {
+      "total_trades": 2,
+      "profitable_trades": 2,
+      "total_pnl": 0.00934891485809715,
+      "avg_hold_time": 3.098102212647597,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T20:58:38.006460"
+    },
+    "RNFT": {
+      "total_trades": 2,
+      "profitable_trades": 2,
+      "total_pnl": 0.0010577036371582252,
+      "avg_hold_time": 0.49592116140657,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T22:39:17.843013"
+    },
+    "SNGS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BSPBP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "ELMT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SVAV": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "DATA": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "GAZP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "NMTP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MRKU": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "AKRN": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "UNAC": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.00442477876106195,
+      "avg_hold_time": 0.9132258372174369,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T22:06:23.549371"
+    },
+    "TRMK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MBNK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "POSI": {
+      "total_trades": 3,
+      "profitable_trades": 3,
+      "total_pnl": 0.0019009784422640314,
+      "avg_hold_time": 0.8998224569470795,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T23:09:11.807325"
+    },
+    "UGLD": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MDMG": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MTLRP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "LSNGP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MSRS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "LSRG": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "IRAO": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0011021886317116299,
+      "avg_hold_time": 0.3238315451807446,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T21:45:03.591094"
+    },
+    "ASTR": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TGKA": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "RTKMP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "KAZT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "AQUA": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "ROLO": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0007639419404124444,
+      "avg_hold_time": 1.2903274536132812,
+      "success_rate": 1.0,
+      "last_trade": "2026-03-12T23:09:10.145122"
+    },
+    "FEES": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "LEAS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "GCHE": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "VSMO": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "HEAD": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MTSS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    }
+  },
+  "market_sentiment": 0.0005906830815707937,
+  "sentiment_history": [
+    0.0005906830815707937
+  ],
+  "volatility_index": 1.0,
+  "memory_size": 256,
+  "total_experiences": 0,
+  "strategy_performance": {
+    "news_aggressive": {
+      "total_trades": 21,
+      "profitable_trades": 10,
+      "total_pnl": -7.021967387076352,
+      "avg_pnl": -0.3343793993845882,
+      "win_rate": 0.47619047619047616
+    },
+    "tech_conservative": {
+      "total_trades": 56,
+      "profitable_trades": 29,
+      "total_pnl": -19.54889804828112,
+      "avg_pnl": -0.34908746514787714,
+      "win_rate": 0.5178571428571429
+    },
+    "balanced": {
+      "total_trades": 2,
+      "profitable_trades": 0,
+      "total_pnl": -3.137699999999983,
+      "avg_pnl": -1.5688499999999914,
+      "win_rate": 0.0
+    },
+    "momentum": {
+      "total_trades": 9,
+      "profitable_trades": 4,
+      "total_pnl": -0.02643317153536814,
+      "avg_pnl": -0.002937019059485349,
+      "win_rate": 0.4444444444444444
+    },
+    "swing": {
+      "total_trades": 4,
+      "profitable_trades": 2,
+      "total_pnl": -0.717421379089216,
+      "avg_pnl": -0.179355344772304,
+      "win_rate": 0.5
+    },
+    "mean_reversion": {
+      "total_trades": 18,
+      "profitable_trades": 7,
+      "total_pnl": -2.6281292600553603,
+      "avg_pnl": -0.14600718111418667,
+      "win_rate": 0.3888888888888889
+    },
+    "breakout": {
+      "total_trades": 14,
+      "profitable_trades": 2,
+      "total_pnl": -7.196898853477009,
+      "avg_pnl": -0.5140642038197863,
+      "win_rate": 0.14285714285714285
+    },
+    "price_prediction": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_pnl": 0.0,
+      "win_rate": 0.5
+    }
+  },
+  "strategy_memory": [
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": -2.8198999999999885,
+      "hold_time": 206073.09930706024,
+      "win_rate": 0.0,
+      "timestamp": "2026-03-12T20:28:26.281998"
+    },
+    {
+      "strategy": "balanced",
+      "action": "SELL",
+      "pnl": -0.3177999999999943,
+      "hold_time": 8382.856496572495,
+      "win_rate": 0.0,
+      "timestamp": "2026-03-12T20:30:57.611196"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -0.25225000000002273,
+      "hold_time": 6163.949127674103,
+      "win_rate": 0.0,
+      "timestamp": "2026-03-12T20:31:31.678901"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -1.1494,
+      "hold_time": 5645.22004032135,
+      "win_rate": 0.0,
+      "timestamp": "2026-03-12T20:32:40.027099"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.0008254716981132611,
+      "hold_time": 1.3726250039206611,
+      "win_rate": 0.3333333333333333,
+      "timestamp": "2026-03-12T20:40:21.068256"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -0.3076833333333258,
+      "hold_time": 4941.491960287094,
+      "win_rate": 0.25,
+      "timestamp": "2026-03-12T20:40:21.068821"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -0.2668600000000017,
+      "hold_time": 10196.821606636047,
+      "win_rate": 0.2,
+      "timestamp": "2026-03-12T20:41:21.482659"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": 0.001261564339781257,
+      "hold_time": 2.6551604788833196,
+      "win_rate": 1.0,
+      "timestamp": "2026-03-12T20:41:21.561076"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -0.4143000000000171,
+      "hold_time": 9558.610855340958,
+      "win_rate": 0.5,
+      "timestamp": "2026-03-12T20:41:21.561450"
+    },
+    {
+      "strategy": "swing",
+      "action": "SELL",
+      "pnl": -0.14076999999999945,
+      "hold_time": 9277.882915258408,
+      "win_rate": 0.0,
+      "timestamp": "2026-03-12T20:41:21.593597"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -0.23396999999999998,
+      "hold_time": 8528.688205480576,
+      "win_rate": 0.16666666666666666,
+      "timestamp": "2026-03-12T20:46:35.006728"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.004674457429048575,
+      "hold_time": 3.084266963005066,
+      "win_rate": 0.2857142857142857,
+      "timestamp": "2026-03-12T20:56:58.413441"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.16576666666668272,
+      "hold_time": 11103.3918197155,
+      "win_rate": 0.375,
+      "timestamp": "2026-03-12T20:56:58.417683"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.004674457429048575,
+      "hold_time": 3.111937462290128,
+      "win_rate": 0.4444444444444444,
+      "timestamp": "2026-03-12T20:58:38.006471"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.16576666666668272,
+      "hold_time": 11202.981041669846,
+      "win_rate": 0.5,
+      "timestamp": "2026-03-12T20:58:38.006905"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -0.3698499999999887,
+      "hold_time": 7444.127376317978,
+      "win_rate": 0.45454545454545453,
+      "timestamp": "2026-03-12T20:59:38.211778"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -1.5330000000000001,
+      "hold_time": 9220.537200450897,
+      "win_rate": 0.4166666666666667,
+      "timestamp": "2026-03-12T21:00:08.356297"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.16576666666668272,
+      "hold_time": 11323.497715234756,
+      "win_rate": 0.46153846153846156,
+      "timestamp": "2026-03-12T21:00:38.523578"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -0.39637999999999834,
+      "hold_time": 7534.530917882919,
+      "win_rate": 0.42857142857142855,
+      "timestamp": "2026-03-12T21:02:08.868445"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -0.0004318721658389792,
+      "hold_time": 4.18898722714848,
+      "win_rate": 0.3333333333333333,
+      "timestamp": "2026-03-12T21:11:35.820502"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -3.177400000000091,
+      "hold_time": 15080.412304639816,
+      "win_rate": 0.25,
+      "timestamp": "2026-03-12T21:11:35.820893"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -3.177400000000091,
+      "hold_time": 15110.60736131668,
+      "win_rate": 0.2,
+      "timestamp": "2026-03-12T21:12:06.015941"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0005689540727629258,
+      "hold_time": 0.32163015041086407,
+      "win_rate": 1.0,
+      "timestamp": "2026-03-12T21:18:56.145982"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0005689540727629258,
+      "hold_time": 0.31326777968141767,
+      "win_rate": 1.0,
+      "timestamp": "2026-03-12T21:18:56.200972"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0005689540727629258,
+      "hold_time": 0.27071627444691126,
+      "win_rate": 1.0,
+      "timestamp": "2026-03-12T21:18:56.285855"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.7696499999999933,
+      "hold_time": 974.6648788452148,
+      "win_rate": 0.75,
+      "timestamp": "2026-03-12T21:18:56.286218"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0005689540727629258,
+      "hold_time": 0.27913512521319916,
+      "win_rate": 0.8,
+      "timestamp": "2026-03-12T21:19:26.556296"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.7696499999999933,
+      "hold_time": 1004.9450714588165,
+      "win_rate": 0.6666666666666666,
+      "timestamp": "2026-03-12T21:19:26.566414"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.7696499999999933,
+      "hold_time": 1035.121175289154,
+      "win_rate": 0.5714285714285714,
+      "timestamp": "2026-03-12T21:19:56.742515"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -0.0009311528836640667,
+      "hold_time": 0.8667271159092585,
+      "win_rate": 0.16666666666666666,
+      "timestamp": "2026-03-12T21:21:27.262412"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -0.0008148536173679434,
+      "hold_time": 0.8215095423327552,
+      "win_rate": 0.0,
+      "timestamp": "2026-03-12T21:21:27.300389"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": -0.0008148536173679434,
+      "hold_time": 0.8130938096178902,
+      "win_rate": 0.0,
+      "timestamp": "2026-03-12T21:21:27.356337"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": -0.0008148536173679434,
+      "hold_time": 0.7354030466079712,
+      "win_rate": 0.0,
+      "timestamp": "2026-03-12T21:21:27.420540"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -0.0008148536173679434,
+      "hold_time": 0.6850836490922504,
+      "win_rate": 0.0,
+      "timestamp": "2026-03-12T21:21:27.463711"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -0.0008148536173679434,
+      "hold_time": 0.6682932792769538,
+      "win_rate": 0.0,
+      "timestamp": "2026-03-12T21:21:27.520816"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": 0.0005245366592843187,
+      "hold_time": 0.3218458702829149,
+      "win_rate": 0.25,
+      "timestamp": "2026-03-12T21:21:27.587901"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": 0.0009912536443149615,
+      "hold_time": 0.14761101563771567,
+      "win_rate": 0.4,
+      "timestamp": "2026-03-12T21:21:27.641785"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -1.1756499999999457,
+      "hold_time": 531.4644691944122,
+      "win_rate": 0.3333333333333333,
+      "timestamp": "2026-03-12T21:21:27.642159"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": 0.0002607425189476597,
+      "hold_time": 0.1560196594397227,
+      "win_rate": 0.42857142857142855,
+      "timestamp": "2026-03-12T21:21:57.901181"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -0.47025999999997825,
+      "hold_time": 561.7239713668823,
+      "win_rate": 0.375,
+      "timestamp": "2026-03-12T21:21:57.901661"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": 0.0002607425189476597,
+      "hold_time": 0.16441806309752993,
+      "win_rate": 0.4444444444444444,
+      "timestamp": "2026-03-12T21:22:28.144608"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -0.23512999999998913,
+      "hold_time": 591.9831018447876,
+      "win_rate": 0.4,
+      "timestamp": "2026-03-12T21:22:28.160796"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": 0.0002607425189476597,
+      "hold_time": 0.17282868180010053,
+      "win_rate": 0.45454545454545453,
+      "timestamp": "2026-03-12T21:22:58.415943"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -0.23512999999998913,
+      "hold_time": 622.2388024330139,
+      "win_rate": 0.4166666666666667,
+      "timestamp": "2026-03-12T21:22:58.416494"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -0.2151899999999931,
+      "hold_time": 932.3540313243866,
+      "win_rate": 0.38461538461538464,
+      "timestamp": "2026-03-12T21:28:08.531722"
+    },
+    {
+      "strategy": "swing",
+      "action": "SELL",
+      "pnl": 0.003848620910840276,
+      "hold_time": 0.8660665108097925,
+      "win_rate": 0.5,
+      "timestamp": "2026-03-12T21:28:42.594004"
+    },
+    {
+      "strategy": "swing",
+      "action": "SELL",
+      "pnl": 0.39149999999995444,
+      "hold_time": 3117.976671218872,
+      "win_rate": 0.6666666666666666,
+      "timestamp": "2026-03-12T21:28:42.594364"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": 0.0021026072329687617,
+      "hold_time": 3.5584749259551365,
+      "win_rate": 0.2857142857142857,
+      "timestamp": "2026-03-12T21:35:33.587555"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -0.2149000000000285,
+      "hold_time": 12810.665384054184,
+      "win_rate": 0.25,
+      "timestamp": "2026-03-12T21:35:33.615983"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -0.2149000000000285,
+      "hold_time": 12840.862454891205,
+      "win_rate": 0.2222222222222222,
+      "timestamp": "2026-03-12T21:36:03.813051"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.00035248501938675624,
+      "hold_time": 0.6509985559516482,
+      "win_rate": 0.625,
+      "timestamp": "2026-03-12T21:36:34.317924"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.37569999999998865,
+      "hold_time": 2343.7447485923767,
+      "win_rate": 0.5555555555555556,
+      "timestamp": "2026-03-12T21:36:34.318474"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": 0.0009586414680910352,
+      "hold_time": 0.4250173293881946,
+      "win_rate": 0.42857142857142855,
+      "timestamp": "2026-03-12T21:42:18.209244"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": 0.0009586414680910352,
+      "hold_time": 0.41668188042110865,
+      "win_rate": 0.4666666666666667,
+      "timestamp": "2026-03-12T21:42:18.383661"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -0.14926999999999263,
+      "hold_time": 1500.2213518619537,
+      "win_rate": 0.4375,
+      "timestamp": "2026-03-12T21:42:18.384130"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -0.14926999999999263,
+      "hold_time": 1530.4272265434265,
+      "win_rate": 0.4117647058823529,
+      "timestamp": "2026-03-12T21:42:48.590005"
+    },
+    {
+      "strategy": "swing",
+      "action": "SELL",
+      "pnl": -0.9720000000000113,
+      "hold_time": 12685.661500692368,
+      "win_rate": 0.5,
+      "timestamp": "2026-03-12T21:43:49.088135"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.0011021886317116299,
+      "hold_time": 0.3238315451807446,
+      "win_rate": 0.4666666666666667,
+      "timestamp": "2026-03-12T21:45:03.591109"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -0.6036999999999774,
+      "hold_time": 1165.9575383663177,
+      "win_rate": 0.4375,
+      "timestamp": "2026-03-12T21:45:03.591480"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.009316037735849029,
+      "hold_time": 2.579436195625199,
+      "win_rate": 0.47058823529411764,
+      "timestamp": "2026-03-12T21:52:45.674482"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.8887166666666628,
+      "hold_time": 9286.0979950428,
+      "win_rate": 0.5,
+      "timestamp": "2026-03-12T21:52:45.674853"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.8887166666666628,
+      "hold_time": 9316.34051322937,
+      "win_rate": 0.5263157894736842,
+      "timestamp": "2026-03-12T21:53:15.917376"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.00442477876106195,
+      "hold_time": 0.9132258372174369,
+      "win_rate": 0.6,
+      "timestamp": "2026-03-12T22:06:23.549390"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.6379999999999999,
+      "hold_time": 3287.7488248348236,
+      "win_rate": 0.6363636363636364,
+      "timestamp": "2026-03-12T22:06:23.587434"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0007874015748031496,
+      "hold_time": 0.8506458757321039,
+      "win_rate": 0.6666666666666666,
+      "timestamp": "2026-03-12T22:10:28.999469"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0007874015748031496,
+      "hold_time": 0.7826700145668454,
+      "win_rate": 0.6923076923076923,
+      "timestamp": "2026-03-12T22:10:29.102795"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -1.4065,
+      "hold_time": 2817.7284569740295,
+      "win_rate": 0.6428571428571429,
+      "timestamp": "2026-03-12T22:10:29.103369"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": 0.0034880923743083676,
+      "hold_time": 0.5137492326233122,
+      "win_rate": 0.3333333333333333,
+      "timestamp": "2026-03-12T22:11:06.530477"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": 0.19854999999998846,
+      "hold_time": 1849.6177763938904,
+      "win_rate": 0.5,
+      "timestamp": "2026-03-12T22:11:06.560469"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -1.3067999999999773,
+      "hold_time": 3128.966798067093,
+      "win_rate": 0.6,
+      "timestamp": "2026-03-12T22:15:40.341710"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": 0.0003498950314905661,
+      "hold_time": 0.7817728035317527,
+      "win_rate": 0.6,
+      "timestamp": "2026-03-12T22:30:43.557209"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": -0.22730999999999885,
+      "hold_time": 2814.5549194812775,
+      "win_rate": 0.5,
+      "timestamp": "2026-03-12T22:30:43.557587"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.00033534540576801724,
+      "hold_time": 1.3315421224302715,
+      "win_rate": 0.625,
+      "timestamp": "2026-03-12T22:31:59.698828"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -2.3129333333333486,
+      "hold_time": 4793.6764459609985,
+      "win_rate": 0.5882352941176471,
+      "timestamp": "2026-03-12T22:31:59.699205"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0010626992561105079,
+      "hold_time": 1.3399933934211732,
+      "win_rate": 0.6111111111111112,
+      "timestamp": "2026-03-12T22:32:30.129434"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -2.3129333333333486,
+      "hold_time": 4824.146112442017,
+      "win_rate": 0.5789473684210527,
+      "timestamp": "2026-03-12T22:32:30.168878"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -2.3129333333333486,
+      "hold_time": 4854.3397080898285,
+      "win_rate": 0.55,
+      "timestamp": "2026-03-12T22:33:00.362471"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.000705218617771469,
+      "hold_time": 0.34084376686149176,
+      "win_rate": 0.5714285714285714,
+      "timestamp": "2026-03-12T22:39:17.843033"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.3257000000000057,
+      "hold_time": 1227.181109905243,
+      "win_rate": 0.5454545454545454,
+      "timestamp": "2026-03-12T22:39:17.843612"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": -0.0004199916001680921,
+      "hold_time": 0.8183565647734536,
+      "win_rate": 0.42857142857142855,
+      "timestamp": "2026-03-12T22:45:33.109719"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0004203446826397407,
+      "hold_time": 0.217568605211046,
+      "win_rate": 0.5652173913043478,
+      "timestamp": "2026-03-12T22:45:33.268354"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0004203446826397407,
+      "hold_time": 0.20075065102842118,
+      "win_rate": 0.5833333333333334,
+      "timestamp": "2026-03-12T22:45:33.374115"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0004203446826397407,
+      "hold_time": 0.19234218623903063,
+      "win_rate": 0.6,
+      "timestamp": "2026-03-12T22:45:33.488798"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0004203446826397407,
+      "hold_time": 0.18399010651641423,
+      "win_rate": 0.6153846153846154,
+      "timestamp": "2026-03-12T22:45:33.656965"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0004203446826397407,
+      "hold_time": 0.17562488781081306,
+      "win_rate": 0.6296296296296297,
+      "timestamp": "2026-03-12T22:45:33.770381"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0004203446826397407,
+      "hold_time": 0.15887717929151324,
+      "win_rate": 0.6428571428571429,
+      "timestamp": "2026-03-12T22:45:33.886514"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -1.927714285714448,
+      "hold_time": 572.1437909603119,
+      "win_rate": 0.6206896551724138,
+      "timestamp": "2026-03-12T22:45:33.930446"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0003002101471027843,
+      "hold_time": 0.16733792106310527,
+      "win_rate": 0.6333333333333333,
+      "timestamp": "2026-03-12T22:46:04.316546"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -1.2851428571429464,
+      "hold_time": 602.5302839279175,
+      "win_rate": 0.6129032258064516,
+      "timestamp": "2026-03-12T22:46:04.316922"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0003002101471027843,
+      "hold_time": 0.17579378757211897,
+      "win_rate": 0.625,
+      "timestamp": "2026-03-12T22:46:34.762288"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.6425714285714732,
+      "hold_time": 632.9762213230133,
+      "win_rate": 0.6060606060606061,
+      "timestamp": "2026-03-12T22:46:34.762862"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": 0.0,
+      "hold_time": 1.0736308390564389,
+      "win_rate": 0.5,
+      "timestamp": "2026-03-12T22:48:14.168376"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": 0.0,
+      "hold_time": 0.9666939151949353,
+      "win_rate": 0.2,
+      "timestamp": "2026-03-12T22:48:14.270340"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0008331944675888063,
+      "hold_time": 0.5522316065099504,
+      "win_rate": 0.6176470588235294,
+      "timestamp": "2026-03-12T22:48:14.313954"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.8175666666666856,
+      "hold_time": 1988.104942560196,
+      "win_rate": 0.6,
+      "timestamp": "2026-03-12T22:48:14.314500"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.00027757730527950457,
+      "hold_time": 0.560633822745747,
+      "win_rate": 0.6111111111111112,
+      "timestamp": "2026-03-12T22:48:44.531403"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.8175666666666856,
+      "hold_time": 2018.3612446784973,
+      "win_rate": 0.5945945945945946,
+      "timestamp": "2026-03-12T22:48:44.570807"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.8175666666666856,
+      "hold_time": 2048.5166001319885,
+      "win_rate": 0.5789473684210527,
+      "timestamp": "2026-03-12T22:49:14.726157"
+    },
+    {
+      "strategy": "news_aggressive",
+      "action": "SELL",
+      "pnl": -4.204200000000182,
+      "hold_time": 18084.769468784332,
+      "win_rate": 0.47619047619047616,
+      "timestamp": "2026-03-12T22:57:34.385528"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.001686056314280897,
+      "hold_time": 0.7505177009105682,
+      "win_rate": 0.5897435897435898,
+      "timestamp": "2026-03-12T23:00:45.956281"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.7823,
+      "hold_time": 2705.601368665695,
+      "win_rate": 0.575,
+      "timestamp": "2026-03-12T23:00:45.956805"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0010413051023949178,
+      "hold_time": 0.3386040235228009,
+      "win_rate": 0.5853658536585366,
+      "timestamp": "2026-03-12T23:02:50.849975"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0010413051023949178,
+      "hold_time": 0.27966485175821515,
+      "win_rate": 0.5952380952380952,
+      "timestamp": "2026-03-12T23:02:51.111163"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": 0.0010413051023949178,
+      "hold_time": 0.2712700199418598,
+      "win_rate": 0.5,
+      "timestamp": "2026-03-12T23:02:51.302234"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0010413051023949178,
+      "hold_time": 0.2520369556877348,
+      "win_rate": 0.6046511627906976,
+      "timestamp": "2026-03-12T23:02:51.542702"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.4521600000000193,
+      "hold_time": 907.6750965118408,
+      "win_rate": 0.5909090909090909,
+      "timestamp": "2026-03-12T23:02:51.606900"
+    },
+    {
+      "strategy": "momentum",
+      "action": "SELL",
+      "pnl": -0.0005027652086476401,
+      "hold_time": 2.4798432866070006,
+      "win_rate": 0.4444444444444444,
+      "timestamp": "2026-03-12T23:09:08.703537"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.00044210060946740516,
+      "hold_time": 2.4538650072283215,
+      "win_rate": 0.5777777777777777,
+      "timestamp": "2026-03-12T23:09:08.859123"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -1.1807939106939762e-16,
+      "hold_time": 1.5970454223950703,
+      "win_rate": 0.18181818181818182,
+      "timestamp": "2026-03-12T23:09:09.100213"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -1.1807939106939762e-16,
+      "hold_time": 1.5262324685520596,
+      "win_rate": 0.16666666666666666,
+      "timestamp": "2026-03-12T23:09:09.319972"
+    },
+    {
+      "strategy": "mean_reversion",
+      "action": "SELL",
+      "pnl": -1.1807939106939762e-16,
+      "hold_time": 1.5178873678710725,
+      "win_rate": 0.3888888888888889,
+      "timestamp": "2026-03-12T23:09:09.488182"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -1.1807939106939762e-16,
+      "hold_time": 1.509542702767584,
+      "win_rate": 0.15384615384615385,
+      "timestamp": "2026-03-12T23:09:09.652927"
+    },
+    {
+      "strategy": "breakout",
+      "action": "SELL",
+      "pnl": -1.1807939106939762e-16,
+      "hold_time": 1.47293124947283,
+      "win_rate": 0.14285714285714285,
+      "timestamp": "2026-03-12T23:09:09.974014"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0007639419404124444,
+      "hold_time": 1.2903274536132812,
+      "win_rate": 0.5869565217391305,
+      "timestamp": "2026-03-12T23:09:10.145141"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.0012110726643599894,
+      "hold_time": 0.9592751101652781,
+      "win_rate": 0.574468085106383,
+      "timestamp": "2026-03-12T23:09:10.322840"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.0012110726643599894,
+      "hold_time": 0.9509627792570327,
+      "win_rate": 0.5625,
+      "timestamp": "2026-03-12T23:09:10.552443"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -0.00045682960255824577,
+      "hold_time": 0.5776025748915142,
+      "win_rate": 0.5510204081632653,
+      "timestamp": "2026-03-12T23:09:10.717284"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0,
+      "hold_time": 0.05292068117194706,
+      "win_rate": 0.54,
+      "timestamp": "2026-03-12T23:09:10.869835"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0,
+      "hold_time": 0.04457902451356252,
+      "win_rate": 0.5294117647058824,
+      "timestamp": "2026-03-12T23:09:11.109349"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0,
+      "hold_time": 0.03621378481388092,
+      "win_rate": 0.5192307692307693,
+      "timestamp": "2026-03-12T23:09:11.252688"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0,
+      "hold_time": 0.019122728241814508,
+      "win_rate": 0.5094339622641509,
+      "timestamp": "2026-03-12T23:09:11.408897"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0004203446826397407,
+      "hold_time": 0.027900652488072712,
+      "win_rate": 0.5185185185185185,
+      "timestamp": "2026-03-12T23:09:11.627419"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": 0.0005029337803855063,
+      "hold_time": 0.027931854989793566,
+      "win_rate": 0.5272727272727272,
+      "timestamp": "2026-03-12T23:09:11.807338"
+    },
+    {
+      "strategy": "tech_conservative",
+      "action": "SELL",
+      "pnl": -1.1185245741992917e-16,
+      "hold_time": 0.009242782261636523,
+      "win_rate": 0.5178571428571429,
+      "timestamp": "2026-03-12T23:09:11.965908"
+    }
+  ],
+  "strategies": {
+    "news_aggressive": {
+      "description": "\u0410\u0433\u0440\u0435\u0441\u0441\u0438\u0432\u043d\u0430\u044f \u0442\u043e\u0440\u0433\u043e\u0432\u043b\u044f \u043d\u0430 \u043d\u043e\u0432\u043e\u0441\u0442\u044f\u0445",
+      "news_weight": 0.8,
+      "tech_weight": 0.2,
+      "risk_multiplier": 0.5,
+      "target_hold_time_hours": 24,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
+      "max_positions": 2,
+      "min_win_rate": 0.4,
+      "prediction_weight": 0.1,
+      "conditions": {
+        "min_confidence": 0.75,
+        "market_sentiment_threshold": 0.3,
+        "min_news_count": 2,
+        "max_volatility": 0.05
+      }
+    },
+    "tech_conservative": {
+      "description": "\u041a\u043e\u043d\u0441\u0435\u0440\u0432\u0430\u0442\u0438\u0432\u043d\u0430\u044f \u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u0442\u043e\u0440\u0433\u043e\u0432\u043b\u044f",
+      "news_weight": 0.2,
+      "tech_weight": 0.8,
+      "risk_multiplier": 0.5,
+      "target_hold_time_hours": 24,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
+      "max_positions": 3,
+      "min_win_rate": 0.45,
+      "prediction_weight": 0.1,
+      "conditions": {
+        "min_confidence": 0.65,
+        "rsi_threshold_low": 30,
+        "rsi_threshold_high": 70,
+        "volume_ratio_min": 1.5
+      }
+    },
+    "balanced": {
+      "description": "\u0421\u0431\u0430\u043b\u0430\u043d\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u043f\u043e\u0434\u0445\u043e\u0434",
+      "news_weight": 0.5,
+      "tech_weight": 0.5,
+      "risk_multiplier": 1.0,
+      "target_hold_time_hours": 6,
+      "stop_loss_percent": 2.5,
+      "take_profit_percent": 5.0,
+      "max_positions": 4,
+      "min_win_rate": 0.5,
+      "prediction_weight": 0.1,
+      "conditions": {
+        "min_confidence": 0.7,
+        "volatility_threshold": 0.02,
+        "momentum_threshold": 0.5
+      }
+    },
+    "momentum": {
+      "description": "\u041c\u043e\u043c\u0435\u043d\u0442\u0443\u043c \u0441\u043a\u0430\u043b\u044c\u043f\u0438\u043d\u0433",
+      "news_weight": 0.3,
+      "tech_weight": 0.7,
+      "risk_multiplier": 0.8769774208699288,
+      "target_hold_time_hours": 0.6760303255998346,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
+      "max_positions": 5,
+      "min_win_rate": 0.35,
+      "prediction_weight": 0.1,
+      "conditions": {
+        "min_confidence": 0.6,
+        "momentum_threshold": 1.0,
+        "volume_ratio_min": 2.0,
+        "max_spread_percent": 0.1
+      }
+    },
+    "swing": {
+      "description": "\u0421\u0432\u0438\u043d\u0433-\u0442\u0440\u0435\u0439\u0434\u0438\u043d\u0433 (\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u044b\u0435 \u0434\u0432\u0438\u0436\u0435\u043d\u0438\u044f)",
+      "news_weight": 0.2,
+      "tech_weight": 0.8,
+      "risk_multiplier": 1.0,
+      "target_hold_time_hours": 72,
+      "stop_loss_percent": 5.0,
+      "take_profit_percent": 15.0,
+      "max_positions": 2,
+      "min_win_rate": 0.45,
+      "prediction_weight": 0.1,
+      "conditions": {
+        "min_confidence": 0.65,
+        "trend_strength_min": 0.6,
+        "max_volatility": 0.03,
+        "min_volume_ratio": 1.2
+      }
+    },
+    "mean_reversion": {
+      "description": "\u0412\u043e\u0437\u0432\u0440\u0430\u0442 \u043a \u0441\u0440\u0435\u0434\u043d\u0435\u043c\u0443 (\u043f\u0440\u043e\u0442\u0438\u0432 \u0442\u0440\u0435\u043d\u0434\u0430)",
+      "news_weight": 0.4,
+      "tech_weight": 0.6,
+      "risk_multiplier": 0.5,
+      "target_hold_time_hours": 24,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
+      "max_positions": 3,
+      "min_win_rate": 0.4,
+      "prediction_weight": 0.1,
+      "conditions": {
+        "min_confidence": 0.7,
+        "rsi_threshold_low": 25,
+        "rsi_threshold_high": 75,
+        "bb_position_min": 0.8,
+        "bb_position_max": 0.2
+      }
+    },
+    "breakout": {
+      "description": "\u0422\u043e\u0440\u0433\u043e\u0432\u043b\u044f \u043d\u0430 \u043f\u0440\u043e\u0431\u043e\u0439 \u0443\u0440\u043e\u0432\u043d\u0435\u0439",
+      "news_weight": 0.3,
+      "tech_weight": 0.7,
+      "risk_multiplier": 0.5,
+      "target_hold_time_hours": 24,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
+      "max_positions": 2,
+      "min_win_rate": 0.4,
+      "prediction_weight": 0.1,
+      "conditions": {
+        "min_confidence": 0.7,
+        "volume_ratio_min": 2.5,
+        "volatility_threshold": 0.04,
+        "atr_multiplier": 1.5
+      }
+    },
+    "price_prediction": {
+      "description": "\u0422\u043e\u0440\u0433\u043e\u0432\u043b\u044f \u043d\u0430 \u043e\u0441\u043d\u043e\u0432\u0435 \u043f\u0440\u0435\u0434\u0441\u043a\u0430\u0437\u0430\u043d\u0438\u0439 \u043c\u043e\u0434\u0435\u043b\u0438",
+      "news_weight": 0.3,
+      "tech_weight": 0.7,
+      "risk_multiplier": 1.0,
+      "target_hold_time_hours": 2,
+      "stop_loss_percent": 2.0,
+      "take_profit_percent": 4.0,
+      "max_positions": 3,
+      "min_win_rate": 0.45,
+      "prediction_weight": 0.5
+    }
+  },
+  "save_time": "2026-03-12T23:09:12.178482"
+}

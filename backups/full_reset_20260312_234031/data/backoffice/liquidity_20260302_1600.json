@@ -1,0 +1,101 @@
+{
+  "timestamp": "2026-03-02T16:00:00.985806",
+  "cash": 166.84093000000837,
+  "total_exposure": 10719.340000000002,
+  "liquidity_ratio": 0.01556447785031619,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 15,
+  "positions": [
+    {
+      "ticker": "GECO",
+      "value": 1239.5,
+      "qty": 50,
+      "price": 24.79
+    },
+    {
+      "ticker": "LMBZ",
+      "value": 885.0,
+      "qty": 2,
+      "price": 442.5
+    },
+    {
+      "ticker": "ELFV",
+      "value": 510.0,
+      "qty": 1000,
+      "price": 0.51
+    },
+    {
+      "ticker": "APTK",
+      "value": 83.6,
+      "qty": 10,
+      "price": 8.36
+    },
+    {
+      "ticker": "ELMT",
+      "value": 278.5,
+      "qty": 2000,
+      "price": 0.13925
+    },
+    {
+      "ticker": "SGZH",
+      "value": 253.29999999999998,
+      "qty": 200,
+      "price": 1.2665
+    },
+    {
+      "ticker": "VSEH",
+      "value": 863.94,
+      "qty": 11,
+      "price": 78.54
+    },
+    {
+      "ticker": "TRMK",
+      "value": 1034.8,
+      "qty": 10,
+      "price": 103.48
+    },
+    {
+      "ticker": "LNZLP",
+      "value": 512.0,
+      "qty": 1,
+      "price": 512.0
+    },
+    {
+      "ticker": "AFLT",
+      "value": 1081.4,
+      "qty": 20,
+      "price": 54.07
+    },
+    {
+      "ticker": "ROLO",
+      "value": 590.8,
+      "qty": 1000,
+      "price": 0.5908
+    },
+    {
+      "ticker": "UWGN",
+      "value": 118.96,
+      "qty": 4,
+      "price": 29.74
+    },
+    {
+      "ticker": "ALRS",
+      "value": 792.8,
+      "qty": 20,
+      "price": 39.64
+    },
+    {
+      "ticker": "CBOM",
+      "value": 2365.2000000000003,
+      "qty": 400,
+      "price": 5.913
+    },
+    {
+      "ticker": "DATA",
+      "value": 109.54,
+      "qty": 1,
+      "price": 109.54
+    }
+  ]
+}

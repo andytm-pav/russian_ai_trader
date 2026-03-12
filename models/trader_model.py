@@ -83,9 +83,9 @@ warnings.filterwarnings('ignore')
 NEWS_EMBEDDING_DIM = 312  # (rubert-tiny2 выдает 312)
 
 NEWS_ENCODED_DIM = 128
-BASE_STATE_DIM = 150
+BASE_STATE_DIM = 151
 STRATEGY_PARAMS_DIM = 6
-TOTAL_STATE_DIM = BASE_STATE_DIM + STRATEGY_PARAMS_DIM  # 156
+TOTAL_STATE_DIM = BASE_STATE_DIM + STRATEGY_PARAMS_DIM  # 157
 
 # Слои нейросетей
 NEWS_ENCODER_HIDDEN_DIM = 256
@@ -671,9 +671,6 @@ class AdvancedTraderModel:
             import traceback
             traceback.print_exc()
 
-
-
-
     def choose_action_with_strategy(self, state: torch.Tensor, ticker: str,
                                     price: float, market_context: Dict) -> Tuple[int, str, float]:
         """
@@ -681,45 +678,43 @@ class AdvancedTraderModel:
         """
         strategy_scores = {}
 
-        # ✅ Если состояние уже 156, используем как есть
-        if state.shape[-1] == 156:
-            base_state = state
-        else:
-            # Если 150, будем добавлять стратегию для каждой
-            base_state = state
-
         for strategy_name, params in self.strategies.items():
-            if state.shape[-1] == 150:
-                # Добавляем стратегию к базовому состоянию
-                strategy_state = self._create_strategy_state(base_state, params)
-            else:
-                # Уже полное состояние - используем как есть
-                strategy_state = base_state
+            # Всегда создаем стратегическое состояние
+            strategy_state = self._create_strategy_state(state, params)
+
+            if strategy_state.dim() == 1:
+                strategy_state = strategy_state.unsqueeze(0)
 
             with torch.no_grad():
                 action_probs, state_value, price_pred = self.policy_net(strategy_state)
 
-                # Логирование предсказания цены (каждые 10 вызовов для экономии логов)
-                if np.random.random() < 0.1:  # 10% вызовов
-                    pred_probs = self.get_price_pred_probs(price_pred)
+                # Получаем предсказание цены
+                pred_probs = self.get_price_pred_probs(price_pred)
+
+                if np.random.random() < 0.1:
                     logger.debug(f"📈 Предсказание цены {ticker}: "
                                  f"падение={pred_probs[0]:.2f}, "
                                  f"нейтрально={pred_probs[1]:.2f}, "
                                  f"рост={pred_probs[2]:.2f}")
 
-
-            # Модель учится на win_rate стратегий - это обратная связь от реальных результатов!
+            # Модель учится на win_rate стратегий
             perf = self.strategy_performance[strategy_name]
             confidence_boost = perf['win_rate'] * self.confidence_boost_factor
 
-            expected_value = state_value.item() + confidence_boost
+            # 🔥 ВЕС ПРЕДСКАЗАНИЯ ИЗ КОНФИГА
+            prediction_weight = params.get('prediction_weight',
+                                           self.strategy_config.get('default_prediction_weight', 0.1))
+
+            price_score = pred_probs[2] - pred_probs[0]  # рост - падение (от -1 до 1)
+            expected_value = state_value.item() + confidence_boost + price_score * prediction_weight
+
             strategy_scores[strategy_name] = {
                 'expected_value': expected_value,
                 'action_probs': action_probs.cpu().numpy().flatten(),
                 'params': params
             }
 
-        # Выбор стратегии - чистая exploitation/exploration, без ручных правил!
+        # Выбор стратегии
         if np.random.random() < self.exploration_rate:
             chosen_strategy = np.random.choice(list(self.strategies.keys()))
         else:
@@ -740,14 +735,23 @@ class AdvancedTraderModel:
     def _create_strategy_state(self, base_state: torch.Tensor,
                                strategy_params: Dict) -> torch.Tensor:
 
-        # Проверяем размерность
-        if base_state.shape[-1] == 156:
-            # Уже полное состояние - возвращаем как есть
+        current_dim = base_state.shape[-1]
+        target_dim = self.policy_net.state_dim  # 157
+
+        # Если уже нужная размерность - возвращаем
+        if current_dim == target_dim:
             return base_state
 
-        # Только если 150 - добавляем параметры
-        strategy_state = base_state.clone()
+        # Для 156 - нужно добавить только 1 признак (available_cash_ratio)
+        if current_dim == 156:
+            padding = torch.zeros(1, device=base_state.device, dtype=base_state.dtype)
+            if base_state.dim() > 1:
+                padding = padding.expand(base_state.shape[0], -1)
+                return torch.cat([base_state, padding], dim=-1)
+            else:
+                return torch.cat([base_state, padding])
 
+        # Для остальных - добавляем параметры стратегии
         strategy_params_tensor = torch.tensor([
             float(strategy_params.get('news_weight', 0.5)),
             float(strategy_params.get('tech_weight', 0.5)),
@@ -755,10 +759,28 @@ class AdvancedTraderModel:
             float(strategy_params.get('target_hold_time_hours', 6)) / 24.0,
             float(strategy_params.get('stop_loss_percent', 2.5)) / 100.0,
             float(strategy_params.get('take_profit_percent', 5.0)) / 100.0
-        ], dtype=torch.float32, device=self.device)
+        ], dtype=torch.float32, device=base_state.device)
 
-        strategy_state = torch.cat([strategy_state, strategy_params_tensor])
-        return strategy_state
+        if base_state.dim() > 1:
+            strategy_params_tensor = strategy_params_tensor.expand(base_state.shape[0], -1)
+            result = torch.cat([base_state, strategy_params_tensor], dim=-1)
+        else:
+            result = torch.cat([base_state, strategy_params_tensor])
+
+        # Если все еще не target_dim - добавляем нули
+        if result.shape[-1] < target_dim:
+            padding = torch.zeros(
+                *result.shape[:-1],
+                target_dim - result.shape[-1],
+                device=result.device,
+                dtype=result.dtype
+            )
+            if result.dim() > 1:
+                result = torch.cat([result, padding], dim=-1)
+            else:
+                result = torch.cat([result, padding])
+
+        return result
 
     def record_strategy_outcome(self, strategy_name: str, action: str,
                                 pnl: float, hold_time: float):
@@ -1158,7 +1180,14 @@ class AdvancedTraderModel:
             exposure_ratio = positions_value / self.portfolio.initial_capital
             exposure_norm = min(exposure_ratio, 1.0)
 
-        features.extend([positions_norm, trades_per_hour_norm, exposure_norm])
+
+        # 🔥 НОВЫЙ ПРИЗНАК остаток кэш
+        available_cash_ratio = 0.0
+        if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'cash') and hasattr(self.portfolio, 'reserved_cash'):
+            available_cash = self.portfolio.cash - self.portfolio.reserved_cash
+            available_cash_ratio = available_cash / self.portfolio.initial_capital
+
+        features.extend([positions_norm, trades_per_hour_norm, exposure_norm, available_cash_ratio])  # ← ДОБАВИЛИ проверу остатка кэша!
 
         time_pressure = 0.0
         if hasattr(self, 'scheduler'):
@@ -1730,6 +1759,9 @@ class AdvancedTraderModel:
                              market_conditions: Dict,
                              strategy: str = None,
                              market_sentiment: float = 0.0) -> Tuple[float, float]:
+        price_change_ratio = 0.0
+        pnl = 0.0
+        trade_return = 0.0
 
         """Запись результата сделки с УНИВЕРСАЛЬНЫМ PnL РАСЧЕТОМ"""
 

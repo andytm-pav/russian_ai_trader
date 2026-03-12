@@ -49,7 +49,7 @@ class SmartPortfolioBroker:
 
         # self.technical_core = TechnicalTraderCore()
         self.risk_manager = RiskManager()
-        self.scheduler = TradingScheduler()
+        # self.scheduler = TradingScheduler()
 
 
         self.auction_mode = False
@@ -121,16 +121,7 @@ class SmartPortfolioBroker:
         self.strategy_tracker = defaultdict(list)  # История стратегий по тикерам
 
     def _allocate_by_time_horizon(self, signals: List[Dict]) -> Dict[str, List[Dict]]:
-        """Распределение сигналов по временным горизонтам на основе предсказаний модели"""
         horizons = self.settings.get('time_horizons', {})
-
-        # Маппинг стратегий на временные горизонты
-        strategy_to_horizon = {
-            'news_aggressive': 'day_session',  # агрессивные новости - быстрые сделки
-            'momentum': 'day_session',  # моментум - тоже быстрые
-            'balanced': 'three_days',  # сбалансированные - средний срок
-            'tech_conservative': 'week'  # консервативные - долгий срок
-        }
 
         allocation = {
             'day_session': [],
@@ -143,16 +134,19 @@ class SmartPortfolioBroker:
 
         for signal in signals:
             ticker = signal['ticker']
-            strategy = signal.get('strategy', 'balanced')  # стратегия из сигнала
+            strategy_name = signal.get('strategy', 'balanced')  # ← стратегия ИЗ СИГНАЛА!
 
             if ticker in self.ticker_states:
-                state = self.ticker_states[ticker]
+                state = self.ticker_states[ticker]  # 151
+
+                # 🔥 ИСПОЛЬЗУЕМ РЕАЛЬНУЮ СТРАТЕГИЮ ИЗ СИГНАЛА!
+                strategy_params = self.model.strategies.get(strategy_name, self.model.strategies['balanced'])
+                full_state = self.model._create_strategy_state(state, strategy_params)  # 151 → 157
 
                 with torch.no_grad():
-                    _, _, price_pred = self.model.policy_net(state.unsqueeze(0))
+                    _, _, price_pred = self.model.policy_net(full_state.unsqueeze(0))
                     pred_probs = self.model.get_price_pred_probs(price_pred)
 
-                    # Используем pred_probs для определения горизонта
                     if pred_probs[2] > 0.6:
                         horizon = 'day_session'
                     elif pred_probs[2] > 0.4 or pred_probs[1] > 0.5:
@@ -160,17 +154,23 @@ class SmartPortfolioBroker:
                     else:
                         horizon = 'week'
             else:
-                # Для новых тикеров используем маппинг на основе стратегии
-                horizon = strategy_to_horizon.get(strategy, 'week')
+                # Для новых тикеров - по target_hold_time
+                strategy_params = self.model.strategies.get(strategy_name, self.model.strategies['balanced'])
+                hold_time = strategy_params.get('target_hold_time_hours', 6)
+
+                if hold_time <= 6:
+                    horizon = 'day_session'
+                elif hold_time <= 24:
+                    horizon = 'three_days'
+                else:
+                    horizon = 'week'
 
             signal['horizon'] = horizon
-            signal['assigned_horizon'] = horizon  # для обратной совместимости
+            signal['assigned_horizon'] = horizon
 
-            # Добавляем в соответствующий список
             if horizon in allocation:
                 allocation[horizon].append(signal)
             else:
-                # Если горизонт не найден, используем week как fallback
                 logger.warning(f"Неизвестный горизонт {horizon} для {ticker}, использую week")
                 allocation['week'].append(signal)
 
@@ -399,7 +399,20 @@ class SmartPortfolioBroker:
                         'impact_level': 'high_impact' if abs(ticker_sentiment) > 0.5 else 'medium_impact'
                     }
 
-                    logger.debug(f"[DEBUG] {ticker}: cash={self.portfolio.cash}, price={price}, total={quantity * price}")
+                    # 🔥 ИСПРАВЛЕНИЕ: проверяем свободные средства, а не весь кэш
+                    available_cash = self.portfolio.cash - self.portfolio.reserved_cash
+                    total_cost = quantity * price
+
+                    logger.debug(
+                        f"[DEBUG] {ticker}: available_cash={available_cash:.2f}, price={price}, total={total_cost}")
+
+                    if available_cash < total_cost:
+                        logger.warning(
+                            f"❌ Недостаточно свободных средств для {ticker}: "
+                            f"нужно {total_cost:.2f}₽, доступно {available_cash:.2f}₽ "
+                            f"(cash: {self.portfolio.cash:.2f}₽, резерв: {self.portfolio.reserved_cash:.2f}₽)"
+                        )
+                        continue
 
                     # ✅ ОДИН вызов buy с передачей всех параметров
                     if self.portfolio.buy(ticker, quantity, price, strategy,
@@ -511,9 +524,13 @@ class SmartPortfolioBroker:
         print(f"   state.shape: {state.shape}, dtype: {state.dtype}")
         print(f"   action: {action}, strategy: {strategy}")
 
+        # 🔥 Создаем ПОЛНОЕ состояние со стратегией
+        strategy_params = self.model.strategies[strategy]
+        full_state = self.model._create_strategy_state(state, strategy_params)
+
         experience = {
             'ticker': ticker,
-            'start_state': state.cpu(),
+            'start_state': full_state.cpu(),  # ✅ 157
             'action': action,
             'strategy': strategy,
             'entry_price': price,
@@ -644,10 +661,10 @@ class SmartPortfolioBroker:
                 pnl_rub = pnl
 
                 self.model.remember_experience(
-                    state=full_start_state,  # ✅ 156
+                    state=full_start_state,  # ✅ 157
                     action=exp['action'],
                     reward=reward,
-                    next_state=full_next_state,  # ✅ 156
+                    next_state=full_next_state,  # ✅ 157
                     done=True,
                     news_features=None,
                     td_error=td_error,
@@ -767,13 +784,12 @@ class SmartPortfolioBroker:
             logger.debug(f"🏆 HOLD reward: {hold_reward:.2f} (ratio={time_ratio:.2f})")
             return hold_reward
 
-        #
         profit_config = self.profit_config
 
         base_multiplier = profit_config.get('base_reward_multiplier', 1.0)
         speed_bonus_mult = profit_config.get('speed_bonus_multiplier', 0.5)
         time_penalty_mult = profit_config.get('time_penalty_multiplier', 2.0)
-        concentration_penalty = profit_config.get('concentration_penalty', 5.0)
+        concentration_penalty = profit_config.get('concentration_penalty', 5.0)  # ✅ 0.3 из settings.json
         patience_bonus_mult = profit_config.get('patience_bonus_multiplier', 0.3)
 
         strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
@@ -815,12 +831,12 @@ class SmartPortfolioBroker:
         pre_multiplier_reward = base_reward + speed_component + concentration_penalty_val + patience_bonus
         final_reward = pre_multiplier_reward * strategy_params.get('risk_multiplier', 1.0)
 
-        max_reward = profit_config.get('max_reward', 0.5)
-        min_reward = profit_config.get('min_reward', -0.5)
+        # 🔥 ИСПРАВЛЕНИЕ: используем rl_config для клиппинга
+        max_reward = self.rl_config.get('reward_clip_max', 0.5)
+        min_reward = self.rl_config.get('reward_clip_min', -0.5)
         limited_reward = max(min_reward, min(max_reward, final_reward))
 
         logger.debug(f"Reward: pnl={pnl:.2f}, hold={hold_time:.2f}ч, final={limited_reward:.2f}")
-
         return limited_reward
 
     def _create_initial_state(self, ticker: str, price: float, security_info: Dict) -> torch.Tensor:
@@ -1447,27 +1463,32 @@ class SmartPortfolioBroker:
             # 🔥Добавляем HOLD-опыты для открытых позиций
             hold_config = self.rl_config.get('hold_reward', {})
             if hold_config.get('enabled', False):
-                # Проверяем частоту (каждые N циклов)
                 hold_interval = hold_config.get('interval_cycles', 5)
                 if self.cycle_count % hold_interval == 0:
-                    # Максимум позиций за цикл
                     max_positions = hold_config.get('max_positions_per_cycle', 3)
 
                     for ticker, pos in list(self.portfolio.positions.items())[:max_positions]:
                         if ticker in self.ticker_states:
                             current_price = self.moex.get_price(ticker)
                             if current_price:
-                                current_state = self.ticker_states[ticker]
-                                next_state = self._create_next_state(ticker, current_price)
-                                hold_time = (time.time() - pos.get('buy_time', time.time())) / 3600
+                                current_state = self.ticker_states[ticker]  # 151
+                                next_state = self._create_next_state(ticker, current_price)  # 151
 
-                                hold_reward = self._calculate_reward(0, hold_time, pos.get('strategy', 'balanced'))
+                                # 🔥 СОЗДАЕМ ПОЛНЫЕ СОСТОЯНИЯ
+                                strategy = pos.get('strategy', 'balanced')
+                                strategy_params = self.model.strategies[strategy]
+
+                                full_current = self.model._create_strategy_state(current_state, strategy_params)  # 157
+                                full_next = self.model._create_strategy_state(next_state, strategy_params)  # 157
+
+                                hold_time = (time.time() - pos.get('buy_time', time.time())) / 3600
+                                hold_reward = self._calculate_reward(0, hold_time, strategy)
 
                                 self.model.remember_experience(
-                                    state=current_state,
+                                    state=full_current,  # ✅ 157
                                     action=1,  # HOLD
                                     reward=hold_reward,
-                                    next_state=next_state,
+                                    next_state=full_next,  # ✅ 157
                                     done=False,
                                     pnl_rub=0
                                 )

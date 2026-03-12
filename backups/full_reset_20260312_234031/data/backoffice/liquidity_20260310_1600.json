@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-03-10T16:00:00.256842",
+  "cash": 472.8849999999993,
+  "total_exposure": 9673.675,
+  "liquidity_ratio": 0.04888369725052778,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 8,
+  "positions": [
+    {
+      "ticker": "AFLT",
+      "value": 1039.4,
+      "qty": 20,
+      "price": 51.97
+    },
+    {
+      "ticker": "SGZH",
+      "value": 125.1,
+      "qty": 100,
+      "price": 1.251
+    },
+    {
+      "ticker": "SNGSP",
+      "value": 1876.6,
+      "qty": 40,
+      "price": 46.915
+    },
+    {
+      "ticker": "VTBR",
+      "value": 774.225,
+      "qty": 9,
+      "price": 86.025
+    },
+    {
+      "ticker": "SPBE",
+      "value": 972.8,
+      "qty": 4,
+      "price": 243.2
+    },
+    {
+      "ticker": "T",
+      "value": 3434.0,
+      "qty": 1,
+      "price": 3434.0
+    },
+    {
+      "ticker": "EUTR",
+      "value": 363.75,
+      "qty": 3,
+      "price": 121.25
+    },
+    {
+      "ticker": "NLMK",
+      "value": 1087.8,
+      "qty": 10,
+      "price": 108.78
+    }
+  ]
+}

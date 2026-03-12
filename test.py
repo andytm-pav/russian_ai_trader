@@ -1,60 +1,102 @@
 #!/usr/bin/env python3
+# reset_everything.py
 """
-Диагностика состояния системы без остановки
+Полный сброс: удаление памяти, модели, портфеля
+СОЗДАЕТ БЭКАП ПЕРЕД УДАЛЕНИЕМ!
 """
-import sys
+
 import os
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from models.smart_broker import trader_model_instance
-from core.trading_hours_scheduler import TradingScheduler
+import shutil
 import json
 from datetime import datetime
-import pytz
 
 
-def diagnose():
+def create_backup():
+    """Создание бэкапа перед удалением"""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_dir = f"backups/full_reset_{timestamp}"
+
+    print(f"\n📦 СОЗДАНИЕ БЭКАПА: {backup_dir}")
+    os.makedirs(backup_dir, exist_ok=True)
+
+    # Что бэкапим
+    dirs_to_backup = ['models/saved_trader', 'data']
+
+    for dir_path in dirs_to_backup:
+        if os.path.exists(dir_path):
+            dest = os.path.join(backup_dir, dir_path)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            shutil.copytree(dir_path, dest)
+            print(f"  ✅ {dir_path}")
+
+    print(f"✅ Бэкап создан: {backup_dir}")
+    return backup_dir
+
+
+def delete_memory():
+    """Удаление файла памяти"""
+    memory_file = 'models/saved_trader/memory_buffer.pkl'
+    if os.path.exists(memory_file):
+        os.remove(memory_file)
+        print(f"  ✅ Удален: {memory_file}")
+
+
+def delete_model():
+    """Удаление весов и состояния модели"""
+    files_to_delete = [
+        'models/saved_trader/model_weights.pth',
+        'models/saved_trader/model_state.json'
+    ]
+    for file_path in files_to_delete:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"  ✅ Удален: {file_path}")
+
+
+def reset_portfolio():
+    """Сброс портфеля до начального состояния"""
+    portfolio_file = 'data/portfolio_state.json'
+
+    # Создаем пустой портфель
+    empty_portfolio = {
+        "total_value": 10000,
+        "cash": 10000,
+        "positions": {},
+        "last_update": datetime.now().isoformat(),
+        "initial_capital": 10000,
+        "reserved_cash": 0,
+        "pending_commissions": []
+    }
+
+    with open(portfolio_file, 'w', encoding='utf-8') as f:
+        json.dump(empty_portfolio, f, indent=2)
+    print(f"  ✅ Создан пустой портфель: {portfolio_file}")
+
+
+def main():
     print("=" * 60)
-    print("ДИАГНОСТИКА СИСТЕМЫ")
+    print("🧹 ПОЛНЫЙ СБРОС МОДЕЛИ И ПАМЯТИ")
     print("=" * 60)
+    print("\n⚠️  БУДУТ УДАЛЕНЫ:")
+    print("  • memory_buffer.pkl (вся память)")
+    print("  • model_weights.pth (веса модели)")
+    print("  • model_state.json (состояние модели)")
+    print("  • portfolio_state.json (портфель)")
 
-    # 1. Проверка scheduler
-    scheduler = TradingScheduler()
-    now = datetime.now(pytz.timezone('Europe/Moscow'))
+    confirm = input("\nВведите 'ПОЛНЫЙ СБРОС' для подтверждения: ")
 
-    print(f"\n1. ТЕКУЩЕЕ ВРЕМЯ: {now.strftime('%H:%M:%S')}")
-    print(f"   is_trading_day: {scheduler.is_trading_day(now)}")
-    print(f"   is_trading_time: {scheduler.is_trading_time(now)}")
-
-    # 2. Проверка периода MOEX
-    period = scheduler.get_current_moex_period()
-    print(f"   current_period: {period}")
-    print(
-        f"   can_place_orders: {period in ['auction_open', 'continuous_trading', 'auction_close', 'evening_auction_open', 'evening_continuous']}")
-
-    # 3. Проверка флага trading_enabled в модели
-    if hasattr(trader_model_instance, 'trading_enabled'):
-        print(f"\n2. trading_enabled в модели: {trader_model_instance.trading_enabled}")
+    if confirm == "ПОЛНЫЙ СБРОС":
+        backup_dir = create_backup()
+        print("\n🔥 УДАЛЕНИЕ:")
+        delete_memory()
+        delete_model()
+        reset_portfolio()
+        print("\n✅ ПОЛНЫЙ СБРОС ЗАВЕРШЕН!")
+        print(f"📦 Бэкап сохранен в: {backup_dir}")
+        print("\n🚀 Теперь можно запускать систему с чистого листа")
     else:
-        print("\n2. trading_enabled отсутствует в модели")
-
-    # 4. Проверка pending_experiences
-    if hasattr(trader_model_instance, 'pending_experiences'):
-        print(f"\n3. pending_experiences: {len(trader_model_instance.pending_experiences)}")
-
-    # 5. Проверка памяти модели
-    if hasattr(trader_model_instance, 'memory'):
-        print(f"\n4. memory size: {len(trader_model_instance.memory)}")
-
-    # 6. Проверка стратегий
-    if hasattr(trader_model_instance, 'strategy_performance'):
-        print("\n5. Статистика стратегий:")
-        for strat, perf in trader_model_instance.strategy_performance.items():
-            print(f"   {strat}: trades={perf['total_trades']}, win_rate={perf['win_rate']:.2%}")
-
-    print("\n" + "=" * 60)
+        print("❌ Отменено")
 
 
 if __name__ == "__main__":
-    diagnose()
+    main()

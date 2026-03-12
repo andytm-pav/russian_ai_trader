@@ -1,0 +1,71 @@
+{
+  "timestamp": "2026-02-24T16:00:00.578462",
+  "cash": 21.510930000008102,
+  "total_exposure": 10849.23,
+  "liquidity_ratio": 0.0019827149023486554,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 10,
+  "positions": [
+    {
+      "ticker": "HYDR",
+      "value": 0.0,
+      "qty": 0,
+      "price": 0.4384
+    },
+    {
+      "ticker": "GECO",
+      "value": 994.8000000000001,
+      "qty": 40,
+      "price": 24.87
+    },
+    {
+      "ticker": "LMBZ",
+      "value": 885.0,
+      "qty": 2,
+      "price": 442.5
+    },
+    {
+      "ticker": "HNFG",
+      "value": 490.8,
+      "qty": 1,
+      "price": 490.8
+    },
+    {
+      "ticker": "KMAZ",
+      "value": 866.0,
+      "qty": 10,
+      "price": 86.6
+    },
+    {
+      "ticker": "GLRX",
+      "value": 63.15,
+      "qty": 1,
+      "price": 63.15
+    },
+    {
+      "ticker": "FEES",
+      "value": 746.6,
+      "qty": 10000,
+      "price": 0.07466
+    },
+    {
+      "ticker": "HEAD",
+      "value": 5916.0,
+      "qty": 2,
+      "price": 2958.0
+    },
+    {
+      "ticker": "ABIO",
+      "value": 670.0,
+      "qty": 10,
+      "price": 67.0
+    },
+    {
+      "ticker": "DATA",
+      "value": 216.88,
+      "qty": 2,
+      "price": 108.44
+    }
+  ]
+}
