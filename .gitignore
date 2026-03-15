@@ -1,15 +1,14 @@
-venv/
-.env/
-.venv1/
-venv1/
+venv/*
+.env/*
+.venv1/*
+venv1/*
 __pycache__/
 *.pyc
-.idea/
+.idea/*
 *.log
 *.sqlite3
 .DS_Store
 
-#  .gitignore в PyCharm и добавьте строки:
 data/daily_report_*.json
 logs/*.log.*
 logs/tech_core.log

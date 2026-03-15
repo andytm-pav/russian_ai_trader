@@ -1,0 +1,92 @@
+{
+  "architecture": {
+    "news_embedding_dim": 312,
+    "news_encoded_dim": 128,
+    "news_encoder_hidden_dim": 256,
+    "news_encoder_intermediate_dim": 512,
+    "policy_hidden_dim_1": 256,
+    "policy_hidden_dim_2": 128,
+    "policy_hidden_dim_3": 64,
+    "policy_hidden_dim_4": 32
+  },
+
+  "state_dimensions": {
+    "price_momentum_sentiment_dim": 3,
+    "risk_stats_dim": 4,
+    "market_dim": 5,
+    "technical_dim": 4,
+    "time_dim": 2,
+    "fundamental_dim": 2,
+    "market_state_dim": 3,
+    "position_state_dim": 4,
+    "portfolio_state_dim": 4,
+    "time_pressure_dim": 1,
+    "strategy_history_dim": 3,
+
+    "reserved_macro_dim": 10,
+    "reserved_micro_dim": 10,
+    "reserved_ml_dim": 10,
+    "reserved_custom_dim": 7,
+
+    "strategy_params_dim": 6
+  },
+
+  "learning": {
+    "default_learning_rate": 0.0005,
+    "default_gamma": 0.95,
+    "default_memory_size": 5000,
+    "default_batch_size": 32,
+    "min_experiences_for_learning": 100,
+
+    "dropout_rate_1": 0.2,
+    "dropout_rate_2": 0.3,
+    "weight_decay": 0.01,
+    "gradient_clip_value": 0.5,
+    "entropy_bonus_coeff": 0.01
+  },
+
+  "strategy_selection": {
+    "default_exploration_rate": 0.3,
+    "default_confidence_boost_factor": 0.4,
+    "action_exploration_rate": 0.2,
+    "strategy_memory_size": 2000,
+    "min_trades_for_evaluation": 10
+  },
+
+  "market_risk": {
+    "max_sentiment_history": 200,
+    "volatility_scaling_factor": 3.0,
+    "base_volatility": 0.7,
+    "sentiment_smoothing_alpha": 0.1,
+    "risk_base": 0.4,
+    "max_risk": 0.85,
+    "min_risk": 0.1
+  },
+
+  "trading_params": {
+    "profit_threshold": 0.05,
+    "loss_threshold": -0.03,
+    "significant_loss": -0.02,
+    "small_profit": 0.01,
+    "min_hold_time": 0.5
+  },
+
+  "normalization": {
+    "price_normalization": 10000.0,
+    "volume_normalization": 10000000.0,
+    "momentum_scaling": 20.0,
+    "volatility_scaling": 10.0,
+    "pe_normalization": 100.0,
+    "rsi_normalization": 100.0
+  },
+
+  "ranking": {
+    "top_candidates_limit": 30,
+    "max_trades_for_experience": 50,
+    "max_hold_time_days": 7.0
+  },
+
+  "autosave": {
+    "auto_save_interval": 50
+  }
+}

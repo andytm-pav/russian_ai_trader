@@ -841,44 +841,50 @@ class SmartPortfolioBroker:
 
     def _create_initial_state(self, ticker: str, price: float, security_info: Dict) -> torch.Tensor:
         """Создание начального состояния для RL"""
-        # Используем существующий метод модели
         momentum = security_info.get('momentum', 0.0)
-
-        # ✅ Получаем сентимент из оптимизированного фетчера
         sentiment = self._get_ticker_sentiment(ticker)
 
-        # Получаем технические данные
         indicators = self.technical_core.calculate_indicators(ticker)
 
-        # Получаем новости
         news_items = self.news_fetcher.search_news(ticker=ticker, limit=3)
         news_texts = [n.get('title', '') + ' ' + n.get('summary', '') for n in news_items]
         news_features = self.model.encode_news(news_texts)
 
-        # ✅ Получаем рыночный сентимент
         market_sentiment = self._get_market_sentiment()
+        macro_data = self.moex.get_macro_data()
 
-        # ✅ ЕДИНСТВЕННЫЙ ВЫЗОВ build_state_vector
+        # Расширенные рыночные данные
+        enhanced_market_data = {
+            'volume': indicators.get('volume', 0),
+            'spread': security_info.get('spread', 0.01),
+            'rsi': indicators.get('rsi', 50),
+            'volatility': indicators.get('atr', 0) / price if price > 0 else 0.1,
+            'sma_10_ratio': indicators.get('sma_10', price) / price if price > 0 else 1.0,
+            'sma_20_ratio': indicators.get('sma_20', price) / price if price > 0 else 1.0,
+            'bb_position': indicators.get('bb_position', 0.5),
+            'volume_ratio': indicators.get('volume_ratio', 1.0),
+            'atr': indicators.get('atr', 0),
+            'market_cap': security_info.get('market_cap', 0),
+            'lot_size': security_info.get('lot_size', 1),
+            'min_step': security_info.get('min_step', 0.01),
+            'sector': security_info.get('sector', 'other'),
+            'momentum': momentum,
+            'imoex': macro_data.get('imoex', 0),
+            'imoex_change': macro_data.get('imoex_change', 0),
+            'rtsi': macro_data.get('rtsi', 0),
+            'rtsi_change': macro_data.get('rtsi_change', 0),
+            'rvi': macro_data.get('rvi', 20.0),
+            'rvi_change': macro_data.get('rvi_change', 0),
+
+        }
+
         state = self.model.build_state_vector(
             ticker=ticker,
             price=price,
             momentum=momentum,
             sentiment=sentiment,
             news_features=news_features,
-            market_data={
-                'volume': indicators.get('volume_ratio', 1.0),
-                'spread': 0.01,
-                'rsi': indicators.get('rsi', 50),
-                'volatility': indicators.get('atr', 0) / price if price > 0 else 0.1,
-                'sma_10_ratio': indicators.get('sma_10', price) / price if price > 0 else 1.0,
-                'sma_20_ratio': indicators.get('sma_20', price) / price if price > 0 else 1.0,
-                'bb_position': (price - indicators.get('bb_lower', price)) /
-                               (indicators.get('bb_upper', price * 1.1) - indicators.get('bb_lower', price * 0.9))
-                if indicators.get('bb_upper', price * 1.1) > indicators.get('bb_lower', price * 0.9) else 0.5,
-                'liquidity': 0.5,
-                'market_cap': security_info.get('market_cap', 0),
-                'pe_ratio': security_info.get('pe_ratio', 15)
-            },
+            market_data=enhanced_market_data,
             market_sentiment=market_sentiment
         )
 

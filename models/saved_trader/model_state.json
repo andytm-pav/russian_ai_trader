@@ -1,302 +1,6 @@
 {
   "error_memory": {
-    "LKOH": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "GMKN": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "PLZL": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "OZON": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "MOEX": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "DOMRF": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "SBERP": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "RAGR": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "HYDR": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "DELI": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "ASTR": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "CBOM": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "VJGZP": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "GTRK": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "ETLN": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "MRKU": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "GAZP": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "MTSS": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "FEES": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "BSPB": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "WUSH": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "TATN": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "RUAL": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "ALRS": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "RENI": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "FESH": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "MTLR": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "AKRN": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "VSEH": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "MFGS": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "DATA": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "TATNP": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "PRMD": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "IRKT": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "TRMK": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "TGKN": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "VSMO": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "ROSN": {
+    "T": {
       "failed_trades": [],
       "avg_loss": 0.0,
       "last_failure": null,
@@ -312,111 +16,15 @@
       "success_rate": 0.5,
       "total_trades": 0
     },
+    "GAZP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
     "SBER": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "FLOT": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "X5": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "TRNFP": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "MAGN": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "AFLT": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "MGNT": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "UNAC": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "ENPG": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "LEAS": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "SELG": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "TGKA": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "YAKG": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "YDEX": {
       "failed_trades": [],
       "avg_loss": 0.0,
       "last_failure": null,
@@ -432,15 +40,7 @@
       "success_rate": 0.5,
       "total_trades": 0
     },
-    "SVCB": {
-      "failed_trades": [],
-      "avg_loss": 0.0,
-      "last_failure": null,
-      "failure_count": 0,
-      "success_rate": 0.5,
-      "total_trades": 0
-    },
-    "SIBN": {
+    "ROSN": {
       "failed_trades": [],
       "avg_loss": 0.0,
       "last_failure": null,
@@ -456,7 +56,7 @@
       "success_rate": 0.5,
       "total_trades": 0
     },
-    "PIKK": {
+    "LKOH": {
       "failed_trades": [],
       "avg_loss": 0.0,
       "last_failure": null,
@@ -464,7 +64,7 @@
       "success_rate": 0.5,
       "total_trades": 0
     },
-    "POSI": {
+    "VTBR": {
       "failed_trades": [],
       "avg_loss": 0.0,
       "last_failure": null,
@@ -472,7 +72,7 @@
       "success_rate": 0.5,
       "total_trades": 0
     },
-    "RTKM": {
+    "FLOT": {
       "failed_trades": [],
       "avg_loss": 0.0,
       "last_failure": null,
@@ -480,7 +80,127 @@
       "success_rate": 0.5,
       "total_trades": 0
     },
-    "BANEP": {
+    "WUSH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RENI": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TGKN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "CNRU": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LSNGP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LEAS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BAZA": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MSRS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "YDEX": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "X5": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "OZON": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SVCB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TRNFP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "PLZL": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "DIAS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RAGR": {
       "failed_trades": [],
       "avg_loss": 0.0,
       "last_failure": null,
@@ -496,7 +216,335 @@
       "success_rate": 0.5,
       "total_trades": 0
     },
+    "OZPH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SGZH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MTLR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ELMT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "GCHE": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
     "UPRO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MSNG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "OGKB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SBERP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SMLT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "DATA": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SPBE": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "CBOM": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "IVAT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "UGLD": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MOEX": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "KAZTP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RASP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "KMAZ": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TRMK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "DOMRF": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "VSEH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MGNT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BANE": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MTLRP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SNGS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TATN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RNFT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MVID": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "AQUA": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "AFKS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "GMKN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SIBN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TATNP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RUAL": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MAGN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "IRAO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SELG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BSPBP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "HEAD": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "HYDR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "POSI": {
       "failed_trades": [],
       "avg_loss": 0.0,
       "last_failure": null,
@@ -512,6 +560,142 @@
       "success_rate": 0.5,
       "total_trades": 0
     },
+    "ASTR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MFGSP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SFIN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BELU": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ALRS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RTKM": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BSPB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ETLN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RTKMP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ROLO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BANEP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "PRMD": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MBNK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "IRKT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MRKS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "AFLT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "CHMF": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
     "SOFL": {
       "failed_trades": [],
       "avg_loss": 0.0,
@@ -520,7 +704,7 @@
       "success_rate": 0.5,
       "total_trades": 0
     },
-    "CHGZ": {
+    "AKRN": {
       "failed_trades": [],
       "avg_loss": 0.0,
       "last_failure": null,
@@ -528,7 +712,215 @@
       "success_rate": 0.5,
       "total_trades": 0
     },
-    "MTLRP": {
+    "ENPG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MTSS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MRKC": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MRKU": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "UNAC": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MRKP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "KBSB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "VKCO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MRKZ": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LSRG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MDMG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "KAZT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TGKA": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "PIKK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "VRSB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "EUTR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MISBP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "YAKG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LENT": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TUZA": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "NLMK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "FEES": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "UWGN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "PMSBP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "VSMO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SVAV": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "GTRK": {
       "failed_trades": [],
       "avg_loss": 0.0,
       "last_failure": null,
@@ -538,303 +930,7 @@
     }
   },
   "ticker_stats": {
-    "LKOH": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "GMKN": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "PLZL": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "OZON": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "MOEX": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "DOMRF": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "SBERP": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "RAGR": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "HYDR": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "DELI": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "ASTR": {
-      "total_trades": 1,
-      "profitable_trades": 0,
-      "total_pnl": -1.1370957963754354e-16,
-      "avg_hold_time": 0.08758177545335558,
-      "success_rate": 0.0,
-      "last_trade": "2026-03-12T23:59:32.438954"
-    },
-    "CBOM": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "VJGZP": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "GTRK": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "ETLN": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "MRKU": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "GAZP": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "MTSS": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "FEES": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "BSPB": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "WUSH": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "TATN": {
-      "total_trades": 1,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.033658085531658596,
-      "success_rate": 0.0,
-      "last_trade": "2026-03-12T23:59:32.544377"
-    },
-    "RUAL": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "ALRS": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "RENI": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "FESH": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "MTLR": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "AKRN": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "VSEH": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "MFGS": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "DATA": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "TATNP": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "PRMD": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "IRKT": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "TRMK": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "TGKN": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "VSMO": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "ROSN": {
+    "T": {
       "total_trades": 0,
       "profitable_trades": 0,
       "total_pnl": 0.0,
@@ -850,135 +946,31 @@
       "success_rate": 0.5,
       "last_trade": null
     },
+    "GAZP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
     "SBER": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "FLOT": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "X5": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "TRNFP": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "MAGN": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "AFLT": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "MGNT": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "UNAC": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "ENPG": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "LEAS": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "SELG": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "TGKA": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "YAKG": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "YDEX": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0005517632777891992,
+      "avg_hold_time": 0.5958808421426349,
+      "success_rate": 1.0,
       "last_trade": null
     },
     "SNGSP": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.000834376303713105,
+      "avg_hold_time": 0.3592512742016051,
+      "success_rate": 1.0,
       "last_trade": null
     },
-    "SVCB": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
-      "last_trade": null
-    },
-    "SIBN": {
+    "ROSN": {
       "total_trades": 0,
       "profitable_trades": 0,
       "total_pnl": 0.0,
@@ -994,7 +986,7 @@
       "success_rate": 0.5,
       "last_trade": null
     },
-    "PIKK": {
+    "LKOH": {
       "total_trades": 0,
       "profitable_trades": 0,
       "total_pnl": 0.0,
@@ -1002,7 +994,15 @@
       "success_rate": 0.5,
       "last_trade": null
     },
-    "POSI": {
+    "VTBR": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0006371640407784129,
+      "avg_hold_time": 0.5414618075556226,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "FLOT": {
       "total_trades": 0,
       "profitable_trades": 0,
       "total_pnl": 0.0,
@@ -1010,7 +1010,7 @@
       "success_rate": 0.5,
       "last_trade": null
     },
-    "RTKM": {
+    "WUSH": {
       "total_trades": 0,
       "profitable_trades": 0,
       "total_pnl": 0.0,
@@ -1018,15 +1018,167 @@
       "success_rate": 0.5,
       "last_trade": null
     },
-    "BANEP": {
+    "RENI": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.00086299892125133,
+      "avg_hold_time": 0.35846109125349257,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "TGKN": {
       "total_trades": 0,
       "profitable_trades": 0,
       "total_pnl": 0.0,
       "avg_hold_time": 0.0,
       "success_rate": 0.5,
+      "last_trade": null
+    },
+    "CNRU": {
+      "total_trades": 1,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 2.6548373375336327,
+      "success_rate": 0.0,
+      "last_trade": null
+    },
+    "LSNGP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "LEAS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BAZA": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MSRS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "YDEX": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "X5": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "OZON": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SVCB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TRNFP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "PLZL": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "DIAS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "RAGR": {
+      "total_trades": 6,
+      "profitable_trades": 6,
+      "total_pnl": 0.011309115832762107,
+      "avg_hold_time": 0.4873182283507453,
+      "success_rate": 1.0,
       "last_trade": null
     },
     "NMTP": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0011422044545973484,
+      "avg_hold_time": 2.7052436251772773,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "OZPH": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SGZH": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MTLR": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "ELMT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "GCHE": {
       "total_trades": 0,
       "profitable_trades": 0,
       "total_pnl": 0.0,
@@ -1042,7 +1194,431 @@
       "success_rate": 0.5,
       "last_trade": null
     },
+    "MSNG": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "OGKB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SBERP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SMLT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "DATA": {
+      "total_trades": 7,
+      "profitable_trades": 7,
+      "total_pnl": 0.016776234723941467,
+      "avg_hold_time": 0.28838492464451565,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "SPBE": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "CBOM": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "IVAT": {
+      "total_trades": 8,
+      "profitable_trades": 8,
+      "total_pnl": 0.00499843798812878,
+      "avg_hold_time": 0.2537630690551466,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "UGLD": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MOEX": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0009156461027812555,
+      "avg_hold_time": 1.9259160006046294,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "KAZTP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "RASP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "KMAZ": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TRMK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "DOMRF": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "VSEH": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0001250312578143399,
+      "avg_hold_time": 3.770974543624454,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "MGNT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BANE": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MTLRP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SNGS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TATN": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.00015725743041344398,
+      "avg_hold_time": 0.4341854433880912,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "RNFT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MVID": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.002645502645502495,
+      "avg_hold_time": 3.759168874753846,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "AQUA": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "AFKS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "GMKN": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SIBN": {
+      "total_trades": 2,
+      "profitable_trades": 2,
+      "total_pnl": 0.010738010738010489,
+      "avg_hold_time": 1.817555305858453,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "TATNP": {
+      "total_trades": 2,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 1.1061612164643075,
+      "success_rate": 0.0,
+      "last_trade": null
+    },
+    "RUAL": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MAGN": {
+      "total_trades": 9,
+      "profitable_trades": 9,
+      "total_pnl": 0.005289120085692189,
+      "avg_hold_time": 0.6140391422569016,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "IRAO": {
+      "total_trades": 3,
+      "profitable_trades": 1,
+      "total_pnl": 0.0009436929852153726,
+      "avg_hold_time": 1.1175292447319738,
+      "success_rate": 0.3333333333333333,
+      "last_trade": null
+    },
+    "SELG": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BSPBP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "HEAD": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "HYDR": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "POSI": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0016801075268817202,
+      "avg_hold_time": 0.336987496415774,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
     "FIXR": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0011593242795628254,
+      "avg_hold_time": 3.0532930971516503,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "ASTR": {
+      "total_trades": 1,
+      "profitable_trades": 0,
+      "total_pnl": -0.000395256916996025,
+      "avg_hold_time": 3.7255416285991667,
+      "success_rate": 0.0,
+      "last_trade": null
+    },
+    "MFGSP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SFIN": {
+      "total_trades": 2,
+      "profitable_trades": 0,
+      "total_pnl": -0.0018227386648440832,
+      "avg_hold_time": 1.3900200301739905,
+      "success_rate": 0.0,
+      "last_trade": null
+    },
+    "BELU": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "ALRS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "RTKM": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BSPB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "ETLN": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "RTKMP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "ROLO": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BANEP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "PRMD": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MBNK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "IRKT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MRKS": {
+      "total_trades": 1,
+      "profitable_trades": 0,
+      "total_pnl": -2.21380463534428e-16,
+      "avg_hold_time": 2.028347916338179,
+      "success_rate": 0.0,
+      "last_trade": null
+    },
+    "AFLT": {
+      "total_trades": 4,
+      "profitable_trades": 4,
+      "total_pnl": 0.0014950386770756364,
+      "avg_hold_time": 0.47035147637128827,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "CHMF": {
       "total_trades": 0,
       "profitable_trades": 0,
       "total_pnl": 0.0,
@@ -1058,7 +1634,7 @@
       "success_rate": 0.5,
       "last_trade": null
     },
-    "CHGZ": {
+    "AKRN": {
       "total_trades": 0,
       "profitable_trades": 0,
       "total_pnl": 0.0,
@@ -1066,7 +1642,215 @@
       "success_rate": 0.5,
       "last_trade": null
     },
-    "MTLRP": {
+    "ENPG": {
+      "total_trades": 2,
+      "profitable_trades": 2,
+      "total_pnl": 0.00271703366273327,
+      "avg_hold_time": 3.6636864348252614,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "MTSS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MRKC": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MRKU": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "UNAC": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MRKP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "KBSB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "VKCO": {
+      "total_trades": 2,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.4474107681049241,
+      "success_rate": 0.0,
+      "last_trade": null
+    },
+    "MRKZ": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "LSRG": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MDMG": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "KAZT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TGKA": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "PIKK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "VRSB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "EUTR": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MISBP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "YAKG": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "LENT": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TUZA": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "NLMK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "FEES": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "UWGN": {
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0006915629322268178,
+      "avg_hold_time": 1.1959783661365508,
+      "success_rate": 1.0,
+      "last_trade": null
+    },
+    "PMSBP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "VSMO": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SVAV": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "GTRK": {
       "total_trades": 0,
       "profitable_trades": 0,
       "total_pnl": 0.0,
@@ -1075,63 +1859,57 @@
       "last_trade": null
     }
   },
-  "market_sentiment": 0.026200898136546018,
-  "sentiment_history": [
-    0.01346775137859842,
-    0.026200898136546018
-  ],
+  "market_sentiment": -0.14835623291977684,
   "volatility_index": 1.0,
-  "memory_size": 11,
-  "total_experiences": 0,
   "strategy_performance": {
+    "balanced": {
+      "total_trades": 13,
+      "profitable_trades": 3,
+      "total_pnl": -41.78008149466813,
+      "avg_pnl": -3.2138524226667795,
+      "win_rate": 0.23076923076923078
+    },
     "news_aggressive": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_pnl": 0.0,
-      "win_rate": 0.5
+      "total_trades": 25,
+      "profitable_trades": 13,
+      "total_pnl": -11.432476412481291,
+      "avg_pnl": -0.4572990564992516,
+      "win_rate": 0.52
     },
     "tech_conservative": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_pnl": 0.0,
-      "win_rate": 0.5
-    },
-    "balanced": {
-      "total_trades": 4,
-      "profitable_trades": 0,
-      "total_pnl": -27.043100000000074,
-      "avg_pnl": -6.760775000000018,
-      "win_rate": 0.0
+      "total_trades": 13,
+      "profitable_trades": 6,
+      "total_pnl": -9.141916129534104,
+      "avg_pnl": -0.7032243176564695,
+      "win_rate": 0.46153846153846156
     },
     "momentum": {
-      "total_trades": 1,
-      "profitable_trades": 0,
-      "total_pnl": -1.1370957963754354e-16,
-      "avg_pnl": -1.1370957963754354e-16,
-      "win_rate": 0.0
+      "total_trades": 48,
+      "profitable_trades": 26,
+      "total_pnl": -6.415268039357636,
+      "avg_pnl": -0.1336514174866174,
+      "win_rate": 0.5416666666666666
     },
     "swing": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_pnl": 0.0,
+      "total_trades": 8,
+      "profitable_trades": 4,
+      "total_pnl": -5.514933500128962,
+      "avg_pnl": -0.6893666875161203,
       "win_rate": 0.5
     },
     "mean_reversion": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_pnl": 0.0,
-      "win_rate": 0.5
+      "total_pnl": -1.7331000000000116,
+      "avg_pnl": -1.7331000000000116,
+      "win_rate": 0.0
     },
     "breakout": {
-      "total_trades": 2,
-      "profitable_trades": 0,
-      "total_pnl": -0.9155,
-      "avg_pnl": -0.45775,
-      "win_rate": 0.0
+      "total_trades": 1,
+      "profitable_trades": 1,
+      "total_pnl": 0.0011422044545973484,
+      "avg_pnl": 0.0011422044545973484,
+      "win_rate": 1.0
     },
     "price_prediction": {
       "total_trades": 0,
@@ -1141,73 +1919,15 @@
       "win_rate": 0.5
     }
   },
-  "strategy_memory": [
-    {
-      "strategy": "momentum",
-      "action": "SELL",
-      "pnl": -1.1370957963754354e-16,
-      "hold_time": 0.08758177545335558,
-      "win_rate": 0.0,
-      "timestamp": "2026-03-12T23:59:32.438975"
-    },
-    {
-      "strategy": "breakout",
-      "action": "SELL",
-      "pnl": 0.0,
-      "hold_time": 0.033658085531658596,
-      "win_rate": 0.0,
-      "timestamp": "2026-03-12T23:59:32.544414"
-    },
-    {
-      "strategy": "balanced",
-      "action": "SELL",
-      "pnl": -1.3410000000000228,
-      "hold_time": 1937.5155627727509,
-      "win_rate": 0.0,
-      "timestamp": "2026-03-13T00:15:43.998049"
-    },
-    {
-      "strategy": "balanced",
-      "action": "SELL",
-      "pnl": -5.294600000000137,
-      "hold_time": 1937.5411593914032,
-      "win_rate": 0.0,
-      "timestamp": "2026-03-13T00:15:44.025594"
-    },
-    {
-      "strategy": "balanced",
-      "action": "SELL",
-      "pnl": -16.398500000000002,
-      "hold_time": 1787.1959223747253,
-      "win_rate": 0.0,
-      "timestamp": "2026-03-13T00:15:44.065719"
-    },
-    {
-      "strategy": "breakout",
-      "action": "SELL",
-      "pnl": -0.9155,
-      "hold_time": 1092.9021816253662,
-      "win_rate": 0.0,
-      "timestamp": "2026-03-13T00:15:44.170117"
-    },
-    {
-      "strategy": "balanced",
-      "action": "SELL",
-      "pnl": -4.00899999999991,
-      "hold_time": 2143.200813293457,
-      "win_rate": 0.0,
-      "timestamp": "2026-03-13T00:21:40.072567"
-    }
-  ],
   "strategies": {
     "news_aggressive": {
       "description": "\u0410\u0433\u0440\u0435\u0441\u0441\u0438\u0432\u043d\u0430\u044f \u0442\u043e\u0440\u0433\u043e\u0432\u043b\u044f \u043d\u0430 \u043d\u043e\u0432\u043e\u0441\u0442\u044f\u0445",
       "news_weight": 0.8,
       "tech_weight": 0.2,
-      "risk_multiplier": 1.5,
-      "target_hold_time_hours": 1,
-      "stop_loss_percent": 3.0,
-      "take_profit_percent": 5.0,
+      "risk_multiplier": 0.5,
+      "target_hold_time_hours": 24,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
       "max_positions": 2,
       "min_win_rate": 0.4,
       "prediction_weight": 0.1,
@@ -1222,10 +1942,10 @@
       "description": "\u041a\u043e\u043d\u0441\u0435\u0440\u0432\u0430\u0442\u0438\u0432\u043d\u0430\u044f \u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u0442\u043e\u0440\u0433\u043e\u0432\u043b\u044f",
       "news_weight": 0.2,
       "tech_weight": 0.8,
-      "risk_multiplier": 0.7,
+      "risk_multiplier": 0.5,
       "target_hold_time_hours": 24,
-      "stop_loss_percent": 2.0,
-      "take_profit_percent": 4.0,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
       "max_positions": 3,
       "min_win_rate": 0.45,
       "prediction_weight": 0.1,
@@ -1240,10 +1960,10 @@
       "description": "\u0421\u0431\u0430\u043b\u0430\u043d\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u043f\u043e\u0434\u0445\u043e\u0434",
       "news_weight": 0.5,
       "tech_weight": 0.5,
-      "risk_multiplier": 1.0,
-      "target_hold_time_hours": 6,
-      "stop_loss_percent": 2.5,
-      "take_profit_percent": 5.0,
+      "risk_multiplier": 0.5,
+      "target_hold_time_hours": 24,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
       "max_positions": 4,
       "min_win_rate": 0.5,
       "prediction_weight": 0.1,
@@ -1257,10 +1977,10 @@
       "description": "\u041c\u043e\u043c\u0435\u043d\u0442\u0443\u043c \u0441\u043a\u0430\u043b\u044c\u043f\u0438\u043d\u0433",
       "news_weight": 0.3,
       "tech_weight": 0.7,
-      "risk_multiplier": 1.2,
-      "target_hold_time_hours": 0.5,
-      "stop_loss_percent": 1.0,
-      "take_profit_percent": 3.0,
+      "risk_multiplier": 0.5,
+      "target_hold_time_hours": 24,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
       "max_positions": 5,
       "min_win_rate": 0.35,
       "prediction_weight": 0.1,
@@ -1275,10 +1995,10 @@
       "description": "\u0421\u0432\u0438\u043d\u0433-\u0442\u0440\u0435\u0439\u0434\u0438\u043d\u0433 (\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u044b\u0435 \u0434\u0432\u0438\u0436\u0435\u043d\u0438\u044f)",
       "news_weight": 0.2,
       "tech_weight": 0.8,
-      "risk_multiplier": 1.0,
-      "target_hold_time_hours": 72,
-      "stop_loss_percent": 5.0,
-      "take_profit_percent": 15.0,
+      "risk_multiplier": 0.5,
+      "target_hold_time_hours": 24,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
       "max_positions": 2,
       "min_win_rate": 0.45,
       "prediction_weight": 0.1,
@@ -1339,5 +2059,5 @@
       "prediction_weight": 0.5
     }
   },
-  "save_time": "2026-03-13T00:26:12.515724"
+  "save_time": "2026-03-15T22:21:18.262362"
 }
