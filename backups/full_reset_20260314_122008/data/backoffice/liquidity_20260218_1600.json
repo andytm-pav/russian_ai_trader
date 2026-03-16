@@ -1,0 +1,113 @@
+{
+  "timestamp": "2026-02-18T16:00:00.104553",
+  "cash": 61.51138000000742,
+  "total_exposure": 10457.39,
+  "liquidity_ratio": 0.00588209677558238,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 17,
+  "positions": [
+    {
+      "ticker": "LPSB",
+      "value": 77.1,
+      "qty": 1,
+      "price": 77.1
+    },
+    {
+      "ticker": "HYDR",
+      "value": 0.0,
+      "qty": 0,
+      "price": 0.433
+    },
+    {
+      "ticker": "ENPG",
+      "value": 973.9,
+      "qty": 2,
+      "price": 486.95
+    },
+    {
+      "ticker": "GMKN",
+      "value": 1540.0,
+      "qty": 10,
+      "price": 154.0
+    },
+    {
+      "ticker": "KZOS",
+      "value": 682.0,
+      "qty": 10,
+      "price": 68.2
+    },
+    {
+      "ticker": "FIXR",
+      "value": 560.5,
+      "qty": 1000,
+      "price": 0.5605
+    },
+    {
+      "ticker": "IVAT",
+      "value": 161.45,
+      "qty": 1,
+      "price": 161.45
+    },
+    {
+      "ticker": "IRAO",
+      "value": 331.75,
+      "qty": 100,
+      "price": 3.3175
+    },
+    {
+      "ticker": "ETLN",
+      "value": 169.68,
+      "qty": 4,
+      "price": 42.42
+    },
+    {
+      "ticker": "CBOM",
+      "value": 617.1,
+      "qty": 100,
+      "price": 6.171
+    },
+    {
+      "ticker": "AQUA",
+      "value": 1455.6,
+      "qty": 3,
+      "price": 485.2
+    },
+    {
+      "ticker": "DATA",
+      "value": 106.26,
+      "qty": 1,
+      "price": 106.26
+    },
+    {
+      "ticker": "ASTR",
+      "value": 256.95,
+      "qty": 1,
+      "price": 256.95
+    },
+    {
+      "ticker": "EUTR",
+      "value": 139.8,
+      "qty": 1,
+      "price": 139.8
+    },
+    {
+      "ticker": "EELT",
+      "value": 86.6,
+      "qty": 10,
+      "price": 8.66
+    },
+    {
+      "ticker": "CHMF",
+      "value": 1910.4,
+      "qty": 2,
+      "price": 955.2
+    },
+    {
+      "ticker": "AFKS",
+      "value": 1388.3,
+      "qty": 100,
+      "price": 13.883
+    }
+  ]
+}

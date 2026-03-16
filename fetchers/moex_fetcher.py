@@ -45,7 +45,7 @@ class MoexFetcher:
 
         self.default_rvi = self.settings.get('market_data', {}).get('default_rvi', 20.0)
         self.rvi_ticker = self.settings.get('market_data', {}).get('rvi_ticker', 'RVI')
-        self.rvi_board = self.settings.get('market_data', {}).get('rvi_board', 'OPTN')
+        self.rvi_board = self.settings.get('market_data', {}).get('rvi_board', 'SNDX')  # Исправлено: SNDX для RVI
         self.liquidity_threshold = self.settings.get('market_data', {}).get('liquidity_threshold', 1000000000)
         self.market_mood_threshold = self.settings.get('market_data', {}).get('market_mood_change_threshold', 5.0)
         self.index_tickers = self.settings.get('market_data', {}).get('index_tickers',
@@ -570,56 +570,44 @@ class MoexFetcher:
             logger.error(f"Ошибка получения стакана для {ticker}: {e}")
             return None
 
-    def get_market_indices(self) -> Dict[str, float]:
-        """Получение индексов с изменениями"""
-        cache_key = "market_indices"
+    def get_rtsi(self) -> Optional[Dict[str, float]]:
+        """
+        Получение индекса РТС (RTSI)
+        """
+        cache_key = "rtsi"
         cached = self._get_from_cache(cache_key)
-
         if cached is not None:
-            logger.debug(f"📊 МАКРО ИЗ КЭША: IMOEX={cached.get('IMOEX')}, RVI={cached.get('RVI')}")
             return cached
 
-        # Используем список тикеров из конфига
-        current_prices = {}
-        for ticker in self.index_tickers:
-            price = self.get_price(ticker)
-            if price:
-                current_prices[ticker] = price
+        try:
+            url = f"{self.base_url}/engines/stock/markets/index/securities/RTSI.json"
+            params = {
+                'iss.meta': 'off',
+                'iss.only': 'marketdata',
+                'marketdata.columns': 'SECID,CURRENTVALUE,LASTCHANGE,LASTCHANGEPRC'
+            }
 
-        # Рассчитываем изменения относительно предыдущих значений
-        result = {}
-        for ticker, price in current_prices.items():
-            result[ticker] = price
+            data = self._make_request(url, params, timeout=10)
+            if data and 'marketdata' in data and data['marketdata']['data']:
+                row = data['marketdata']['data'][0]
+                cols = data['marketdata']['columns']
 
-            # Изменение за день
-            if ticker in self.last_indices:
-                prev = self.last_indices[ticker].get('price', price)
-                change = ((price / prev) - 1) * 100
-                result[f"{ticker}_change"] = change
-            else:
-                result[f"{ticker}_change"] = 0.0
+                result = {
+                    'value': float(row[cols.index('CURRENTVALUE')]),
+                    'change': float(row[cols.index('LASTCHANGE')]) if 'LASTCHANGE' in cols else 0,
+                    'change_pct': float(row[cols.index('LASTCHANGEPRC')]) if 'LASTCHANGEPRC' in cols else 0,
+                    'timestamp': datetime.now().isoformat()
+                }
 
-        # Добавляем RVI (индекс волатильности)
-        rvi = self.get_rvi()
-        if rvi:
-            result['RVI'] = rvi['value']
-            result['RVI_change'] = rvi['change']
+                self._save_to_cache(cache_key, result)
+                logger.debug(f"📊 RTSI получен: {result['value']} (изм: {result['change_pct']}%)")
+                return result
 
-        # Сохраняем текущие для следующего раза
-        self.last_indices = {
-            ticker: {'price': price, 'timestamp': datetime.now()}
-            for ticker, price in current_prices.items()
-        }
+            return None
 
-        result['update_time'] = datetime.now().isoformat()
-        result['market_mood'] = self._calculate_market_mood(current_prices)
-
-        self._save_to_cache(cache_key, result)
-
-        logger.info(f"📊 МАКРО СВЕЖИЕ: IMOEX={result.get('IMOEX')}, RVI={result.get('RVI')}")
-        self._save_to_cache(cache_key, result)
-
-        return result
+        except Exception as e:
+            logger.error(f"Ошибка получения RTSI: {e}")
+            return None
 
     def get_rvi(self) -> Optional[Dict[str, float]]:
         """
@@ -631,64 +619,115 @@ class MoexFetcher:
             return cached
 
         try:
-            # Используем ticker и board из конфига
-            url = f"{self.base_url}/engines/stock/markets/options/boards/{self.rvi_board}/securities/{self.rvi_ticker}.json"
-            params = {'iss.meta': 'off'}
+            # Исправленный эндпоинт для RVI
+            url = f"{self.base_url}/engines/stock/markets/index/securities/RVI.json"
+            params = {
+                'iss.meta': 'off',
+                'iss.only': 'marketdata',
+                'marketdata.columns': 'SECID,CURRENTVALUE,LASTCHANGE,LASTCHANGEPRC'
+            }
 
             data = self._make_request(url, params, timeout=10)
-            if data and 'marketdata' in data:
-                columns = data['marketdata']['columns']
-                rows = data['marketdata']['data']
+            if data and 'marketdata' in data and data['marketdata']['data']:
+                row = data['marketdata']['data'][0]
+                cols = data['marketdata']['columns']
 
-                if rows:
-                    row = rows[0]
-                    price_idx = columns.index('LAST') if 'LAST' in columns else -1
-                    change_idx = columns.index('CHANGE') if 'CHANGE' in columns else -1
+                result = {
+                    'value': float(row[cols.index('CURRENTVALUE')]),
+                    'change': float(row[cols.index('LASTCHANGE')]) if 'LASTCHANGE' in cols else 0,
+                    'change_pct': float(row[cols.index('LASTCHANGEPRC')]) if 'LASTCHANGEPRC' in cols else 0,
+                    'timestamp': datetime.now().isoformat()
+                }
 
-                    result = {
-                        'value': float(row[price_idx]) if price_idx >= 0 else self.default_rvi,
-                        'change': float(row[change_idx]) if change_idx >= 0 else 0,
-                        'timestamp': datetime.now().isoformat()
-                    }
-
-                    self._save_to_cache(cache_key, result)
-                    return result
+                self._save_to_cache(cache_key, result)
+                logger.debug(f"📊 RVI получен: {result['value']} (изм: {result['change_pct']}%)")
+                return result
 
             # Если данных нет, возвращаем дефолт из конфига
-            return {'value': self.default_rvi, 'change': 0, 'timestamp': datetime.now().isoformat()}
+            return {'value': self.default_rvi, 'change': 0, 'change_pct': 0, 'timestamp': datetime.now().isoformat()}
 
         except Exception as e:
             logger.error(f"Ошибка получения RVI: {e}")
-            return {'value': self.default_rvi, 'change': 0, 'timestamp': datetime.now().isoformat()}
+            return {'value': self.default_rvi, 'change': 0, 'change_pct': 0, 'timestamp': datetime.now().isoformat()}
+
+    def get_market_indices(self) -> Dict[str, float]:
+        """Получение индексов с изменениями"""
+        cache_key = "market_indices"
+        cached = self._get_from_cache(cache_key)
+
+        if cached is not None:
+            logger.debug(f"📊 МАКРО ИЗ КЭША: IMOEX={cached.get('IMOEX')}, RVI={cached.get('RVI')}")
+            return cached
+
+        result = {}
+
+        # 1. Получаем индексы из boards/SNDX (IMOEX, MOEXBMI и др.)
+        url = f"{self.base_url}/engines/stock/markets/index/boards/SNDX/securities.json"
+        params = {
+            'iss.meta': 'off',
+            'iss.only': 'marketdata',
+            'marketdata.columns': 'SECID,CURRENTVALUE,LASTCHANGE,LASTCHANGEPRC'
+        }
+
+        data = self._make_request(url, params, timeout=10)
+        if data and 'marketdata' in data:
+            for row in data['marketdata']['data']:
+                ticker = row[0]
+                if ticker in self.index_tickers:
+                    result[ticker] = float(row[1])
+                    result[f"{ticker}_change"] = float(row[2])
+                    result[f"{ticker}_change_pct"] = float(row[3])
+
+        # 2. Получаем RTSI отдельно
+        rtsi = self.get_rtsi()
+        if rtsi:
+            result['RTSI'] = rtsi['value']
+            result['RTSI_change'] = rtsi['change']
+            result['RTSI_change_pct'] = rtsi['change_pct']
+
+        # 3. Получаем RVI отдельно
+        rvi = self.get_rvi()
+        if rvi:
+            result['RVI'] = rvi['value']
+            result['RVI_change'] = rvi['change']
+            result['RVI_change_pct'] = rvi['change_pct']
+
+        result['update_time'] = datetime.now().isoformat()
+        result['market_mood'] = self._calculate_market_mood(result)
+
+        self._save_to_cache(cache_key, result)
+        logger.info(f"📊 МАКРО СВЕЖИЕ: IMOEX={result.get('IMOEX')}, RTSI={result.get('RTSI')}, RVI={result.get('RVI')}")
+        return result
 
     def get_macro_data(self) -> Dict[str, float]:
         """
         Получение всех макро-данных для заполнения резерва
-        Возвращает словарь с ключами:
-        - imoex, imoex_change
-        - rtsi, rtsi_change
-        - rvi, rvi_change
         """
-        macro_data = {}
-
-        # Получаем индексы
         indices = self.get_market_indices()
 
-        # IMOEX
-        macro_data['imoex'] = indices.get('IMOEX', 0.0)
-        macro_data['imoex_change'] = indices.get('IMOEX_change', 0.0)
+        macro_data = {
+            # IMOEX
+            'imoex': indices.get('IMOEX', 0.0),
+            'imoex_change': indices.get('IMOEX_change', 0.0),
 
-        # RTSI
-        macro_data['rtsi'] = indices.get('RTSI', 0.0)
-        macro_data['rtsi_change'] = indices.get('RTSI_change', 0.0)
+            # RTSI
+            'rtsi': indices.get('RTSI', 0.0),
+            'rtsi_change': indices.get('RTSI_change', 0.0),
 
-        # RVI (волатильность)
-        macro_data['rvi'] = indices.get('RVI', 20.0)  # дефолт 20 если нет
-        macro_data['rvi_change'] = indices.get('RVI_change', 0.0)
+            # RVI
+            'rvi': indices.get('RVI', self.default_rvi),
+            'rvi_change': indices.get('RVI_change', 0.0),
 
-        # ✅ ДОБАВИТЬ ЛОГ
+            # Дополнительные индексы
+            'moexbmi': indices.get('MOEXBMI', 0.0),
+            'moexfn': indices.get('MOEXFN', 0.0),
+            'moexog': indices.get('MOEXOG', 0.0),
+            'moextl': indices.get('MOEXTL', 0.0),
+        }
+
         logger.debug(f"📊 Макро-данные: IMOEX={macro_data['imoex']:.2f} "
                      f"(изм:{macro_data['imoex_change']:+.2f}%), "
+                     f"RTSI={macro_data['rtsi']:.2f}, "
                      f"RVI={macro_data['rvi']:.2f}")
 
         return macro_data
@@ -696,30 +735,21 @@ class MoexFetcher:
     def _calculate_market_mood(self, indices: Dict[str, float]) -> float:
         """Расчет общего настроения рынка на основе индексов"""
         try:
-            if not indices:
-                return 0.0
-
-            # Получаем IMOEX (основной индекс)
             imoex = indices.get('IMOEX', 0)
             if imoex <= 0:
                 return 0.0
 
-            # Сравниваем с предыдущим значением (можно получать из кэша)
             cache_key = "prev_imoex"
             prev_imoex = self._get_from_cache(cache_key)
 
             if prev_imoex and prev_imoex > 0:
                 change = ((imoex / prev_imoex) - 1) * 100
-                # Mood от -1 до 1 на основе изменения
-                # ПОЛУЧАЕМ ПОРОГ ИЗ КОНФИГА
                 mood_change_threshold = self.settings.get('market_data', {}).get('market_mood_change_threshold', 5.0)
                 mood = max(-1.0, min(1.0, change / mood_change_threshold))
             else:
                 mood = 0.0
 
-            # Сохраняем текущее значение
             self._save_to_cache(cache_key, imoex)
-
             return mood
 
         except Exception as e:
@@ -729,7 +759,6 @@ class MoexFetcher:
     def get_ticker_info(self, ticker: str) -> Optional[Dict]:
         """Получение полной информации по тикеру"""
         try:
-            # Получаем базовую информацию
             url = f"{self.base_url}/securities/{ticker}.json"
             params = {'iss.meta': 'off'}
 
@@ -747,7 +776,6 @@ class MoexFetcher:
             row = rows[0]
             info = {}
 
-            # Важные поля
             fields_mapping = {
                 'SHORTNAME': 'short_name',
                 'SECNAME': 'full_name',
@@ -767,12 +795,10 @@ class MoexFetcher:
                     if idx < len(row) and row[idx] is not None:
                         info[col_en] = row[idx]
 
-            # Добавляем текущую цену
             price = self.get_price(ticker)
             if price:
                 info['current_price'] = price
 
-            # Добавляем свечи за день
             candles = self.get_candles(ticker, interval=24, count=5)
             if candles is not None and not candles.empty:
                 info['daily_high'] = candles['High'].max()
@@ -782,7 +808,6 @@ class MoexFetcher:
                     info['daily_change'] = ((candles['Close'].iloc[-1] / candles['Close'].iloc[0]) - 1) * 100
 
             info['last_updated'] = datetime.now().isoformat()
-
             return info
 
         except Exception as e:
@@ -792,7 +817,6 @@ class MoexFetcher:
     def get_market_status(self) -> Dict:
         """Получение статуса рынка"""
         try:
-            # Проверяем доступность API через простой запрос
             url = f"{self.base_url}/engines.json"
             params = {'iss.meta': 'off', 'limit': 1}
 
@@ -815,7 +839,6 @@ class MoexFetcher:
         except Exception as e:
             logger.error(f"Ошибка проверки статуса рынка: {e}")
             return {'is_available': False, 'error': str(e)}
-
 
     def get_cache_stats(self) -> Dict:
         """Получение статистики кэша"""

@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-03-11T16:00:00.681340",
+  "cash": 560.344999999998,
+  "total_exposure": 9581.3,
+  "liquidity_ratio": 0.058483191216223064,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 13,
+  "positions": [
+    {
+      "ticker": "SGZH",
+      "value": 123.4,
+      "qty": 100,
+      "price": 1.234
+    },
+    {
+      "ticker": "RAGR",
+      "value": 354.48,
+      "qty": 3,
+      "price": 118.16
+    },
+    {
+      "ticker": "BELU",
+      "value": 864.8,
+      "qty": 2,
+      "price": 432.4
+    },
+    {
+      "ticker": "PIKK",
+      "value": 1407.3000000000002,
+      "qty": 3,
+      "price": 469.1
+    },
+    {
+      "ticker": "RENI",
+      "value": 926.2,
+      "qty": 10,
+      "price": 92.62
+    },
+    {
+      "ticker": "ALRS",
+      "value": 387.1,
+      "qty": 10,
+      "price": 38.71
+    },
+    {
+      "ticker": "SOFL",
+      "value": 778.8,
+      "qty": 10,
+      "price": 77.88
+    },
+    {
+      "ticker": "TRNFP",
+      "value": 2790.0,
+      "qty": 2,
+      "price": 1395.0
+    },
+    {
+      "ticker": "RTKM",
+      "value": 609.3,
+      "qty": 10,
+      "price": 60.93
+    },
+    {
+      "ticker": "FLOT",
+      "value": 853.7,
+      "qty": 10,
+      "price": 85.37
+    },
+    {
+      "ticker": "IRAO",
+      "value": 318.0,
+      "qty": 100,
+      "price": 3.18
+    },
+    {
+      "ticker": "WUSH",
+      "value": 95.33,
+      "qty": 1,
+      "price": 95.33
+    },
+    {
+      "ticker": "MTLR",
+      "value": 72.89,
+      "qty": 1,
+      "price": 72.89
+    }
+  ]
+}

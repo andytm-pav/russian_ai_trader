@@ -1,0 +1,113 @@
+{
+  "timestamp": "2026-02-19T16:00:00.538154",
+  "cash": 372.42093000000784,
+  "total_exposure": 10362.49,
+  "liquidity_ratio": 0.03593932828885797,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 17,
+  "positions": [
+    {
+      "ticker": "LPSB",
+      "value": 75.95,
+      "qty": 1,
+      "price": 75.95
+    },
+    {
+      "ticker": "HYDR",
+      "value": 0.0,
+      "qty": 0,
+      "price": 0.4339
+    },
+    {
+      "ticker": "ENPG",
+      "value": 979.0,
+      "qty": 2,
+      "price": 489.5
+    },
+    {
+      "ticker": "KZOS",
+      "value": 687.0,
+      "qty": 10,
+      "price": 68.7
+    },
+    {
+      "ticker": "FIXR",
+      "value": 560.9,
+      "qty": 1000,
+      "price": 0.5609
+    },
+    {
+      "ticker": "IVAT",
+      "value": 161.35,
+      "qty": 1,
+      "price": 161.35
+    },
+    {
+      "ticker": "IRAO",
+      "value": 334.8,
+      "qty": 100,
+      "price": 3.348
+    },
+    {
+      "ticker": "CBOM",
+      "value": 616.6999999999999,
+      "qty": 100,
+      "price": 6.167
+    },
+    {
+      "ticker": "ELFV",
+      "value": 505.6,
+      "qty": 1000,
+      "price": 0.5056
+    },
+    {
+      "ticker": "AQUA",
+      "value": 490.4,
+      "qty": 1,
+      "price": 490.4
+    },
+    {
+      "ticker": "GLRX",
+      "value": 62.94,
+      "qty": 1,
+      "price": 62.94
+    },
+    {
+      "ticker": "BELU",
+      "value": 437.6,
+      "qty": 1,
+      "price": 437.6
+    },
+    {
+      "ticker": "CHGZ",
+      "value": 1584.0,
+      "qty": 20,
+      "price": 79.2
+    },
+    {
+      "ticker": "APTK",
+      "value": 171.6,
+      "qty": 20,
+      "price": 8.58
+    },
+    {
+      "ticker": "DELI",
+      "value": 209.0,
+      "qty": 2,
+      "price": 104.5
+    },
+    {
+      "ticker": "ASSB",
+      "value": 3355.0,
+      "qty": 1000,
+      "price": 3.355
+    },
+    {
+      "ticker": "ELMT",
+      "value": 130.64999999999998,
+      "qty": 1000,
+      "price": 0.13065
+    }
+  ]
+}

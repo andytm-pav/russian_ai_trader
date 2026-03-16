@@ -539,6 +539,50 @@ class TradingScheduler:
             clearing_19_time = "19:00"
             charge_time = "19:00"
 
+        #Конвертируем московское время в локальное время сервера для планировщика
+        now_moscow = datetime.now(self.moscow_tz)
+        now_local = datetime.now().astimezone()
+
+        # Вычисляем смещение часового пояса
+        offset = now_local.utcoffset() - now_moscow.utcoffset()
+        has_timezone_diff = abs(offset.total_seconds()) > 60  # разница больше минуты
+
+        if has_timezone_diff:
+            logger.info(f"Обнаружена разница часовых поясов: МСК {now_moscow.tzinfo}, "
+                       f"сервер {now_local.tzinfo}, смещение {offset.total_seconds()/3600:.1f}ч")
+
+            # Функция конвертации времени
+            def to_local_time(moscow_time_str):
+                if not moscow_time_str:
+                    return moscow_time_str
+                try:
+                    # Парсим московское время
+                    moscow_time = datetime.strptime(moscow_time_str, "%H:%M").time()
+                    # Создаем datetime с сегодняшней датой в МСК
+                    moscow_dt = datetime.combine(now_moscow.date(), moscow_time)
+                    moscow_dt = self.moscow_tz.localize(moscow_dt)
+                    # Конвертируем в локальный пояс
+                    local_dt = moscow_dt.astimezone()
+                    return local_dt.strftime("%H:%M")
+                except Exception as e:
+                    logger.error(f"Ошибка конвертации времени {moscow_time_str}: {e}")
+                    return moscow_time_str
+
+            # Конвертируем все времена
+            pre_market = to_local_time(pre_market)
+            market_open = to_local_time(market_open)
+            evening_close = to_local_time(evening_close)
+            post_market = to_local_time(post_market)
+            fixation = to_local_time(fixation)
+            z0_cutoff = to_local_time(z0_cutoff)
+            clearing_17_time = to_local_time(clearing_17_time)
+            clearing_19_time = to_local_time(clearing_19_time)
+            charge_time = to_local_time(charge_time)
+
+            logger.info(f"Времена сконвертированы в локальный пояс сервера")
+
+
+
         # Очищаем существующие задачи
         schedule.clear()
 

@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-03-08T22:14:00.351614",
+  "model_stats": {
+    "memory_size": 705,
+    "ticker_stats_count": 141,
+    "error_memory_count": 141,
+    "market_sentiment": -0.0700327372664295,
+    "volatility_index": 0.7669453502446155,
+    "device": "cpu",
+    "last_learn_steps": 0
+  },
+  "memory_analysis": {
+    "total_experiences": 705,
+    "action_distribution": {
+      "2": 56,
+      "0": 649
+    },
+    "reward_stats": {
+      "mean": -4.978334520287346,
+      "median": -10.0,
+      "std": 6.383602879034663,
+      "min": -10,
+      "max": 10
+    }
+  },
+  "strategies": {
+    "news_aggressive": {
+      "total_trades": 106,
+      "profitable_trades": 32,
+      "total_pnl": -48.48516195977491,
+      "avg_pnl": -0.45740718829976335,
+      "win_rate": 0.3018867924528302
+    },
+    "tech_conservative": {
+      "total_trades": 941,
+      "profitable_trades": 421,
+      "total_pnl": -476.1430730104899,
+      "avg_pnl": -0.505996889490425,
+      "win_rate": 0.44739638682252925
+    },
+    "balanced": {
+      "total_trades": 91,
+      "profitable_trades": 32,
+      "total_pnl": -56.86993494915317,
+      "avg_pnl": -0.6249443401005843,
+      "win_rate": 0.3516483516483517
+    },
+    "momentum": {
+      "total_trades": 85,
+      "profitable_trades": 21,
+      "total_pnl": -91.46165103598562,
+      "avg_pnl": -1.076019423952772,
+      "win_rate": 0.24705882352941178
+    }
+  }
+}

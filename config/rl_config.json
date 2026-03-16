@@ -192,8 +192,8 @@
 
   "hold_reward": {
     "enabled": true,
-    "max_bonus": 0.1,
-    "overhold_penalty": 0.02,
+    "max_bonus": 0.2,
+    "overhold_penalty": 0.05,
     "overhold_threshold": 1.5,
     "interval_cycles": 5,
     "max_positions_per_cycle": 3
