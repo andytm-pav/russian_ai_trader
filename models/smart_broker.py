@@ -1284,6 +1284,19 @@ class SmartPortfolioBroker:
             commission_callback = self.process_pending_commissions
         )
 
+        # Проверяем текущее состояние рынка при запуске
+        current_time = datetime.now(self.scheduler.moscow_tz)
+        if self.scheduler.is_trading_time(current_time):
+            logger.info("РЫНОК УЖЕ ОТКРЫТ при запуске, активируем режим торговли")
+            self.trading_enabled = True
+            # Получаем текущие цены для проверки стопов
+            prices = self._get_current_prices()
+            if prices:
+                self.check_stops_and_tp(prices)
+        else:
+            logger.info("Рынок закрыт при запуске, ожидаем открытия")
+            self.trading_enabled = False
+
         logger.info("SmartBroker: все компоненты инициализированы")
 
     def _load_portfolio_state(self):

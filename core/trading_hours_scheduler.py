@@ -105,22 +105,22 @@ class TradingScheduler:
         # 3. ОБРАБОТКА ВЫХОДНЫХ
         if not is_regular_weekday:
             if is_weekend:
+                weekend_sessions_config = self.config.get('weekend_sessions', {})
+
                 # Проверяем, включена ли ДСВД
-                if weekend_sessions.get('enabled', False):
-                    # Проверяем исключения
-                    if date_str in excluded_dates:
-                        self._update_cache(date_str, False)
-                        return False
-                    else:
+                if weekend_sessions_config.get('enabled', False):
+                    # ВАЖНО: По умолчанию торги НЕ ИДУТ в выходные
+                    # Торги ИДУТ ТОЛЬКО если этот день НЕ в excluded_dates
+                    if date_str not in excluded_dates:
                         self._update_cache(date_str, True)
                         return True
+                    else:
+                        self._update_cache(date_str, False)
+                        return False
                 else:
                     # ДСВД отключена глобально
                     self._update_cache(date_str, False)
                     return False
-            # Не будний и не выходной (например, праздник среди недели)
-            self._update_cache(date_str, False)
-            return False
 
         # 4. БУДНИЙ ДЕНЬ - проверяем предпраздничные
         if date_str in pre_holiday:
@@ -186,33 +186,47 @@ class TradingScheduler:
             if start_time <= current_time <= end_time:
                 return True
 
-        # Сессия в выходной день (ДСВД)
-        weekend_session = sessions.get('weekend_session', {})
-        if weekend_session.get('enabled', False):
-            # ⚠️ ПРОВЕРКА ИСКЛЮЧЕНИЙ
-            date_str = check_datetime.strftime('%Y-%m-%d')
-            weekend_sessions_config = self.config.get('weekend_sessions', {})
-            current_year = check_datetime.strftime('%Y')
-            excluded_key = f'excluded_dates_{current_year}'
-            excluded_dates = weekend_sessions_config.get(excluded_key,
-                     weekend_sessions_config.get('excluded_dates_2026', []))
+        # Сессия в выходной день (ДСВД) - ИСПРАВЛЕНО
+        weekend_sessions_config = self.config.get('weekend_sessions', {})
 
-            if date_str in excluded_dates:
-                return False
-
-             # ✅ ДОБАВИТЬ ПРОВЕРКУ enabled ИЗ weekend_sessions_config
-            if not weekend_sessions_config.get('enabled', False):
-                return False  # ДСВД отключена глобально
-
-            # Получаем день недели из текущей даты
+        # Проверяем, включена ли ДСВД глобально
+        if weekend_sessions_config.get('enabled', False):
+            # Получаем день недели
             day_of_week = check_datetime.strftime('%A').lower()
 
+            # Проверяем, является ли день выходным
             if day_of_week in ['saturday', 'sunday']:
-                start_time = self._parse_time(weekend_session.get('start', '09:50'))
-                end_time = self._parse_time(weekend_session.get('end', '19:00'))
+                date_str = check_datetime.strftime('%Y-%m-%d')
+                current_year = check_datetime.strftime('%Y')
 
-                if start_time <= current_time <= end_time:
-                    return True
+                # Получаем список исключений для текущего года
+                excluded_key = f'excluded_dates_{current_year}'
+                excluded_dates = weekend_sessions_config.get(
+                    excluded_key,
+                    weekend_sessions_config.get('excluded_dates_2026', [])
+                )
+
+                # Проверяем, не исключен ли этот день
+                if date_str in excluded_dates:
+                    return False
+
+                # Парсим время из конфига weekend_sessions
+                schedule_str = weekend_sessions_config.get('schedule', '09:50-19:00')
+                try:
+                    start_str, end_str = schedule_str.split('-')
+                    start_time = self._parse_time(start_str)
+                    end_time = self._parse_time(end_str)
+
+                    # Проверяем, находится ли текущее время в интервале
+                    if start_time <= current_time <= end_time:
+                        return True
+                except Exception as e:
+                    logger.error(f"Ошибка парсинга расписания выходных '{schedule_str}': {e}")
+                    # В случае ошибки парсинга используем значения по умолчанию
+                    start_time = self._parse_time('09:50')
+                    end_time = self._parse_time('19:00')
+                    if start_time <= current_time <= end_time:
+                        return True
 
         # Проверка обеденного перерыва
         market_breaks = self.config.get('market_breaks', {})
@@ -247,13 +261,27 @@ class TradingScheduler:
 
     # ✅ НОВЫЙ МЕТОД
     def get_current_moex_period(self) -> str:
-        """Определение текущего периода торгов MOEX"""
         if not self.is_trading_time():
             return "closed"
 
-        now = datetime.now(self.moscow_tz).time()
+        now = datetime.now(self.moscow_tz)
+        current_time = now.time()
+        day_of_week = now.strftime('%A').lower()
 
-        # Используем settings.json для получения периодов
+        # ИСПРАВЛЕНИЕ: Для выходных используем weekend_sessions из конфига
+        if day_of_week in ['saturday', 'sunday']:
+            weekend_config = self.config.get('weekend_sessions', {})
+            if weekend_config.get('enabled', False):
+                schedule_str = weekend_config.get('schedule')
+                if schedule_str:  # Берем из конфига, без магических чисел
+                    try:
+                        start_str, end_str = schedule_str.split('-')
+                        if self._time_in_range(start_str, end_str, current_time):
+                            return "weekend_session"
+                    except:
+                        pass  # Проваливаемся к стандартной логике
+
+        # Стандартная логика для будних
         try:
             with open("config/settings.json", "r") as f:
                 settings = json.load(f)
@@ -270,7 +298,7 @@ class TradingScheduler:
             }
 
         for period_name, times in periods.items():
-            if self._time_in_range(times["start"], times["end"], now):
+            if self._time_in_range(times["start"], times["end"], current_time):
                 return period_name
         return "continuous_trading"
 
@@ -302,9 +330,19 @@ class TradingScheduler:
 
                 # Для выходных дней используем ДСВД
                 if day_of_week in ['saturday', 'sunday']:
-                    weekend_session = sessions.get('weekend_session', {})
-                    if weekend_session.get('enabled', True):
-                        start_time = self._parse_time(weekend_session.get('start', '09:50'))
+                    # ИСПРАВЛЕНО: берем данные из корневой структуры weekend_sessions
+                    weekend_sessions_config = self.config.get('weekend_sessions', {})
+                    if weekend_sessions_config.get('enabled', False):
+                        schedule_str = weekend_sessions_config.get('schedule', '09:50-19:00')
+                        try:
+                            start_str, _ = schedule_str.split('-')
+                            start_time = self._parse_time(start_str)
+                        except Exception as e:
+                            logger.error(f"Ошибка парсинга расписания выходных: {e}")
+                            start_time = self._parse_time('09:50')
+                    else:
+                        # Если ДСВД отключена, переходим к следующему дню
+                        continue
                 else:
                     # Для будних дней используем основную сессию
                     main_session = sessions.get('main_session', {})
