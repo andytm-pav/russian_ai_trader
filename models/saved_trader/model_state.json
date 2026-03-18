@@ -1059,11 +1059,11 @@
       "last_trade": null
     },
     "VTBR": {
-      "total_trades": 37,
+      "total_trades": 39,
       "profitable_trades": 13,
-      "total_pnl": -0.04680222487886741,
-      "avg_hold_time": 1.4961145073354425,
-      "success_rate": 0.35135135135135137,
+      "total_pnl": -0.051950602272284346,
+      "avg_hold_time": 1.7706826956795152,
+      "success_rate": 0.3333333333333333,
       "last_trade": null
     },
     "FLOT": {
@@ -1075,11 +1075,11 @@
       "last_trade": null
     },
     "WUSH": {
-      "total_trades": 18,
-      "profitable_trades": 11,
-      "total_pnl": 0.0746590435050072,
-      "avg_hold_time": 1.0911000711682401,
-      "success_rate": 0.6111111111111112,
+      "total_trades": 19,
+      "profitable_trades": 12,
+      "total_pnl": 0.07486559106258228,
+      "avg_hold_time": 1.1775839973750868,
+      "success_rate": 0.631578947368421,
       "last_trade": null
     },
     "RENI": {
@@ -1987,7 +1987,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": -0.17002419067624233,
+  "market_sentiment": -0.14612094467674364,
   "volatility_index": 1.0,
   "strategy_performance": {
     "balanced": {
@@ -2005,18 +2005,18 @@
       "win_rate": 0.35185185185185186
     },
     "tech_conservative": {
-      "total_trades": 33,
-      "profitable_trades": 16,
-      "total_pnl": -23.533340554523107,
-      "avg_pnl": -0.7131315319552457,
-      "win_rate": 0.48484848484848486
+      "total_trades": 35,
+      "profitable_trades": 17,
+      "total_pnl": -23.803684006965536,
+      "avg_pnl": -0.6801052573418724,
+      "win_rate": 0.4857142857142857
     },
     "momentum": {
-      "total_trades": 235,
+      "total_trades": 241,
       "profitable_trades": 125,
-      "total_pnl": -38.62714728284782,
-      "avg_pnl": -0.1643708395014801,
-      "win_rate": 0.5319148936170213
+      "total_pnl": -45.4656706602412,
+      "avg_pnl": -0.18865423510473528,
+      "win_rate": 0.5186721991701245
     },
     "swing": {
       "total_trades": 24,
@@ -2187,5 +2187,5 @@
       "prediction_weight": 0.5
     }
   },
-  "save_time": "2026-03-17T16:19:10.825699"
+  "save_time": "2026-03-18T08:07:05.012750"
 }
