@@ -2340,6 +2340,7 @@ class SmartPortfolioBroker:
 
             if settlement_date <= today:
                 if self.portfolio.reserved_cash >= comm['amount']:
+                    self.portfolio.cash -= comm['amount']
                     self.portfolio.reserved_cash -= comm['amount']
                     comm['processed'] = True
                     comm['processed_date'] = today.strftime('%Y-%m-%d')
