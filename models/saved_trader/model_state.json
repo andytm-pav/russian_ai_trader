@@ -1363,11 +1363,11 @@
       "last_trade": null
     },
     "IVAT": {
-      "total_trades": 26,
-      "profitable_trades": 14,
-      "total_pnl": -0.13997801373214738,
-      "avg_hold_time": 4.376818088275246,
-      "success_rate": 0.5384615384615384,
+      "total_trades": 28,
+      "profitable_trades": 15,
+      "total_pnl": -0.13563723211210638,
+      "avg_hold_time": 4.136559517215643,
+      "success_rate": 0.5357142857142857,
       "last_trade": null
     },
     "UGLD": {
@@ -2108,11 +2108,11 @@
       "win_rate": 0.4520547945205479
     },
     "momentum": {
-      "total_trades": 536,
-      "profitable_trades": 279,
-      "total_pnl": -157.16114653055854,
-      "avg_pnl": -0.2932110942734301,
-      "win_rate": 0.5205223880597015
+      "total_trades": 539,
+      "profitable_trades": 280,
+      "total_pnl": -157.28330574893852,
+      "avg_pnl": -0.29180576205739983,
+      "win_rate": 0.5194805194805194
     },
     "swing": {
       "total_trades": 31,
@@ -2283,5 +2283,5 @@
       "prediction_weight": 0.5
     }
   },
-  "save_time": "2026-03-19T22:06:39.863077"
+  "save_time": "2026-03-19T22:17:08.113514"
 }
