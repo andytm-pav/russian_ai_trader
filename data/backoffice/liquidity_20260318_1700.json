@@ -1,0 +1,101 @@
+{
+  "timestamp": "2026-03-18T17:00:00.955454",
+  "cash": 623.6949999999996,
+  "total_exposure": 9363.08,
+  "liquidity_ratio": 0.06661216181000265,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 15,
+  "positions": [
+    {
+      "ticker": "MVID",
+      "value": 369.75,
+      "qty": 5,
+      "price": 73.95
+    },
+    {
+      "ticker": "UWGN",
+      "value": 114.72,
+      "qty": 4,
+      "price": 28.68
+    },
+    {
+      "ticker": "EUTR",
+      "value": 606.0,
+      "qty": 5,
+      "price": 121.2
+    },
+    {
+      "ticker": "BELU",
+      "value": 433.4,
+      "qty": 1,
+      "price": 433.4
+    },
+    {
+      "ticker": "DATA",
+      "value": 107.86,
+      "qty": 1,
+      "price": 107.86
+    },
+    {
+      "ticker": "WUSH",
+      "value": 672.0,
+      "qty": 7,
+      "price": 96.0
+    },
+    {
+      "ticker": "NLMK",
+      "value": 2073.6000000000004,
+      "qty": 20,
+      "price": 103.68
+    },
+    {
+      "ticker": "AFKS",
+      "value": 1341.8,
+      "qty": 100,
+      "price": 13.418
+    },
+    {
+      "ticker": "HYDR",
+      "value": 456.3,
+      "qty": 1000,
+      "price": 0.4563
+    },
+    {
+      "ticker": "IVAT",
+      "value": 1384.2,
+      "qty": 9,
+      "price": 153.8
+    },
+    {
+      "ticker": "RAGR",
+      "value": 116.16,
+      "qty": 1,
+      "price": 116.16
+    },
+    {
+      "ticker": "SPBE",
+      "value": 472.0,
+      "qty": 2,
+      "price": 236.0
+    },
+    {
+      "ticker": "PIKK",
+      "value": 471.8,
+      "qty": 1,
+      "price": 471.8
+    },
+    {
+      "ticker": "TGKN",
+      "value": 657.0,
+      "qty": 100000,
+      "price": 0.00657
+    },
+    {
+      "ticker": "VTBR",
+      "value": 86.49,
+      "qty": 1,
+      "price": 86.49
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "timestamp": "2026-03-20T17:00:01.101064",
+  "cash": 278.9374749999979,
+  "total_exposure": 9392.140000000001,
+  "liquidity_ratio": 0.029699032914756153,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 18,
+  "positions": [
+    {
+      "ticker": "MVID",
+      "value": 365.5,
+      "qty": 5,
+      "price": 73.1
+    },
+    {
+      "ticker": "UWGN",
+      "value": 285.2,
+      "qty": 10,
+      "price": 28.52
+    },
+    {
+      "ticker": "ELMT",
+      "value": 141.15,
+      "qty": 1000,
+      "price": 0.14115
+    },
+    {
+      "ticker": "GECO",
+      "value": 242.3,
+      "qty": 10,
+      "price": 24.23
+    },
+    {
+      "ticker": "BELU",
+      "value": 2166.0,
+      "qty": 5,
+      "price": 433.2
+    },
+    {
+      "ticker": "VSEH",
+      "value": 79.45,
+      "qty": 1,
+      "price": 79.45
+    },
+    {
+      "ticker": "WUSH",
+      "value": 664.02,
+      "qty": 7,
+      "price": 94.86
+    },
+    {
+      "ticker": "SBERP",
+      "value": 321.07,
+      "qty": 1,
+      "price": 321.07
+    },
+    {
+      "ticker": "SNGSP",
+      "value": 487.25,
+      "qty": 10,
+      "price": 48.725
+    },
+    {
+      "ticker": "RTKM",
+      "value": 1169.8,
+      "qty": 20,
+      "price": 58.49
+    },
+    {
+      "ticker": "VKCO",
+      "value": 293.7,
+      "qty": 1,
+      "price": 293.7
+    },
+    {
+      "ticker": "RAGR",
+      "value": 117.1,
+      "qty": 1,
+      "price": 117.1
+    },
+    {
+      "ticker": "SMLT",
+      "value": 808.6,
+      "qty": 1,
+      "price": 808.6
+    },
+    {
+      "ticker": "GLRX",
+      "value": 60.15,
+      "qty": 1,
+      "price": 60.15
+    },
+    {
+      "ticker": "UGLD",
+      "value": 1389.3999999999999,
+      "qty": 2000,
+      "price": 0.6947
+    },
+    {
+      "ticker": "ENPG",
+      "value": 470.7,
+      "qty": 1,
+      "price": 470.7
+    },
+    {
+      "ticker": "VTBR",
+      "value": 86.05,
+      "qty": 1,
+      "price": 86.05
+    },
+    {
+      "ticker": "SPBE",
+      "value": 244.7,
+      "qty": 1,
+      "price": 244.7
+    }
+  ]
+}

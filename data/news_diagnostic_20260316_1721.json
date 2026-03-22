@@ -1,0 +1,82 @@
+{
+  "timestamp": "2026-03-16T17:20:53.904324",
+  "config": {
+    "total_sources": 15,
+    "enabled_sources": 15,
+    "update_interval": 5,
+    "max_news_per_source": 20,
+    "use_ml_model": true,
+    "include_keywords": 20,
+    "exclude_keywords": 7,
+    "sentiment_words": {
+      "positive": 22,
+      "negative": 22,
+      "neutral": 15
+    }
+  },
+  "sources": {
+    "by_category": {
+      "market": 2,
+      "finance": 5,
+      "business": 1,
+      "regulatory": 1,
+      "analysis": 1,
+      "general": 3,
+      "economics": 1,
+      "unknown": 1
+    },
+    "avg_priority": 6.2
+  },
+  "performance": {
+    "source_availability": {
+      "working": 10,
+      "slow": 0,
+      "failed": 0,
+      "total_checked": 10
+    },
+    "fetcher": {
+      "news_count": 23,
+      "cache_size": 23,
+      "stats": {
+        "total_fetches": 1,
+        "cache_hits": 0,
+        "cache_misses": 1,
+        "filter_hits": 201,
+        "avg_fetch_time": 0.1603013277053833
+      }
+    }
+  },
+  "sentiment": {
+    "sample_avg": -0.05062063336372376,
+    "tickers": {
+      "SBER": {
+        "basic": 0.14210526315789473,
+        "category": "positive",
+        "impact": "low_impact",
+        "news_count": 0
+      },
+      "GAZP": {
+        "basic": 0.14210526315789473,
+        "category": "positive",
+        "impact": "low_impact",
+        "news_count": 0
+      },
+      "LKOH": {
+        "basic": 0.14210526315789473,
+        "category": "positive",
+        "impact": "low_impact",
+        "news_count": 0
+      }
+    },
+    "market": {
+      "sentiment": 0.14210526315789473,
+      "strength": 0.14210526315789473,
+      "news_count": 20,
+      "sources_count": 7,
+      "trend": "slightly_bullish",
+      "timestamp": "2026-03-16T17:21:36.710030",
+      "cache_key": "market_sentiment_global"
+    }
+  },
+  "issues": []
+}
