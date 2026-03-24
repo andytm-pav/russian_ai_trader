@@ -55,6 +55,58 @@ class MoexFetcher:
         logger.info(
             f"Инициализирован MOEX Fetcher (кэш: {self.cache_ttl}с, лимит: {self.max_requests_per_minute} запр/мин)")
 
+    def _safe_float(self, value, default=0.0):
+        """Безопасное преобразование в float"""
+        if value is None:
+            return default
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+
+    def _get_index_change(self, current_value, change, change_pct):
+        """
+        Получение изменения индекса.
+        Приоритет: реальное значение > вычисленное из change_pct
+        """
+        if change is not None:
+            return self._safe_float(change)
+
+        if change_pct is not None and current_value is not None:
+            try:
+                change_pct_float = self._safe_float(change_pct)
+                if change_pct_float == 0:
+                    return 0.0
+                # previous = current / (1 + change_pct/100)
+                previous_value = current_value / (1 + change_pct_float / 100)
+                return current_value - previous_value
+            except ZeroDivisionError:
+                logger.warning(f"Деление на ноль при расчете изменения индекса")
+                return 0.0
+
+        return 0.0
+
+    def _get_index_change(self, current_value, change, change_pct):
+        """
+        Получение изменения индекса.
+        Приоритет: реальное значение > вычисленное из change_pct
+        """
+        if change is not None:
+            return self._safe_float(change)
+
+        if change_pct is not None and current_value is not None:
+            # Точная формула: change = previous * (change_pct/100)
+            # где previous = current / (1 + change_pct/100)
+            try:
+                change_pct_float = self._safe_float(change_pct)
+                previous_value = current_value / (1 + change_pct_float / 100)
+                return current_value - previous_value
+            except ZeroDivisionError:
+                return 0.0
+
+        return 0.0
+
+
     def _load_settings(self) -> Dict:
         """Загрузка настроек из settings.json"""
         try:
@@ -656,12 +708,11 @@ class MoexFetcher:
         cached = self._get_from_cache(cache_key)
 
         if cached is not None:
-            logger.debug(f"📊 МАКРО ИЗ КЭША: IMOEX={cached.get('IMOEX')}, RVI={cached.get('RVI')}")
+            logger.debug(f"📊 МАКРО ИЗ КЭША: IMOEX={cached.get('IMOEX')}")
             return cached
 
         result = {}
 
-        # 1. Получаем индексы из boards/SNDX (IMOEX, MOEXBMI и др.)
         url = f"{self.base_url}/engines/stock/markets/index/boards/SNDX/securities.json"
         params = {
             'iss.meta': 'off',
@@ -672,20 +723,25 @@ class MoexFetcher:
         data = self._make_request(url, params, timeout=10)
         if data and 'marketdata' in data:
             for row in data['marketdata']['data']:
+                if len(row) < 4:
+                    continue
+
                 ticker = row[0]
                 if ticker in self.index_tickers:
-                    result[ticker] = float(row[1])
-                    result[f"{ticker}_change"] = float(row[2])
-                    result[f"{ticker}_change_pct"] = float(row[3])
+                    current = self._safe_float(row[1] if len(row) > 1 else None)
+                    change_raw = row[2] if len(row) > 2 else None
+                    change_pct_raw = row[3] if len(row) > 3 else None
 
-        # 2. Получаем RTSI отдельно
+                    result[ticker] = current
+                    result[f"{ticker}_change"] = self._get_index_change(current, change_raw, change_pct_raw)
+                    result[f"{ticker}_change_pct"] = self._safe_float(change_pct_raw)
+
         rtsi = self.get_rtsi()
         if rtsi:
             result['RTSI'] = rtsi['value']
             result['RTSI_change'] = rtsi['change']
             result['RTSI_change_pct'] = rtsi['change_pct']
 
-        # 3. Получаем RVI отдельно
         rvi = self.get_rvi()
         if rvi:
             result['RVI'] = rvi['value']
@@ -696,7 +752,7 @@ class MoexFetcher:
         result['market_mood'] = self._calculate_market_mood(result)
 
         self._save_to_cache(cache_key, result)
-        logger.info(f"📊 МАКРО СВЕЖИЕ: IMOEX={result.get('IMOEX')}, RTSI={result.get('RTSI')}, RVI={result.get('RVI')}")
+        logger.info(f"📊 МАКРО: IMOEX={result.get('IMOEX')}, RTSI={result.get('RTSI')}, RVI={result.get('RVI')}")
         return result
 
     def get_macro_data(self) -> Dict[str, float]:
