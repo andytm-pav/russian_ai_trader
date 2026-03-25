@@ -6,7 +6,7 @@
 import signal
 import sys
 import time
-# from datetime import datetime
+from datetime import datetime
 import threading
 
 from core.trading_hours_scheduler import TradingScheduler

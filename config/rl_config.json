@@ -77,12 +77,12 @@
   },
 
   "state_parameters": {
-    "state_vector_size": 186,
-    "total_state_size": 192,
-    "news_features_size": 128,
+    "state_vector_size": 210,
+    "total_state_size": 216,
+    "news_features_size": 132,
     "strategy_params_size": 6,
-    "market_features_count": 38,
-    "reserved_slots": 10
+    "market_features_count": 48,
+    "reserved_slots": 6
   },
 
   "normalization": {
@@ -100,8 +100,16 @@
     "news_noise_scale": 0.1,
     "max_hold_time_days_norm": 7.0,
     "max_trades_for_experience_norm": 50.0,
-    "position_factor_max": 10.0
-  },
+    "position_factor_max": 10.0,
+    "commission_rate": 0.003,
+    "commission_normalization": 1000.0,
+    "max_trades_per_hour": 10,
+    "initial_capital": 10000.0,
+    "imoex_normalization": 3000.0,
+    "moexfn_normalization": 10000.0,
+    "brent_normalization": 100.0
+},
+
 
   "model_weights": {
     "failure_factor_rate": 0.2,
@@ -197,5 +205,25 @@
     "overhold_threshold": 1.5,
     "interval_cycles": 5,
     "max_positions_per_cycle": 3
+  },
+  "commission_learning": {
+    "enable_commission_penalty": true,
+    "enable_frequency_penalty": true,
+    "enable_commission_bonus": true
+  },
+  "feature_config": {
+    "reserved_slots": 6,
+    "market_features": [
+        "order_flow_imbalance",
+        "dark_pool_volume",
+        "option_implied_vol",
+        "futures_premium",
+        "short_interest",
+        "institutional_flow",
+        "retail_sentiment",
+        "geopolitical_risk",
+        "market_liquidity",
+        "vix"
+    ]
   }
 }

@@ -31,6 +31,15 @@ class PortfolioManager:
         self.preserve_buy_time = True  # значение по умолчанию
         self.commission_rate = 0.003  # значение по умолчанию
 
+        # ПОЛЯ ДЛЯ КОМИССИОННЫХ ПРИЗНАКОВ
+        self.commission_reserve = 0.0
+        self.commission_spent_today = 0.0
+        self.total_commission = 0.0
+        self.total_trades = 0
+        self.total_pnl = 0.0
+        self.max_trades_per_hour = 10
+        self.daily_commission_limit = 100.0
+
         try:
             with open("config/settings.json", "r") as f:
                 settings = json.load(f)
@@ -40,8 +49,16 @@ class PortfolioManager:
                 self.commission_rate = commission.get('rate_decimal', 0.003)
                 self.daily_reset_time = commission.get("charge_time", "19:00")
                 self.preserve_buy_time = pm_config.get("preserve_buy_time_on_partial_sell", True)
+
+                # загрузка лимитов
+                self.max_positions = settings.get("max_positions", 10)
+                self.max_trades_per_hour = settings.get("max_trades_per_hour", 10)
+                self.daily_commission_limit = settings.get("daily_commission_limit", 100.0)
         except:
-            pass
+
+            self.max_positions = 10
+            self.max_trades_per_hour = 10
+            self.daily_commission_limit = 100.0
 
         # Загрузка состояния
         self.load_portfolio()
@@ -58,6 +75,12 @@ class PortfolioManager:
             self.cash = data.get('cash', 0.0)
             self.initial_capital = data.get('initial_capital', self.cash)
             self.trade_history = data.get('trade_history', [])
+
+            #  загрузка комиссионных полей
+            self.total_commission = data.get('total_commission', 0.0)
+            self.total_trades = data.get('total_trades', 0)
+            self.total_pnl = data.get('total_pnl', 0.0)
+            self.commission_spent_today = data.get('commission_spent_today', 0.0)
 
             # ДОБАВЛЯЕМ: Загрузка стратегий
             self.strategy_positions = defaultdict(list)
@@ -132,11 +155,16 @@ class PortfolioManager:
                 'positions': self.positions,
                 'cash': self.cash,
                 'initial_capital': self.initial_capital,
-                'trade_history': self.trade_history[-100:],  # Сохраняем последние 100 сделок
-                'strategy_positions': strategy_positions_dict,  # ДОБАВЛЯЕМ
+                'trade_history': self.trade_history[-100:],
+                'strategy_positions': strategy_positions_dict,
                 'total_value': self.get_total_value({}),
                 'last_update': datetime.now().isoformat(),
-                'stats': self.get_portfolio_stats()
+                'stats': self.get_portfolio_stats(),
+                # ПОЛЯ ДЛЯ КОМИССИЙ
+                'total_commission': self.total_commission,
+                'total_trades': self.total_trades,
+                'total_pnl': self.total_pnl,
+                'commission_spent_today': self.commission_spent_today
             }
 
             with open(self.portfolio_file, 'w', encoding='utf-8') as f:
@@ -150,6 +178,13 @@ class PortfolioManager:
         except Exception as e:
             logger.error(f"Ошибка сохранения портфеля: {e}")
             return False
+
+    def _update_commission_stats(self, commission_amount: float):
+        """Обновление статистики комиссий"""
+        self.commission_spent_today += commission_amount
+        self.total_commission += commission_amount
+        self.commission_reserve = self.commission_spent_today + (self.commission_rate * 1000)
+
 
     def buy(self, ticker: str, quantity: int, price: float, strategy: str = None, time_horizon: str = 'balanced', **kwargs) -> bool:
         """Покупка акций с указанием стратегии"""
@@ -235,6 +270,7 @@ class PortfolioManager:
             # ✅ 4. ЕДИНСТВЕННОЕ списание средств (с учетом комиссии)
             self.cash -= cost
             self.reserved_cash += estimated_commission
+            self._update_commission_stats(estimated_commission)
 
             # Запись в историю
             trade_record = {
@@ -329,6 +365,13 @@ class PortfolioManager:
             # Зачисление средств
             self.cash += revenue
             self.reserved_cash += estimated_commission
+
+            # Обновление статистики комиссий
+            self._update_commission_stats(estimated_commission)
+
+            # Обновление статистики сделок
+            self.total_trades += 1
+            self.total_pnl += pnl
 
             # Запись в историю
             trade_record = {
@@ -737,7 +780,22 @@ class PortfolioManager:
     def reset_daily_trades(self):
         """Сброс дневной статистики (вызывать в 19:00)"""
         self.daily_trades = []
-        logger.debug(f"Дневная статистика сделок сброшена (время: {self.daily_reset_time})")
+        self.commission_spent_today = 0.0
+        self.commission_reserve = 0.0
+        logger.debug(f"Дневная статистика сделок и комиссий сброшена (время: {self.daily_reset_time})")
+
+    def get_commission_stats(self) -> Dict[str, float]:
+        """Получение статистики комиссий для модели"""
+        return {
+            'commission_reserve': self.commission_reserve,
+            'commission_spent_today': self.commission_spent_today,
+            'total_commission': self.total_commission,
+            'total_trades': self.total_trades,
+            'total_pnl': self.total_pnl,
+            'daily_commission_limit': self.daily_commission_limit,
+            'max_trades_per_hour': self.max_trades_per_hour,
+            'max_positions': self.max_positions
+        }
 
 
     def remove_strategy_from_tracker(self, ticker: str, strategy: str):

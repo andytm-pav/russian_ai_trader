@@ -9,8 +9,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import time
-from collections import deque, defaultdict
 from datetime import datetime
+from collections import deque, defaultdict
 from typing import List, Dict, Tuple, Optional
 import warnings
 from utils.logger import get_logger
@@ -75,10 +75,10 @@ class PrioritizedReplayBuffer:
 # Загружаем из конфига при инициализации
 DEFAULT_CONFIG = {
     "news_embedding_dim": 312,
-    "news_encoded_dim": 128,
-    "base_state_dim": 186,  # 4+7+130+7+5+5+3+4+11+10
+    "news_encoded_dim": 132,
+    "base_state_dim": 210,
     "strategy_params_dim": 6,
-    "total_state_dim": 192,  # 181 + 6
+    "total_state_dim": 216,
 
     "news_encoder_hidden_dim": 256,
     "news_encoder_intermediate_dim": 512,
@@ -232,6 +232,44 @@ class AdvancedTraderModel:
         self.model_weights = self.rl_config.get('model_weights', {})
         self.normalization = self.rl_config.get('normalization', {})
 
+        # Загрузка расписания торгов
+        try:
+            with open("config/market_schedule.json", "r", encoding="utf-8") as f:
+                market_schedule = json.load(f)
+
+            sessions = market_schedule.get('sessions', {})
+            main_session = sessions.get('main_session', {})
+            evening_session = sessions.get('evening_session', {})
+
+            # Основная сессия
+            main_end = main_session.get('end', '18:50')
+            main_h, main_m = map(int, main_end.split(':'))
+            self.main_session_close = main_h + main_m / 60.0
+
+            # Вечерняя сессия
+            evening_start = evening_session.get('start', '19:00')
+            evening_h, evening_m = map(int, evening_start.split(':'))
+            self.evening_session_start = evening_h + evening_m / 60.0
+        except Exception as e:
+            logger.warning(f"Не удалось загрузить market_schedule.json: {e}")
+            self.main_session_close = 18.833
+            self.evening_session_start = 19.0
+
+        # Загрузка констант для комиссий из normalization
+        self.commission_rate = self.normalization.get('commission_rate', 0.003)
+        self.max_trades_per_hour = self.normalization.get('max_trades_per_hour', 10)
+        self.initial_capital = self.normalization.get('initial_capital', 10000.0)
+        self.commission_normalization = self.normalization.get('commission_normalization', 1000.0)
+
+        # Загрузка констант для нормализации макро-признаков
+        self.imoex_normalization = self.normalization.get('imoex_normalization', 3000.0)
+        self.moexfn_normalization = self.normalization.get('moexfn_normalization', 10000.0)
+        self.brent_normalization = self.normalization.get('brent_normalization', 100.0)
+
+        # Загрузка времени закрытия из rl_config
+        self.close_hour = self.rl_config.get('close_hour', 18.833)
+        self.evening_start = self.rl_config.get('evening_start', 19.0)
+
         # Параметры из конфигов
         self.news_encoded_dim = self.rl_config["state_parameters"]["news_features_size"]
         self.base_state_dim = self.rl_config["state_parameters"]["state_vector_size"]
@@ -247,13 +285,15 @@ class AdvancedTraderModel:
         self.dimensions = {
             'price_volume': 4,
             'technical': 7,
-            'news': 130,  # 128 + 2 резерва
+            'news': 134,  # 132 + 2 резерва
             'fundamental': 7,
             'position': 5,
             'portfolio': 5,
             'risk': 3,
             'time': 4,
             'strategy': 11,
+            'macro_extra': 4,  # MOEXOG, MOEXFN, brent_price, brent_change
+            'commission': 8,  # комиссионные признаки
         }
 
         self.expected_dim = sum(self.dimensions.values()) + self.normalization.get('reserved_slots', 10)
@@ -431,12 +471,14 @@ class AdvancedTraderModel:
                            sentiment: float,
                            news_features: torch.Tensor,
                            market_data: Dict,
-                           market_sentiment: float = 0.0) -> torch.Tensor:
+                           market_sentiment: float = 0.0,
+                           portfolio=None) -> torch.Tensor:
         """
         Построение вектора состояния (181 признак)
         """
         # Используем self.normalization, а не norm
         norm = self.normalization
+        # kwargs = {'portfolio': portfolio} if portfolio is not None else {}
 
         # Новости
         if news_features.numel() > 0 and news_features.shape[1] == self.news_encoded_dim:
@@ -473,9 +515,9 @@ class AdvancedTraderModel:
             momentum * norm.get('momentum_scaling', 20.0),
         ])
 
-        # === 3. Новости (130) ===
+        # === 3. Новости (134) ===
         features.extend(news_vec.tolist())
-        features.extend([0.0, 0.0])  # резерв под news_velocity, news_impact
+        features.extend([0.0] * 2)  # резерв (2 слота)
 
         # === 4. Фундаментальные (7) ===
         sector_onehot = [0] * 5
@@ -563,11 +605,18 @@ class AdvancedTraderModel:
 
         # === 8. Время (4) ===
         now = datetime.now()
+        close_hour = getattr(self, 'main_session_close', 18.833)
+        evening_start = getattr(self, 'evening_session_start', 19.0)
+
+        current_hour = now.hour + now.minute / 60.0
+        time_to_close = max(0.0, (close_hour - current_hour) / 24.0)
+        is_evening = 1.0 if current_hour >= evening_start else 0.0
+
         features.extend([
             now.hour / norm.get('hours_in_day', 24.0),
             now.weekday() / norm.get('days_in_week', 7.0),
-            0.0,  # time_to_close (резерв)
-            0.0,  # is_auction (резерв)
+            time_to_close,
+            is_evening,
         ])
 
         # === 9. Стратегия (11) ===
@@ -589,22 +638,104 @@ class AdvancedTraderModel:
         else:
             features.extend([0.5, 0.0, 0.5])
 
-        # === 10. Макро-резерв (10) ===
-        macro_features = [
-            market_data.get('imoex_change', 0.0) / 100.0,  # слот 1: изменение IMOEX
-            market_data.get('rtsi_change', 0.0) / 100.0,  # слот 2: изменение RTSI
-            market_data.get('rvi', 20.0) / 100.0,  # слот 3: индекс волатильности
-            market_data.get('usd_rub_change', 0.0) / 100.0,  # слот 4: изменение USD/RUB
-            market_data.get('brent_change', 0.0) / 100.0,  # слот 5: изменение Brent
-            market_data.get('cbr_rate', 0.0) / 100.0,  # слот 6: ключевая ставка
-            market_data.get('inflation', 0.0) / 100.0,  # слот 7: инфляция
-            market_data.get('market_volatility', 0.0) / 100.0,  # слот 8: рыночная волатильность
-            market_data.get('oil_price', 0.0) / 100.0,  # слот 9: цена нефти
-            market_data.get('reserved_10', 0.0)  # слот 10: резерв
+        # === 10. Дополнительные макро-признаки (4) ===
+        imoex_norm = getattr(self, 'imoex_normalization', 3000.0)
+        moexfn_norm = getattr(self, 'moexfn_normalization', 10000.0)
+        brent_norm = getattr(self, 'brent_normalization', 100.0)
+
+        macro_extra = [
+            market_data.get('moexog', 0.0) / imoex_norm,
+            market_data.get('moexfn', 0.0) / moexfn_norm,
+            market_data.get('brent', 0.0) / brent_norm,
+            market_data.get('brent_change', 0.0) / 100.0,
+        ]
+        features.extend(macro_extra)
+
+        # === 11. Комиссионные издержки (8) ===
+        commission_rate = getattr(self, 'commission_rate', 0.003)
+        commission_reserve_ratio = 0.0
+        commission_spent_ratio = 0.0
+        avg_commission = 0.0
+        commission_to_pnl = 0.0
+        trade_frequency_penalty = 0.0
+        expected_commission = 0.0
+        breakeven_price_ratio = 1.0
+
+        if portfolio is not None:
+            # import time
+            # datetime уже импортирован в начале файла
+
+            initial_capital = getattr(self, 'initial_capital', 10000.0)
+            commission_norm = getattr(self, 'commission_normalization', 1000.0)
+            max_trades_per_hour = getattr(self, 'max_trades_per_hour', 10)
+
+            commission_reserve_ratio = getattr(portfolio, 'commission_reserve', 0.0) / initial_capital
+            commission_spent_ratio = getattr(portfolio, 'commission_spent_today', 0.0) / getattr(portfolio,
+                                                                                                 'daily_commission_limit',
+                                                                                                 100.0)
+
+            total_commission = getattr(portfolio, 'total_commission', 0.0)
+            total_trades = getattr(portfolio, 'total_trades', 1)
+            avg_commission = total_commission / max(1, total_trades) / commission_norm
+
+            total_pnl = getattr(portfolio, 'total_pnl', 0.0)
+            commission_to_pnl = min(total_commission / max(1, abs(total_pnl)), 2.0) if total_pnl > 0 else 0.0
+
+            trade_history = getattr(portfolio, 'trade_history', [])
+            now = time.time()
+            trades_last_hour = 0
+            for t in trade_history:
+                ts = t.get('timestamp')
+                if ts:
+                    if isinstance(ts, str):
+                        try:
+                            ts_float = datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp()
+                        except:
+                            continue
+                    else:
+                        ts_float = float(ts)
+                    if ts_float > now - 3600:
+                        trades_last_hour += 1
+
+            trade_frequency_penalty = min(trades_last_hour / max_trades_per_hour, 1.0)
+
+            max_positions = getattr(portfolio, 'max_positions', 10)
+            position_value = (initial_capital / max_positions) * 0.5
+            expected_commission = (position_value * commission_rate) / initial_capital
+
+            position = portfolio.positions.get(ticker) if hasattr(portfolio, 'positions') else None
+            if position:
+                entry_price = position.get('avg_price', price)
+                breakeven_price_ratio = (entry_price * (1 + commission_rate * 2)) / price if price > 0 else 1.0
+
+        commission_features = [
+            commission_reserve_ratio,
+            commission_spent_ratio,
+            avg_commission,
+            commission_to_pnl,
+            trade_frequency_penalty,
+            expected_commission,
+            commission_rate * 2,
+            breakeven_price_ratio,
         ]
 
-        # Если данных нет, оставляем 0.0 (уже есть в get с дефолтом)
-        features.extend(macro_features)
+        features.extend(commission_features)
+
+        # === 12. Резервные слоты ===
+        feature_config = self.rl_config.get('feature_config', {})
+        reserved_slots = feature_config.get('reserved_slots', 6)
+        features.extend([0.0] * reserved_slots)
+
+        # === 13. Дополнительные рыночные признаки ===
+        market_feature_names = feature_config.get('market_features', [])
+        for name in market_feature_names:
+            features.append(market_data.get(name, 0.0))
+
+
+        # === 14. Рыночная ликвидность и активность (2) ===
+        features.append(market_data.get('market_liquidity_ratio', 0.0))
+        features.append(market_data.get('market_activity_score', 0.0))
+
 
 
         # Проверка размерности
@@ -619,48 +750,9 @@ class AdvancedTraderModel:
         return torch.FloatTensor(features).to(self.device)
 
     def _get_expected_dimension(self) -> int:
-        """Получение ожидаемой размерности из конфига или расчет"""
-        if hasattr(self, 'expected_dim'):
-            return self.expected_dim
+        return self.base_state_dim
 
-        # Расчет размерности
-        norm = self.normalization
-        dimensions = {
-            'price_volume': 4,
-            'technical': 7,
-            'news': 130,  # 128 + 2 резерва
-            'fundamental': 7,
-            'position': 5,
-            'portfolio': 5,
-            'risk': 3,
-            'time': 4,
-            'strategy': 11,
-        }
 
-        self.expected_dim = sum(dimensions.values()) + norm.get('reserved_slots', 10)
-        return self.expected_dim
-
-    def _get_expected_dimension(self) -> int:
-        """Получение ожидаемой размерности из конфига или расчет"""
-        if hasattr(self, 'expected_dim'):
-            return self.expected_dim
-
-        # Расчет размерности
-        norm = self.normalization
-        dimensions = {
-            'price_volume': 4,
-            'technical': 7,
-            'news': 130,  # 128 + 2 резерва
-            'fundamental': 7,
-            'position': 5,
-            'portfolio': 5,
-            'risk': 3,
-            'time': 4,
-            'strategy': 11,
-        }
-
-        self.expected_dim = sum(dimensions.values()) + norm.get('reserved_slots', 10)
-        return self.expected_dim
 
     def calculate_risk_score(self, ticker: str, price: float, sentiment: float) -> float:
         """Расчет риск-скора"""
@@ -694,6 +786,58 @@ class AdvancedTraderModel:
         final_risk = base_risk * sentiment_factor * volatility_factor
 
         return max(norm.get('min_risk', 0.1), min(norm.get('max_risk', 0.85), final_risk))
+
+    def _get_commission_to_pnl_ratio(self) -> float:
+        """Отношение комиссии к PnL (чем выше, тем хуже)"""
+        if not hasattr(self, 'portfolio') or not self.portfolio:
+            return 0.0
+
+        total_pnl = getattr(self.portfolio, 'total_pnl', 0.0)
+        total_commission = getattr(self.portfolio, 'total_commission', 0.0)
+
+        if total_pnl > 0:
+            return min(total_commission / total_pnl, 2.0)
+        return 0.0
+
+    def _get_trade_frequency_penalty(self) -> float:
+        """Штраф за частоту сделок (0-1)"""
+        if not hasattr(self, 'portfolio') or not self.portfolio:
+            return 0.0
+
+        import time
+        trades_last_hour = len([t for t in getattr(self.portfolio, 'trade_history', [])
+                                if t.get('timestamp', 0) > time.time() - 3600])
+        max_trades = getattr(self.portfolio, 'max_trades_per_hour', 10)
+
+        return min(trades_last_hour / max_trades, 1.0)
+
+    def _get_expected_commission(self, ticker: str, price: float) -> float:
+        """Ожидаемая комиссия для текущей сделки (в долях от капитала)"""
+        if not hasattr(self, 'portfolio') or not self.portfolio:
+            return 0.0
+
+        # Упрощенная оценка размера позиции (1/макс_позиций)
+        max_positions = getattr(self.portfolio, 'max_positions', 10)
+        position_value = (self.portfolio.initial_capital / max_positions) * 0.5  # оценочно
+
+        commission_rate = 0.003  # 0.3%
+        expected = position_value * commission_rate
+
+        return expected / self.portfolio.initial_capital
+
+    def _get_breakeven_price_ratio(self, ticker: str, price: float) -> float:
+        """Отношение цены безубыточности к текущей цене"""
+        if not hasattr(self, 'portfolio') or not self.portfolio:
+            return 1.0
+
+        position = self.portfolio.positions.get(ticker)
+        if not position:
+            return 1.0
+
+        entry_price = position.get('avg_price', price)
+        breakeven = entry_price * 1.006  # 0.6% (вход 0.3% + выход 0.3%)
+
+        return breakeven / price if price > 0 else 1.0
 
     def get_price_pred_probs(self, price_pred):
         """Универсальное получение вероятностей из price_pred"""

@@ -77,6 +77,12 @@
     }
   },
 
+  "default_spread": 0.01,
+  "default_rsi": 50,
+  "default_volatility": 0.1,
+  "default_bb_position": 0.5,
+
+
   "back_office": {
     "enable_auto_liquidity_check": true,
     "min_liquidity_ratio": 0.2,
@@ -130,7 +136,12 @@
     "fast_learning_cycles": 5,
     "strategy_adaptation_cycles": 20,
     "enable_extreme_learning": true,
-    "enable_aggressive_adaptation": true
+    "enable_aggressive_adaptation": true,
+    "scalping_penalty": 0.5,
+    "quick_loss_bonus": 0.3,
+    "commission_penalty_multiplier": 5.0,
+    "frequency_penalty_multiplier": 0.1,
+    "commission_bonus_multiplier": 0.1
   },
 
   "portfolio_manager": {

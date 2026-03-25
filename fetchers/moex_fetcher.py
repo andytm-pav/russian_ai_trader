@@ -28,6 +28,11 @@ class MoexFetcher:
         self.settings = self._load_settings()
         moex_config = self.settings.get('moex_fetcher', {})
 
+        self.brent_normalization = self.settings.get('market_data', {}).get('brent_normalization', 100.0)
+
+
+        self.max_contracts = moex_config.get('max_contracts', 500)
+
         # Кэширование из конфига
         self.use_cache = use_cache if use_cache is not None else moex_config.get('use_cache', True)
         self.cache_ttl = cache_ttl if cache_ttl is not None else moex_config.get('cache_ttl', 300)
@@ -756,37 +761,321 @@ class MoexFetcher:
         return result
 
     def get_macro_data(self) -> Dict[str, float]:
-        """
-        Получение всех макро-данных для заполнения резерва
-        """
+        """Получение всех макро-данных"""
         indices = self.get_market_indices()
 
         macro_data = {
-            # IMOEX
             'imoex': indices.get('IMOEX', 0.0),
             'imoex_change': indices.get('IMOEX_change', 0.0),
-
-            # RTSI
             'rtsi': indices.get('RTSI', 0.0),
             'rtsi_change': indices.get('RTSI_change', 0.0),
-
-            # RVI
             'rvi': indices.get('RVI', self.default_rvi),
             'rvi_change': indices.get('RVI_change', 0.0),
-
-            # Дополнительные индексы
             'moexbmi': indices.get('MOEXBMI', 0.0),
             'moexfn': indices.get('MOEXFN', 0.0),
             'moexog': indices.get('MOEXOG', 0.0),
             'moextl': indices.get('MOEXTL', 0.0),
+            'brent': self.get_brent_price() or 0.0,
+            'brent_change': self.get_brent_change(),
+            'usd_rub': self.get_usd_rub() or 0.0,
+            'usd_rub_change': self.get_usd_rub_change(),
+            # НОВЫЕ 4 ПОЛЯ
+            'shares_turnover': self.get_shares_turnover(),
+            'market_cap': self.get_market_capitalization(),
+            'market_liquidity_ratio': self.get_market_liquidity_ratio(),
+            'market_activity_score': self.get_market_activity_score(),
         }
 
-        logger.debug(f"📊 Макро-данные: IMOEX={macro_data['imoex']:.2f} "
-                     f"(изм:{macro_data['imoex_change']:+.2f}%), "
-                     f"RTSI={macro_data['rtsi']:.2f}, "
-                     f"RVI={macro_data['rvi']:.2f}")
+        logger.debug(f"📊 Макро-данные: IMOEX={macro_data['imoex']:.2f}, "
+                     f"Brent={macro_data['brent']:.2f}, "
+                     f"liquidity={macro_data['market_liquidity_ratio']:.4f}")
 
         return macro_data
+
+    def get_active_brent_contract(self) -> Optional[str]:
+        """Определение активного фьючерсного контракта Brent"""
+        cache_key = "active_brent_contract"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            limit = self.settings.get('moex_fetcher', {}).get('max_contracts', 500)
+            url = f"{self.base_url}/engines/futures/markets/forts/securities.json"
+            params = {
+                'iss.meta': 'off',
+                'iss.only': 'securities',
+                'securities.columns': 'SECID,LASTTRADEDATE',
+                'limit': limit
+            }
+
+            data = self._make_request(url, params, timeout=15)
+            if data and 'securities' in data:
+                cols = data['securities']['columns']
+                rows = data['securities']['data']
+
+                brent_contracts = []
+                for row in rows:
+                    secid = row[cols.index('SECID')]
+                    last_trade = row[cols.index('LASTTRADEDATE')] if 'LASTTRADEDATE' in cols else None
+
+                    if secid.startswith('BR-') and last_trade:
+                        try:
+                            last_trade_date = datetime.strptime(last_trade, '%Y-%m-%d')
+                            brent_contracts.append({
+                                'secid': secid,
+                                'last_trade': last_trade_date
+                            })
+                        except:
+                            continue
+
+                if brent_contracts:
+                    brent_contracts.sort(key=lambda x: x['last_trade'])
+                    active = brent_contracts[0]['secid']
+                    self._save_to_cache(cache_key, active)
+                    logger.debug(f"Активный Brent контракт: {active}")
+                    return active
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Ошибка определения активного Brent: {e}")
+            return None
+
+    def get_brent_price(self) -> Optional[float]:
+        """Получение цены Brent (активный фьючерс)"""
+        cache_key = "brent_price"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        contract = self.get_active_brent_contract()
+        if not contract:
+            return None
+
+        try:
+            url = f"{self.base_url}/engines/futures/markets/forts/securities/{contract}.json"
+            params = {
+                'iss.meta': 'off',
+                'iss.only': 'marketdata',
+                'marketdata.columns': 'SECID,LAST,CHANGE,CHANGEPRC'
+            }
+
+            data = self._make_request(url, params, timeout=10)
+            if data and 'marketdata' in data and data['marketdata']['data']:
+                row = data['marketdata']['data'][0]
+                cols = data['marketdata']['columns']
+
+                if 'LAST' in cols:
+                    idx = cols.index('LAST')
+                    if idx < len(row) and row[idx] is not None:
+                        price = self._safe_float(row[idx])
+                        if price > 0:
+                            self._save_to_cache(cache_key, price)
+                            logger.debug(f"Brent ({contract}): {price:.2f}")
+                            return price
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Ошибка получения Brent: {e}")
+            return None
+
+    def get_brent_change(self) -> float:
+        """Получение изменения цены Brent"""
+        cache_key = "brent_change"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        contract = self.get_active_brent_contract()
+        if not contract:
+            return 0.0
+
+        try:
+            url = f"{self.base_url}/engines/futures/markets/forts/securities/{contract}.json"
+            params = {
+                'iss.meta': 'off',
+                'iss.only': 'marketdata',
+                'marketdata.columns': 'SECID,CHANGE,CHANGEPRC'
+            }
+
+            data = self._make_request(url, params, timeout=10)
+            if data and 'marketdata' in data and data['marketdata']['data']:
+                row = data['marketdata']['data'][0]
+                cols = data['marketdata']['columns']
+
+                if 'CHANGE' in cols:
+                    idx = cols.index('CHANGE')
+                    if idx < len(row) and row[idx] is not None:
+                        change = self._safe_float(row[idx])
+                        self._save_to_cache(cache_key, change)
+                        return change
+
+            return 0.0
+
+        except Exception as e:
+            logger.error(f"Ошибка получения изменения Brent: {e}")
+            return 0.0
+
+    def get_usd_rub(self) -> Optional[float]:
+        """Получение курса USD/RUB"""
+        cache_key = "usd_rub"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            url = f"{self.base_url}/engines/currency/markets/selt/securities/USD000UTSTOM.json"
+            params = {
+                'iss.meta': 'off',
+                'iss.only': 'marketdata',
+                'marketdata.columns': 'SECID,LAST,OPEN,CLOSE,CHANGE,CHANGEPRC'
+            }
+
+            data = self._make_request(url, params, timeout=10)
+            if data and 'marketdata' in data and data['marketdata']['data']:
+                row = data['marketdata']['data'][0]
+                cols = data['marketdata']['columns']
+
+                if 'LAST' in cols:
+                    idx = cols.index('LAST')
+                    if idx < len(row) and row[idx] is not None:
+                        value = self._safe_float(row[idx])
+                        if value > 0:
+                            self._save_to_cache(cache_key, value)
+                            logger.debug(f"USD/RUB: {value:.2f}")
+                            return value
+
+            logger.debug("USD/RUB не доступен (вне торговой сессии)")
+            return None
+
+        except Exception as e:
+            logger.error(f"Ошибка получения USD/RUB: {e}")
+            return None
+
+    def get_shares_turnover(self) -> float:
+        """Получение оборота рынка акций"""
+        cache_key = "shares_turnover"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            url = f"{self.base_url}/engines/stock/turnovers.json"
+            params = {'iss.meta': 'off', 'iss.only': 'turnovers'}
+
+            data = self._make_request(url, params, timeout=10)
+            if data and 'turnovers' in data:
+                cols = data['turnovers']['columns']
+                for row in data['turnovers']['data']:
+                    if row[cols.index('NAME')] == 'shares':
+                        turnover = self._safe_float(row[cols.index('VALTODAY')])
+                        self._save_to_cache(cache_key, turnover)
+                        return turnover
+            return 0.0
+        except Exception as e:
+            logger.error(f"Ошибка получения оборота: {e}")
+            return 0.0
+
+    def get_market_capitalization(self) -> float:
+        """Получение рыночной капитализации"""
+        cache_key = "market_cap"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            url = f"{self.base_url}/statistics/engines/stock/capitalization.json"
+            params = {'iss.meta': 'off', 'iss.only': 'capitalization'}
+
+            data = self._make_request(url, params, timeout=10)
+            if data and 'capitalization' in data and data['capitalization']['data']:
+                row = data['capitalization']['data'][0]
+                cols = data['capitalization']['columns']
+                cap = self._safe_float(row[cols.index('CAPITALIZATION')])
+                self._save_to_cache(cache_key, cap)
+                return cap
+            return 0.0
+        except Exception as e:
+            logger.error(f"Ошибка получения капитализации: {e}")
+            return 0.0
+
+    def get_market_liquidity_ratio(self) -> float:
+        """Коэффициент ликвидности рынка"""
+        cache_key = "liquidity_ratio"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        turnover = self.get_shares_turnover()
+        market_cap = self.get_market_capitalization()
+
+        if market_cap > 0:
+            ratio = (turnover / market_cap) * 1_000_000_000
+            ratio = min(ratio, 1.0)
+            self._save_to_cache(cache_key, ratio)
+            return ratio
+        return 0.0
+
+    def get_market_activity_score(self) -> float:
+        """Активность рынка"""
+        cache_key = "market_activity"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        turnover = self.get_shares_turnover()
+        if turnover == 0:
+            return 0.0
+
+        avg_key = "avg_turnover_last_hour"
+        avg_cached = self._get_from_cache(avg_key)
+
+        if avg_cached is None:
+            self._save_to_cache(cache_key, 1.0)
+            return 1.0
+
+        score = turnover / max(avg_cached, 1.0)
+        score = min(score, 2.0)
+        self._save_to_cache(cache_key, score)
+        return score
+
+
+
+    def get_usd_rub_change(self) -> float:
+        """Получение изменения USD/RUB"""
+        cache_key = "usd_rub_change"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            url = f"{self.base_url}/engines/currency/markets/selt/securities/USD000UTSTOM.json"
+            params = {
+                'iss.meta': 'off',
+                'iss.only': 'marketdata',
+                'marketdata.columns': 'SECID,CHANGE,CHANGEPRC'
+            }
+
+            data = self._make_request(url, params, timeout=10)
+            if data and 'marketdata' in data and data['marketdata']['data']:
+                row = data['marketdata']['data'][0]
+                cols = data['marketdata']['columns']
+
+                if 'CHANGE' in cols:
+                    idx = cols.index('CHANGE')
+                    if idx < len(row) and row[idx] is not None:
+                        change = self._safe_float(row[idx])
+                        self._save_to_cache(cache_key, change)
+                        return change
+
+            return 0.0
+
+        except Exception as e:
+            logger.error(f"Ошибка получения изменения USD/RUB: {e}")
+            return 0.0
+
 
     def _calculate_market_mood(self, indices: Dict[str, float]) -> float:
         """Расчет общего настроения рынка на основе индексов"""

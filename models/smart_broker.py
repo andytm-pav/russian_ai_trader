@@ -596,8 +596,13 @@ class SmartPortfolioBroker:
                 if actual_pnl is not None:
                     pnl = actual_pnl
                 else:
-                    # Старый расчет (без комиссии) - только для обратной совместимости
-                    pnl = (exit_price - exp['entry_price']) * exp['quantity']
+                    commission_rate = getattr(self.portfolio, 'commission_rate', 0.003)
+                    price_diff = exit_price - exp['entry_price']
+                    gross_pnl = price_diff * exp['quantity']
+                    commission = abs(gross_pnl) * commission_rate
+                    pnl = gross_pnl - commission
+                    logger.debug(f"Fallback PnL для {ticker}: gross={gross_pnl:.2f}, commission={commission:.2f}, net={pnl:.2f}")
+
                 hold_time = (time.time() - exp['entry_time']) / 3600
 
                 # 2. Создаем следующее базовое состояние (150)
@@ -769,19 +774,16 @@ class SmartPortfolioBroker:
             from utils.logger import get_logger
             logger = get_logger('SMART_BROKER')
 
-        # 🔥 НОВОЕ: проверка в самом начале
+        # HOLD reward
         hold_config = self.rl_config.get('hold_reward', {})
         if hold_config.get('enabled', False) and pnl == 0 and hold_time > 0:
             strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
             target_time = strategy_params.get('target_hold_time_hours', 6)
-
             time_ratio = min(hold_time / target_time, 1.0)
             hold_reward = time_ratio * hold_config.get('max_bonus', 0.1)
-
             if hold_time > target_time * hold_config.get('overhold_threshold', 1.5):
                 hold_reward -= hold_config.get('overhold_penalty', 0.05)
-
-            logger.debug(f"🏆 HOLD reward: {hold_reward:.2f} (ratio={time_ratio:.2f})")
+            logger.debug(f"🏆 HOLD reward: {hold_reward:.2f}")
             return hold_reward
 
         profit_config = self.profit_config
@@ -789,8 +791,15 @@ class SmartPortfolioBroker:
         base_multiplier = profit_config.get('base_reward_multiplier', 1.0)
         speed_bonus_mult = profit_config.get('speed_bonus_multiplier', 0.5)
         time_penalty_mult = profit_config.get('time_penalty_multiplier', 2.0)
-        concentration_penalty = profit_config.get('concentration_penalty', 5.0)  # ✅ 0.3 из settings.json
+        concentration_penalty = profit_config.get('concentration_penalty', 5.0)
         patience_bonus_mult = profit_config.get('patience_bonus_multiplier', 0.3)
+
+        # НОВЫЕ КОНСТАНТЫ
+        scalping_penalty = profit_config.get('scalping_penalty', 0.5)
+        quick_loss_bonus = profit_config.get('quick_loss_bonus', 0.3)
+        commission_penalty_mult = profit_config.get('commission_penalty_multiplier', 5.0)
+        frequency_penalty_mult = profit_config.get('frequency_penalty_multiplier', 0.1)
+        commission_bonus_mult = profit_config.get('commission_bonus_multiplier', 0.1)
 
         strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
         target_time = strategy_params.get('target_hold_time_hours', 6)
@@ -800,7 +809,7 @@ class SmartPortfolioBroker:
         # БОНУС/ШТРАФ ЗА СКОРОСТЬ
         if pnl > 0:
             if hold_time < 0.25:
-                speed_component = -abs(pnl) * 0.5
+                speed_component = -abs(pnl) * scalping_penalty
                 logger.debug(f"⚠️ Штраф за скальпинг: {speed_component:.2f}")
             else:
                 speed_ratio = max(0, (target_time - hold_time) / target_time)
@@ -808,7 +817,7 @@ class SmartPortfolioBroker:
                 logger.debug(f"🏆 Бонус за быструю прибыль: {speed_component:.2f}")
         else:
             if hold_time < 0.25:
-                speed_component = abs(pnl) * 0.3
+                speed_component = abs(pnl) * quick_loss_bonus
                 logger.debug(f"✅ Быстрый убыток: {speed_component:.2f}")
             else:
                 speed_component = -abs(pnl) * time_penalty_mult
@@ -828,10 +837,43 @@ class SmartPortfolioBroker:
             patience_bonus = pnl * patience_bonus_mult
             logger.debug(f"🏆 Бонус за терпение: {patience_bonus:.2f}")
 
-        pre_multiplier_reward = base_reward + speed_component + concentration_penalty_val + patience_bonus
+        # НОВЫЕ КОМИССИОННЫЕ ШТРАФЫ/БОНУСЫ
+        commission_penalty = 0
+        frequency_penalty = 0
+        commission_bonus = 0
+
+        commission_config = self.rl_config.get('commission_learning', {})
+
+        if commission_config.get('enable_commission_penalty', True):
+            # Штраф за комиссию
+            if hasattr(self, 'portfolio'):
+                total_commission = getattr(self.portfolio, 'total_commission', 0.0)
+                commission_penalty = -total_commission * commission_penalty_mult
+                logger.debug(f"💰 Штраф за комиссию: {commission_penalty:.2f}")
+
+        if commission_config.get('enable_frequency_penalty', True):
+            # Штраф за частоту сделок
+            if hasattr(self, 'portfolio'):
+                trades_last_hour = len([t for t in getattr(self.portfolio, 'trade_history', [])
+                                        if t.get('timestamp', 0) > time.time() - 3600])
+                max_trades = getattr(self.portfolio, 'max_trades_per_hour', 10)
+                frequency_penalty = -min(trades_last_hour / max_trades, 1.0) * frequency_penalty_mult
+                logger.debug(f"📊 Штраф за частоту: {frequency_penalty:.2f}")
+
+        if commission_config.get('enable_commission_bonus', True) and pnl > 0:
+            # Бонус за низкую комиссию (стимул к редким сделкам)
+            if hasattr(self, 'portfolio'):
+                total_commission = getattr(self.portfolio, 'total_commission', 0.0)
+                total_pnl = getattr(self.portfolio, 'total_pnl', 0.0)
+                if total_pnl > 0:
+                    commission_ratio = total_commission / total_pnl
+                    commission_bonus = (1 - min(commission_ratio, 1.0)) * commission_bonus_mult
+                    logger.debug(f"🎯 Бонус за низкую комиссию: {commission_bonus:.2f}")
+
+        pre_multiplier_reward = (base_reward + speed_component + concentration_penalty_val +
+                                 patience_bonus + commission_penalty + frequency_penalty + commission_bonus)
         final_reward = pre_multiplier_reward * strategy_params.get('risk_multiplier', 1.0)
 
-        # 🔥 ИСПРАВЛЕНИЕ: используем rl_config для клиппинга
         max_reward = self.rl_config.get('reward_clip_max', 0.5)
         min_reward = self.rl_config.get('reward_clip_min', -0.5)
         limited_reward = max(min_reward, min(max_reward, final_reward))
@@ -875,6 +917,13 @@ class SmartPortfolioBroker:
             'rtsi_change': macro_data.get('rtsi_change', 0),
             'rvi': macro_data.get('rvi', 20.0),
             'rvi_change': macro_data.get('rvi_change', 0),
+            # МАКРО-ПРИЗНАКИ
+            'moexog': macro_data.get('moexog', 0),
+            'moexfn': macro_data.get('moexfn', 0),
+            'brent': macro_data.get('brent', 0),
+            'brent_change': macro_data.get('brent_change', 0),
+            'market_liquidity_ratio': macro_data.get('market_liquidity_ratio', 0.0),
+            'market_activity_score': macro_data.get('market_activity_score', 0.0),
 
         }
 
@@ -885,7 +934,8 @@ class SmartPortfolioBroker:
             sentiment=sentiment,
             news_features=news_features,
             market_data=enhanced_market_data,
-            market_sentiment=market_sentiment
+            market_sentiment=market_sentiment,
+            portfolio=self.portfolio
         )
 
         return state
@@ -1838,15 +1888,10 @@ class SmartPortfolioBroker:
             logger.error(f"Ошибка анализа сентимента: {e}")
 
     def _create_next_state(self, ticker: str, exit_price: float) -> torch.Tensor:
-        """Создание следующего состояния для RL"""
         try:
-            current_price = self.moex.get_price(ticker)
-            if not current_price:
-                current_price = exit_price
-
+            current_price = self.moex.get_price(ticker) or exit_price
             securities = self.moex.get_all_securities()
             security_info = securities.get(ticker, {})
-
             sentiment = self._get_ticker_sentiment(ticker)
 
             indicators = {}
@@ -1860,6 +1905,45 @@ class SmartPortfolioBroker:
             news_features = self.model.encode_news(news_texts)
 
             market_sentiment = self._get_market_sentiment()
+            macro_data = self.moex.get_macro_data()
+
+            # Загрузка констант из настроек
+            settings = self.settings
+            default_spread = settings.get('default_spread', 0.01)
+            default_rsi = settings.get('default_rsi', 50)
+            default_volatility = settings.get('default_volatility', 0.1)
+            default_bb_position = settings.get('default_bb_position', 0.5)
+
+            enhanced_market_data = {
+                'volume': indicators.get('volume', 0) if indicators else 0,
+                'spread': security_info.get('spread', default_spread),
+                'rsi': indicators.get('rsi', default_rsi) if indicators else default_rsi,
+                'volatility': indicators.get('atr',
+                                             0) / current_price if indicators and current_price > 0 else default_volatility,
+                'sma_10_ratio': indicators.get('sma_10',
+                                               current_price) / current_price if indicators and current_price > 0 else 1.0,
+                'sma_20_ratio': indicators.get('sma_20',
+                                               current_price) / current_price if indicators and current_price > 0 else 1.0,
+                'bb_position': indicators.get('bb_position',
+                                              default_bb_position) if indicators else default_bb_position,
+                'volume_ratio': indicators.get('volume_ratio', 1.0) if indicators else 1.0,
+                'atr': indicators.get('atr', 0) if indicators else 0,
+                'market_cap': security_info.get('market_cap', 0),
+                'lot_size': security_info.get('lot_size', 1),
+                'min_step': security_info.get('min_step', 0.01),
+                'sector': security_info.get('sector', 'other'),
+                'momentum': security_info.get('momentum', 0.0),
+                'imoex': macro_data.get('imoex', 0),
+                'imoex_change': macro_data.get('imoex_change', 0),
+                'rtsi': macro_data.get('rtsi', 0),
+                'rtsi_change': macro_data.get('rtsi_change', 0),
+                'rvi': macro_data.get('rvi', 20.0),
+                'rvi_change': macro_data.get('rvi_change', 0),
+                'moexog': macro_data.get('moexog', 0),
+                'moexfn': macro_data.get('moexfn', 0),
+                'brent': macro_data.get('brent', 0),
+                'brent_change': macro_data.get('brent_change', 0),
+            }
 
             state = self.model.build_state_vector(
                 ticker=ticker,
@@ -1867,63 +1951,16 @@ class SmartPortfolioBroker:
                 momentum=security_info.get('momentum', 0.0),
                 sentiment=sentiment,
                 news_features=news_features,
-                market_data={
-                    'volume': indicators.get('volume_ratio', 1.0) if indicators else 1.0,
-                    'spread': 0.01,
-                    'rsi': indicators.get('rsi', 50) if indicators else 50,
-                    'volatility': indicators.get('atr', 0) / current_price if indicators and current_price > 0 else 0.1,
-                    'sma_10_ratio': indicators.get('sma_10',
-                                                   current_price) / current_price if indicators and current_price > 0 else 1.0,
-                    'sma_20_ratio': indicators.get('sma_20',
-                                                   current_price) / current_price if indicators and current_price > 0 else 1.0,
-                    'bb_position': (
-                        (current_price - indicators.get('bb_lower', current_price * 0.9)) /
-                        (indicators.get('bb_upper', current_price * 1.1) - indicators.get('bb_lower',
-                                                                                          current_price * 0.9))
-                        if indicators and indicators.get('bb_upper', current_price * 1.1) > indicators.get('bb_lower',
-                                                                                                           current_price * 0.9)
-                        else 0.5
-                    ) if indicators else 0.5
-                },
-                market_sentiment=market_sentiment
+                market_data=enhanced_market_data,
+                market_sentiment=market_sentiment,
+                portfolio=self.portfolio
             )
 
             return state.to(self.model.device)
 
         except Exception as e:
             logger.error(f"Ошибка создания следующего состояния для {ticker}: {e}")
-            # ✅ ИСПРАВЛЕНО: создаем состояние правильной размерности
-            # Пытаемся получить текущую цену для базового состояния
-            try:
-                current_price = self.moex.get_price(ticker) or exit_price
-                security_info = securities.get(ticker, {}) if 'securities' in locals() else {}
-
-                # Создаем простое состояние с правильной размерностью
-                dummy_state = self.model.build_state_vector(
-                    ticker=ticker,
-                    price=current_price,
-                    momentum=0.0,
-                    sentiment=0.0,
-                    news_features=torch.zeros(1, NEWS_ENCODED_DIM).to(self.model.device),
-                    market_data={
-                        'volume': 1.0,
-                        'spread': 0.01,
-                        'rsi': 50,
-                        'volatility': 0.1,
-                        'sma_10_ratio': 1.0,
-                        'sma_20_ratio': 1.0,
-                        'bb_position': 0.5,
-                        'liquidity': 0.5,
-                        'market_cap': 0,
-                        'pe_ratio': 15
-                    },
-                    market_sentiment=self._get_market_sentiment() if hasattr(self, '_get_market_sentiment') else 0.0
-                )
-                return dummy_state.to(self.model.device)
-            except:
-                # Если совсем ничего не работает - создаем нулевой тензор 156
-                logger.warning(f"⚠️ Создание нулевого состояния для {ticker}")
-                return torch.zeros(156, dtype=torch.float32).to(self.model.device)
+            return torch.zeros(self.model.total_state_dim, dtype=torch.float32).to(self.model.device)
 
     def _adapt_strategies_for_profit(self):
         """Адаптация стратегий - ТОЛЬКО на основе реальных результатов"""
@@ -2260,7 +2297,8 @@ class SmartPortfolioBroker:
         try:
             daily_trades = getattr(self.portfolio, 'daily_trades', [])
             total_turnover = sum(t.get('value', 0) for t in daily_trades)
-            total_reserved = sum(t.get('commission_reserved', 0) for t in daily_trades)
+            # Используем commission_spent_today из портфеля
+            total_reserved = getattr(self.portfolio, 'commission_spent_today', 0.0)
 
             if total_reserved == 0:
                 logger.info("💰 Комиссия не начислена (нет сделок)")
@@ -2342,6 +2380,7 @@ class SmartPortfolioBroker:
                 if self.portfolio.reserved_cash >= comm['amount']:
                     self.portfolio.cash -= comm['amount']
                     self.portfolio.reserved_cash -= comm['amount']
+                    # Обновляем commission_spent_today? Нет, это уже учтено в момент сделки
                     comm['processed'] = True
                     comm['processed_date'] = today.strftime('%Y-%m-%d')
                     comm['processed_time'] = datetime.now().strftime('%H:%M')
