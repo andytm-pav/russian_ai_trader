@@ -794,12 +794,9 @@ class SmartPortfolioBroker:
         concentration_penalty = profit_config.get('concentration_penalty', 5.0)
         patience_bonus_mult = profit_config.get('patience_bonus_multiplier', 0.3)
 
-        # НОВЫЕ КОНСТАНТЫ
+        # Новые константы
         scalping_penalty = profit_config.get('scalping_penalty', 0.5)
         quick_loss_bonus = profit_config.get('quick_loss_bonus', 0.3)
-        commission_penalty_mult = profit_config.get('commission_penalty_multiplier', 5.0)
-        frequency_penalty_mult = profit_config.get('frequency_penalty_multiplier', 0.1)
-        commission_bonus_mult = profit_config.get('commission_bonus_multiplier', 0.1)
 
         strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
         target_time = strategy_params.get('target_hold_time_hours', 6)
@@ -837,36 +834,52 @@ class SmartPortfolioBroker:
             patience_bonus = pnl * patience_bonus_mult
             logger.debug(f"🏆 Бонус за терпение: {patience_bonus:.2f}")
 
-        # НОВЫЕ КОМИССИОННЫЕ ШТРАФЫ/БОНУСЫ
-        commission_penalty = 0
-        frequency_penalty = 0
-        commission_bonus = 0
-
+        # КОМИССИОННЫЕ ШТРАФЫ/БОНУСЫ
         commission_config = self.rl_config.get('commission_learning', {})
 
+        commission_penalty = 0
         if commission_config.get('enable_commission_penalty', True):
-            # Штраф за комиссию
             if hasattr(self, 'portfolio'):
                 total_commission = getattr(self.portfolio, 'total_commission', 0.0)
+                commission_penalty_mult = profit_config.get('commission_penalty_multiplier', 5.0)
                 commission_penalty = -total_commission * commission_penalty_mult
                 logger.debug(f"💰 Штраф за комиссию: {commission_penalty:.2f}")
 
+        frequency_penalty = 0
         if commission_config.get('enable_frequency_penalty', True):
-            # Штраф за частоту сделок
-            if hasattr(self, 'portfolio'):
-                trades_last_hour = len([t for t in getattr(self.portfolio, 'trade_history', [])
-                                        if t.get('timestamp', 0) > time.time() - 3600])
+            if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'trade_history'):
+                trade_history = self.portfolio.trade_history
+                now = time.time()
+                trades_last_hour = 0
+                timestamp_format = self.settings.get('timestamp_format', '%Y-%m-%dT%H:%M:%S.%f')
+
+                for t in trade_history:
+                    ts = t.get('timestamp')
+                    if ts:
+                        if isinstance(ts, str):
+                            try:
+                                from datetime import datetime
+                                ts_float = datetime.strptime(ts, timestamp_format).timestamp()
+                            except:
+                                continue
+                        else:
+                            ts_float = float(ts)
+                        if ts_float > now - 3600:
+                            trades_last_hour += 1
+
                 max_trades = getattr(self.portfolio, 'max_trades_per_hour', 10)
+                frequency_penalty_mult = profit_config.get('frequency_penalty_multiplier', 0.1)
                 frequency_penalty = -min(trades_last_hour / max_trades, 1.0) * frequency_penalty_mult
                 logger.debug(f"📊 Штраф за частоту: {frequency_penalty:.2f}")
 
+        commission_bonus = 0
         if commission_config.get('enable_commission_bonus', True) and pnl > 0:
-            # Бонус за низкую комиссию (стимул к редким сделкам)
             if hasattr(self, 'portfolio'):
                 total_commission = getattr(self.portfolio, 'total_commission', 0.0)
                 total_pnl = getattr(self.portfolio, 'total_pnl', 0.0)
                 if total_pnl > 0:
                     commission_ratio = total_commission / total_pnl
+                    commission_bonus_mult = profit_config.get('commission_bonus_multiplier', 0.1)
                     commission_bonus = (1 - min(commission_ratio, 1.0)) * commission_bonus_mult
                     logger.debug(f"🎯 Бонус за низкую комиссию: {commission_bonus:.2f}")
 

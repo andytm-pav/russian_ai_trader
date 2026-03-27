@@ -3139,8 +3139,18 @@
       ]
     }
   },
-  "last_update": "2026-03-27T19:39:55.861389",
+  "last_update": "2026-03-27T21:53:32.532077",
   "initial_capital": 10000,
   "reserved_cash": 251.76251999999965,
-  "pending_commissions": []
+  "pending_commissions": [
+    {
+      "date": "2026-03-27",
+      "amount": 251.76251999999977,
+      "turnover": 83920.84,
+      "settlement_date": "2026-03-30",
+      "settlement_time": "14:00",
+      "processed": false,
+      "created_at": "2026-03-27T20:00:00.627600"
+    }
+  ]
 }

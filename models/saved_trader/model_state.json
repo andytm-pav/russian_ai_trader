@@ -2403,7 +2403,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": -0.04515924865177053,
+  "market_sentiment": -0.06686382360015015,
   "volatility_index": 1.0,
   "strategy_performance": {
     "balanced": {
@@ -2603,5 +2603,5 @@
       "prediction_weight": 0.5
     }
   },
-  "save_time": "2026-03-27T19:39:55.854945"
+  "save_time": "2026-03-27T21:53:33.675930"
 }
