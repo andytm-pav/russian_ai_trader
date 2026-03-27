@@ -162,6 +162,12 @@
             "name": "https://eadaily.com/ru/rss/index.xml",
             "enabled": true,
             "update_interval": 300
+        },
+        {
+            "url": "https://www.finam.ru/international/advanced/rsspoint/",
+            "name": "finam-новости мировых рынков",
+            "enabled": true,
+            "update_interval": 300
         }
     ],
     "update_interval_minutes": 5,
