@@ -1563,11 +1563,11 @@
       "last_trade": null
     },
     "SGZH": {
-      "total_trades": 0,
+      "total_trades": 3,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_pnl": -0.010705029620108539,
+      "avg_hold_time": 2.9288271510601045,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "SOFL": {
@@ -1963,11 +1963,11 @@
       "last_trade": null
     },
     "DATA": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_pnl": -0.011817125145292647,
+      "avg_hold_time": 3.8547286107142766,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "ETLN": {
@@ -2478,18 +2478,18 @@
       "win_rate": 0.0
     },
     "news_aggressive": {
-      "total_trades": 6,
+      "total_trades": 7,
       "profitable_trades": 2,
-      "total_pnl": -0.5250359477123949,
-      "avg_pnl": -0.08750599128539915,
-      "win_rate": 0.3333333333333333
+      "total_pnl": -0.530381342449237,
+      "avg_pnl": -0.07576876320703385,
+      "win_rate": 0.2857142857142857
     },
     "tech_conservative": {
-      "total_trades": 9,
+      "total_trades": 13,
       "profitable_trades": 4,
-      "total_pnl": -4.2615291584407755,
-      "avg_pnl": -0.47350323982675285,
-      "win_rate": 0.4444444444444444
+      "total_pnl": -7.308063843723551,
+      "avg_pnl": -0.5621587572095039,
+      "win_rate": 0.3076923076923077
     },
     "momentum": {
       "total_trades": 1,
@@ -2520,11 +2520,11 @@
       "win_rate": 0.5
     },
     "price_prediction": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_pnl": 0.0,
-      "win_rate": 0.5
+      "total_pnl": -0.0028854080791426697,
+      "avg_pnl": -0.0028854080791426697,
+      "win_rate": 0.0
     }
   },
   "strategies": {
@@ -2551,7 +2551,7 @@
       "news_weight": 0.2,
       "tech_weight": 0.8,
       "risk_multiplier": 0.5,
-      "target_hold_time_hours": 17.0859375,
+      "target_hold_time_hours": 24,
       "stop_loss_percent": 4.0,
       "take_profit_percent": 8.0,
       "max_positions": 3,
@@ -2667,5 +2667,5 @@
       "prediction_weight": 0.5
     }
   },
-  "save_time": "2026-04-02T14:43:19.592243"
+  "save_time": "2026-04-02T15:04:48.835750"
 }
