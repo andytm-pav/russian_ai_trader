@@ -852,13 +852,33 @@ class SmartPortfolioBroker:
                 logger.debug(f"💰 Штраф за комиссию: {commission_penalty:.2f}")
 
         if commission_config.get('enable_frequency_penalty', True):
-            # Штраф за частоту сделок
-            if hasattr(self, 'portfolio'):
-                trades_last_hour = len([t for t in getattr(self.portfolio, 'trade_history', [])
-                                        if t.get('timestamp', 0) > time.time() - 3600])
-                max_trades = getattr(self.portfolio, 'max_trades_per_hour', 10)
-                frequency_penalty = -min(trades_last_hour / max_trades, 1.0) * frequency_penalty_mult
-                logger.debug(f"📊 Штраф за частоту: {frequency_penalty:.2f}")
+            # ШТРАФ ЗА ЧАСТОТУ СДЕЛОК
+            frequency_penalty = 0
+            if commission_config.get('enable_frequency_penalty', True):
+                if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'trade_history'):
+                    trade_history = self.portfolio.trade_history
+                    now = time.time()
+                    trades_last_hour = 0
+                    timestamp_format = self.settings.get('timestamp_format', '%Y-%m-%dT%H:%M:%S.%f')
+
+                    for trade in trade_history:
+                        ts = trade.get('timestamp')
+                        if ts:
+                            if isinstance(ts, str):
+                                try:
+                                    from datetime import datetime
+                                    ts_float = datetime.strptime(ts, timestamp_format).timestamp()
+                                except:
+                                    continue
+                            else:
+                                ts_float = float(ts)
+                            if ts_float > now - 3600:
+                                trades_last_hour += 1
+
+                    max_trades = getattr(self.portfolio, 'max_trades_per_hour', 10)
+                    frequency_penalty_mult = profit_config.get('frequency_penalty_multiplier', 0.1)
+                    frequency_penalty = -min(trades_last_hour / max_trades, 1.0) * frequency_penalty_mult
+                    logger.debug(f"📊 Штраф за частоту: {frequency_penalty:.2f}")
 
         if commission_config.get('enable_commission_bonus', True) and pnl > 0:
             # Бонус за низкую комиссию (стимул к редким сделкам)
