@@ -134,20 +134,14 @@ class RiskManager:
                                 adv: float = None,
                                 sector: str = None,
                                 lot_size: int = 1) -> Tuple[int, float]:
-
-
-        """        Расчет размера позиции на основе риска - УЛУЧШЕННАЯ ВЕРСИЯ
-
-        Параметры:
-        - atr: Average True Range (для волатильностных стопов)
-        - adv: Average Daily Volume (для ликвидностных ограничений)
-        - sector: Сектор (для диверсификации)
-        """
+        """Расчет размера позиции на основе риска"""
         with self.lock:
             try:
-                # Текущая стоимость портфеля
-                portfolio_value = self.portfolio_state.get('total_value',
-                                                           self.config.get('initial_capital_rub', 10000))
+                # Текущая стоимость портфеля с fallback
+                portfolio_value = self.portfolio_state.get('total_value')
+                if not portfolio_value or portfolio_value <= 0:
+                    portfolio_value = self.config.get('initial_capital_rub', 10000)
+                    logger.debug(f"Использую начальный капитал для расчёта риска: {portfolio_value}")
 
                 # 1. РАСЧЕТ СТОП-ЛОССА (приоритет ATR если включен и доступен)
                 use_atr = self.config.get('use_atr_for_stops', True)
@@ -282,29 +276,32 @@ class RiskManager:
                 max_positions = self.config.get('max_positions', 10)
                 current_positions = len(self.portfolio_state.get('positions', {}))
 
-                # ✅ ВСЕГДА проверяем, даже если это существующая позиция
+                # Получаем текущие позиции
+                positions = self.portfolio_state.get('positions', {})
+                is_existing_position = ticker in positions
+
+                # Проверка лимита позиций
                 if current_positions >= max_positions:
-                    # Если это новая позиция - блокируем
-                    if ticker not in self.portfolio_state.get('positions', {}):
+                    # Если это НОВАЯ позиция - блокируем
+                    if not is_existing_position:
                         logger.warning(f"Достигнут лимит позиций: {current_positions}/{max_positions}")
                         return False
-                    # Если это существующая позиция - разрешаем докупку (уже в лимите)
+                    # Если это СУЩЕСТВУЮЩАЯ позиция - разрешаем докупку
                     else:
                         logger.debug(f"Докупка существующей позиции {ticker} (всего позиций: {current_positions})")
-                    return False
+                        # НЕ возвращаем False, продолжаем проверку дальше!
 
                 # 2. ПРОВЕРКА МАКСИМАЛЬНОГО ВЕСА ПОЗИЦИИ (из конфига)
                 max_weight_pct = self.config.get('max_position_weight_percent', 20)
                 max_weight = max_weight_pct / 100
 
-                if ticker in self.portfolio_state.get('positions', {}):
+                if ticker in positions:
                     # Уже есть позиция
-                    current_position = self.portfolio_state['positions'][ticker]
+                    current_position = positions[ticker]
                     current_value = current_position.get('current_value',
                                                          current_position.get('qty', 0) *
                                                          current_position.get('avg_price', 0))
                     new_total_value = current_value + new_position_value
-
                     position_weight = new_total_value / portfolio_value
 
                     if position_weight > max_weight:
@@ -343,21 +340,19 @@ class RiskManager:
                     correlations = self.portfolio_state['correlation_matrix'][ticker]
 
                     # Проверяем корреляцию с существующими позициями
-                    for existing_ticker in self.portfolio_state.get('positions', {}):
+                    for existing_ticker in positions:
                         if existing_ticker in correlations:
                             corr = correlations[existing_ticker]
                             if abs(corr) > correlation_threshold:
                                 logger.warning(f"Высокая корреляция {ticker} с {existing_ticker}: {corr:.2f}")
                                 # Не блокируем по умолчанию, только предупреждаем
-                                # Можно раскомментировать для строгой проверки:
-                                # return False
+                                # return False  # Раскомментировать для строгой проверки
 
                 return True
 
             except Exception as e:
                 logger.error(f"Ошибка проверки диверсификации: {e}")
-                # ВАЖНО: При ошибке блокируем сделку!
-                return False
+                return False  # При ошибке блокируем сделку
 
     def check_daily_limits(self) -> bool:
         """Проверка дневных лимитов - ИСПРАВЛЕННАЯ"""

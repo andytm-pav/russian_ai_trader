@@ -474,7 +474,7 @@ class AdvancedTraderModel:
                            market_sentiment: float = 0.0,
                            portfolio=None) -> torch.Tensor:
         """
-        Построение вектора состояния (181 признак)
+        Построение вектора состояния (210 признаков)
         """
         # Используем self.normalization, а не norm
         norm = self.normalization
@@ -572,27 +572,36 @@ class AdvancedTraderModel:
         drawdown = 0.0
         daily_pnl_norm = 0.0
 
-        if hasattr(self, 'portfolio'):
-            if hasattr(self.portfolio, 'positions'):
-                positions_norm = min(len(self.portfolio.positions) / norm.get('max_positions_norm', 10.0), 1.0)
+        if portfolio is not None:
+            if hasattr(portfolio, 'positions'):
+                positions_norm = min(len(portfolio.positions) / self.normalization.get('max_positions_norm', 10.0), 1.0)
 
-            if hasattr(self.portfolio, 'initial_capital'):
+            if hasattr(portfolio, 'initial_capital') and portfolio.initial_capital > 0:
                 positions_value = sum(
                     p['qty'] * p.get('avg_price', 0)
-                    for p in self.portfolio.positions.values()
+                    for p in portfolio.positions.values()
                 )
-                exposure_norm = min(positions_value / self.portfolio.initial_capital, 1.0)
+                exposure_norm = min(positions_value / portfolio.initial_capital, 1.0)
 
-                if hasattr(self.portfolio, 'cash') and hasattr(self.portfolio, 'reserved_cash'):
-                    available = self.portfolio.cash - self.portfolio.reserved_cash
-                    cash_ratio = available / self.portfolio.initial_capital
+                if hasattr(portfolio, 'cash') and hasattr(portfolio, 'reserved_cash'):
+                    available = portfolio.cash - portfolio.reserved_cash
+                    cash_ratio = available / portfolio.initial_capital
 
                 if hasattr(self, 'peak_value'):
-                    current_value = self.portfolio.get_total_value({})
-                    if current_value < self.peak_value:
-                        drawdown = (self.peak_value - current_value) / self.peak_value
-                    if current_value > self.peak_value:
-                        self.peak_value = current_value
+                    if hasattr(portfolio, 'get_total_value'):
+                        current_value = portfolio.get_total_value({})
+                        if current_value < self.peak_value:
+                            drawdown = (self.peak_value - current_value) / self.peak_value
+                        if current_value > self.peak_value:
+                            self.peak_value = current_value
+        else:
+            # Fallback: нет портфеля - используем значения по умолчанию
+            logger.debug("Портфель не передан в build_state_vector, использую значения по умолчанию")
+            positions_norm = 0.0
+            exposure_norm = 0.0
+            cash_ratio = 1.0
+            drawdown = 0.0
+            daily_pnl_norm = 0.0
 
         features.extend([positions_norm, exposure_norm, cash_ratio, min(drawdown * 2, 1.0), daily_pnl_norm])
 

@@ -1349,6 +1349,22 @@ def update_price_volume_chart(ticker, period, interval_str, n_intervals):
 def update_indicators_chart(ticker, period, interval_str, n_intervals):
     """График индикаторов из свечных данных"""
     try:
+
+        # Проверка наличия TA-Lib
+        try:
+            import talib
+            HAS_TALIB = True
+        except ImportError:
+            HAS_TALIB = False
+            logger.warning("TA-Lib не установлен. Установите: pip install TA-Lib")
+
+        if not HAS_TALIB:
+            return dashboard_viz._create_empty_chart(
+                "TA-Lib не установлен.\nУстановите: pip install TA-Lib\n\n"
+                "Для Windows: скачайте .whl с https://www.lfd.uci.edu/~gohlke/pythonlibs/#ta-lib\n"
+                "Для Linux/Mac: pip install TA-Lib"
+            )
+
         if broker_instance is None:
             return dashboard_viz._create_empty_chart("Система не инициализирована")
 
@@ -1661,9 +1677,27 @@ def get_portfolio_summary_safe():
     """Безопасное получение сводки портфеля из smart_broker"""
     try:
         if broker_instance and hasattr(broker_instance, 'get_portfolio_summary'):
-            return broker_instance.get_portfolio_summary()
+            summary = broker_instance.get_portfolio_summary()
 
-        # Если метода нет, собираем данные вручную
+            # Добавляем стратегии из portfolio_state.json если их нет в summary
+            if 'positions' in summary and broker_instance.portfolio:
+                try:
+                    with open('data/portfolio_state.json', 'r', encoding='utf-8') as f:
+                        portfolio_data = json.load(f)
+                        saved_positions = portfolio_data.get('positions', {})
+
+                    for i, pos in enumerate(summary['positions']):
+                        ticker = pos.get('ticker')
+                        if ticker and ticker in saved_positions:
+                            saved_strategy = saved_positions[ticker].get('strategy')
+                            current_strategy = pos.get('strategy', 'unknown')
+                            if saved_strategy and current_strategy == 'unknown':
+                                summary['positions'][i]['strategy'] = saved_strategy
+                except Exception as e:
+                    logger.warning(f"Не удалось загрузить стратегии: {e}")
+
+            return summary
+
         return get_portfolio_summary_fallback()
     except Exception as e:
         logger.error(f"Ошибка получения сводки портфеля: {e}")

@@ -434,10 +434,12 @@ class OptimizedNewsFetcher:
 
     def _parse_date(self, date_str: str) -> Optional[datetime]:
         """Парсинг даты с кэшированием форматов"""
-        if not date_str:
-            return None
+        if not date_str or date_str.strip() == '':
+            # Если дата пустая - возвращаем текущее время
+            logger.debug("Пустая дата в новости, использую текущее время")
+            return datetime.now(timezone.utc)
 
-        # Кэш форматов (чтобы не перебирать каждый раз)
+        # Кэш форматов
         if not hasattr(self, '_date_formats'):
             self._date_formats = [
                 '%a, %d %b %Y %H:%M:%S %z',
@@ -463,6 +465,8 @@ class OptimizedNewsFetcher:
             except ValueError:
                 continue
 
+        # Если ни один формат не подошёл
+        logger.debug(f"Не удалось распарсить дату: {date_str}, использую текущее время")
         return datetime.now(timezone.utc)
 
     def _get_timestamp(self, dt: Optional[datetime]) -> float:

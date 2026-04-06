@@ -17,9 +17,62 @@ logger = get_logger("TECH_CORE")
 class TechnicalTraderCore:
     """Ядро для технического анализа"""
 
-    def __init__(self):
+    def __init__(self, config_path: str = "config/settings.json"):
         self.price_history = {}
         self.indicators_cache = {}
+        self.config = self._load_config(config_path)
+        self.price_history_file = self.config.get('price_history_file', 'data/price_history.json')
+
+        # Загружаем сохранённую историю
+        self.load_history()
+
+        logger.info("Инициализировано ядро технического анализа")
+
+    def _load_config(self, config_path: str) -> Dict:
+        """Загрузка конфигурации"""
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return {}
+
+    def save_history(self, filepath: str = None):
+        """Сохраняет историю цен в файл"""
+        if filepath is None:
+            filepath = self.price_history_file
+        try:
+            data = {}
+            for ticker, hist in self.price_history.items():
+                data[ticker] = {
+                    'prices': hist['prices'],
+                    'volumes': hist['volumes'],
+                    'timestamps': [t.isoformat() for t in hist['timestamps']]
+                }
+            with open(filepath, 'w') as f:
+                json.dump(data, f)
+            logger.info(f"История цен сохранена: {len(data)} тикеров")
+        except Exception as e:
+            logger.error(f"Ошибка сохранения истории цен: {e}")
+
+    def load_history(self, filepath: str = None):
+        """Загружает историю цен из файла"""
+        if filepath is None:
+            filepath = self.price_history_file
+        try:
+            with open(filepath, 'r') as f:
+                data = json.load(f)
+            for ticker, hist in data.items():
+                self.price_history[ticker] = {
+                    'prices': hist['prices'],
+                    'volumes': hist['volumes'],
+                    'timestamps': [datetime.fromisoformat(t) for t in hist['timestamps']],
+                    'max_length': 100
+                }
+            logger.info(f"История цен загружена: {len(data)} тикеров")
+        except FileNotFoundError:
+            logger.info("Файл истории цен не найден, начнём с нуля")
+        except Exception as e:
+            logger.error(f"Ошибка загрузки истории цен: {e}")
 
 
         logger.info("Инициализировано ядро технического анализа")

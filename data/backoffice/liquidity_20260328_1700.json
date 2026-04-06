@@ -1,0 +1,107 @@
+{
+  "timestamp": "2026-03-28T17:00:04.475448",
+  "cash": 402.67110500000103,
+  "total_exposure": 9237.51,
+  "liquidity_ratio": 0.04359087080825905,
+  "min_required_ratio": 0.2,
+  "is_sufficient": false,
+  "positions_count": 16,
+  "positions": [
+    {
+      "ticker": "PRMD",
+      "value": 1200.3000000000002,
+      "qty": 3,
+      "price": 400.1
+    },
+    {
+      "ticker": "RTKM",
+      "value": 571.5,
+      "qty": 10,
+      "price": 57.15
+    },
+    {
+      "ticker": "LIFE",
+      "value": 295.0,
+      "qty": 100,
+      "price": 2.95
+    },
+    {
+      "ticker": "EELT",
+      "value": 85.60000000000001,
+      "qty": 10,
+      "price": 8.56
+    },
+    {
+      "ticker": "OGKB",
+      "value": 1924.1999999999998,
+      "qty": 6000,
+      "price": 0.3207
+    },
+    {
+      "ticker": "RUAL",
+      "value": 1544.1999999999998,
+      "qty": 40,
+      "price": 38.605
+    },
+    {
+      "ticker": "VKCO",
+      "value": 544.6,
+      "qty": 2,
+      "price": 272.3
+    },
+    {
+      "ticker": "SOFL",
+      "value": 750.6,
+      "qty": 10,
+      "price": 75.06
+    },
+    {
+      "ticker": "HYDR",
+      "value": 433.3,
+      "qty": 1000,
+      "price": 0.4333
+    },
+    {
+      "ticker": "EUTR",
+      "value": 223.0,
+      "qty": 2,
+      "price": 111.5
+    },
+    {
+      "ticker": "ETLN",
+      "value": 73.88,
+      "qty": 2,
+      "price": 36.94
+    },
+    {
+      "ticker": "SBER",
+      "value": 314.21,
+      "qty": 1,
+      "price": 314.21
+    },
+    {
+      "ticker": "MTLR",
+      "value": 198.18,
+      "qty": 3,
+      "price": 66.06
+    },
+    {
+      "ticker": "SELG",
+      "value": 513.8000000000001,
+      "qty": 10,
+      "price": 51.38
+    },
+    {
+      "ticker": "VTBR",
+      "value": 83.14,
+      "qty": 1,
+      "price": 83.14
+    },
+    {
+      "ticker": "AFLT",
+      "value": 482.0,
+      "qty": 10,
+      "price": 48.2
+    }
+  ]
+}

@@ -61,6 +61,11 @@
       "rate_decimal": 0.003,
       "reserve_required": true,
       "reserve_account": "commission",
+      "equity_rate_percent": 0.3,
+      "equity_rate_decimal": 0.003,
+      "min_commission_rub": 0.01,
+      "rounding_decimals": 2,
+      "use_margin_commission": false,
 
       "tbank": {
         "enabled": true,
@@ -82,7 +87,6 @@
   "default_rsi": 50,
   "default_volatility": 0.1,
   "default_bb_position": 0.5,
-
 
   "back_office": {
     "enable_auto_liquidity_check": true,
@@ -124,12 +128,16 @@
   "simulation_mode": true,
   "paper_trading": true,
 
+  "liquidity_check_multiplier": 10.0,
+  "min_daily_volume_rub": 1000000,
+  "price_history_file": "data/price_history.json",
+
   "profit_optimization": {
     "extreme_pnl_threshold": 0.08,
     "max_reward": 10.0,
     "min_reward": -10.0,
     "reward_scaling_profit": 1.0,
-     "base_reward_multiplier": 1.0,
+    "base_reward_multiplier": 1.0,
     "speed_bonus_multiplier": 1.0,
     "time_penalty_multiplier": 2.0,
     "concentration_penalty": 0.3,
@@ -142,12 +150,18 @@
     "quick_loss_bonus": 0.3,
     "commission_penalty_multiplier": 5.0,
     "frequency_penalty_multiplier": 0.1,
-    "commission_bonus_multiplier": 0.1
+    "commission_bonus_multiplier": 0.1,
+    "max_adaptation_strength": 0.3,
+    "max_adaptation_weakness": 0.3,
+    "adaptation_speed_factor": 5.0,
+    "min_risk_multiplier": 0.5,
+    "max_risk_multiplier": 2.0
   },
 
   "portfolio_manager": {
     "preserve_buy_time_on_partial_sell": true
   },
+
   "time_horizons": {
     "day_session": {
       "weight": 0.4,
@@ -159,8 +173,6 @@
       "target_hours": 3,
       "description": "30% - 3 торговых сессии"
     },
-
-
     "week": {
       "weight": 0.3,
       "target_hours": 7,

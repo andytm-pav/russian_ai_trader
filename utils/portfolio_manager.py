@@ -18,52 +18,108 @@ class PortfolioManager:
 
     def __init__(self, portfolio_file: str = "data/portfolio_state.json"):
         self.portfolio_file = portfolio_file
-        self.positions = {}  # {ticker: {qty, avg_price, current_value, buy_time}}
+        self.positions = {}
         self.cash = 0.0
         self.reserved_cash = 0.0
-        self.pending_commissions = []  # список {date, amount, settlement_date, processed}
+        self.pending_commissions = []
         self.trade_history = []
         self.initial_capital = 0.0
-        self.strategy_positions = defaultdict(list)  # Позиции по стратегиям
+        self.strategy_positions = defaultdict(list)
 
         self.daily_trades = []
-        self.daily_reset_time = "19:00"  # fallback
-        self.preserve_buy_time = True  # значение по умолчанию
-        self.commission_rate = 0.003  # значение по умолчанию
+        self.daily_reset_time = "19:00"
+        self.preserve_buy_time = True
 
-        # ПОЛЯ ДЛЯ КОМИССИОННЫХ ПРИЗНАКОВ
+        # ========== ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ (БУДУТ ПЕРЕЗАПИСАНЫ ИЗ КОНФИГА) ==========
+        self.commission_rate = 0.003  # 0.3% - тариф Т-Банка "Инвестор"
+        self.min_commission = 0.01  # минимальная комиссия 0.01₽
+        self.rounding = 2  # округление до 2 знаков
+        self.max_positions = 10
+        self.max_trades_per_hour = 10
+        self.daily_commission_limit = 100.0
+
+        # Поля для комиссионных признаков
         self.commission_reserve = 0.0
         self.commission_spent_today = 0.0
         self.total_commission = 0.0
         self.total_trades = 0
         self.total_pnl = 0.0
-        self.max_trades_per_hour = 10
-        self.daily_commission_limit = 100.0
 
-        try:
-            with open("config/settings.json", "r") as f:
-                settings = json.load(f)
-                moex = settings.get("moex_schedule", {})
-                pm_config = settings.get("portfolio_manager", {})
-                commission = moex.get("commission", {})
-                self.commission_rate = commission.get('rate_decimal', 0.003)
-                self.daily_reset_time = commission.get("charge_time", "19:00")
-                self.preserve_buy_time = pm_config.get("preserve_buy_time_on_partial_sell", True)
+        # ========== ЗАГРУЗКА КОНФИГА (ПЕРЕЗАПИСЫВАЕТ ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ) ==========
+        self._load_commission_config()
 
-                # загрузка лимитов
-                self.max_positions = settings.get("max_positions", 10)
-                self.max_trades_per_hour = settings.get("max_trades_per_hour", 10)
-                self.daily_commission_limit = settings.get("daily_commission_limit", 100.0)
-        except:
-
-            self.max_positions = 10
-            self.max_trades_per_hour = 10
-            self.daily_commission_limit = 100.0
-
-        # Загрузка состояния
+        # Загрузка состояния портфеля
         self.load_portfolio()
 
-        logger.info(f"Инициализирован PortfolioManager. Капитал: {self.cash:,.0f}₽")
+        logger.info(f"Инициализирован PortfolioManager. Комиссия: {self.commission_rate * 100}%, "
+                    f"мин: {self.min_commission}₽, округление: {self.rounding} знаков. "
+                    f"Капитал: {self.cash:,.0f}₽")
+
+    # ⚠️ ИСПРАВЛЕНО: НОВЫЙ МЕТОД для загрузки комиссионных настроек
+
+    def _load_commission_config(self):
+        """Загрузка настроек комиссий из конфигурационного файла"""
+        try:
+            with open("config/settings.json", "r", encoding="utf-8") as f:
+                settings = json.load(f)
+
+            # Ищем секцию commission (новый формат)
+            commission_config = settings.get('commission', {})
+
+            if commission_config:
+                # Новый формат: commission.equity_rate_decimal
+                self.commission_rate = commission_config.get('equity_rate_decimal', 0.003)
+                self.min_commission = commission_config.get('min_commission_rub', 0.01)
+                self.rounding = commission_config.get('rounding_decimals', 2)
+            else:
+                # Старый формат (обратная совместимость): moex_schedule.commission.rate_decimal
+                moex_config = settings.get('moex_schedule', {})
+                commission = moex_config.get('commission', {})
+                self.commission_rate = commission.get('rate_decimal', 0.003)
+                self.min_commission = 0.01  # Значение по умолчанию для старого формата
+                self.rounding = 2  # Значение по умолчанию для старого формата
+
+            # Загружаем остальные настройки
+            self.max_positions = settings.get("max_positions", 10)
+            self.max_trades_per_hour = settings.get("max_trades_per_hour", 10)
+            self.daily_commission_limit = settings.get("daily_commission_limit", 100.0)
+
+            # Настройки portfolio_manager
+            pm_config = settings.get("portfolio_manager", {})
+            self.preserve_buy_time = pm_config.get("preserve_buy_time_on_partial_sell", True)
+
+            # Время сброса комиссий
+            moex_config = settings.get('moex_schedule', {})
+            commission = moex_config.get('commission', {})
+            self.daily_reset_time = commission.get("charge_time", "19:00")
+
+            logger.info(f"Загружены настройки комиссий: ставка={self.commission_rate * 100}%, "
+                        f"мин={self.min_commission}₽, округление={self.rounding} знаков")
+
+        except Exception as e:
+            logger.warning(f"Не удалось загрузить настройки комиссий: {e}, "
+                           f"использую значения по умолчанию")
+            # Значения по умолчанию уже установлены в __init__
+
+    def _calculate_commission(self, amount: float) -> float:
+        """
+        Расчёт комиссии с округлением и минимальным значением
+
+        Args:
+            amount: Сумма сделки (cost для покупки, revenue для продажи)
+
+        Returns:
+            Рассчитанная комиссия в рублях
+        """
+        commission = amount * self.commission_rate
+        commission = round(commission, self.rounding)
+
+        # Минимальная комиссия 0.01₽ (согласно тарифу Т-Банка)
+        if commission < self.min_commission and commission > 0:
+            commission = self.min_commission
+
+        return commission
+
 
     def load_portfolio(self):
         """Загрузка состояния портфеля из файла"""
@@ -76,13 +132,13 @@ class PortfolioManager:
             self.initial_capital = data.get('initial_capital', self.cash)
             self.trade_history = data.get('trade_history', [])
 
-            #  загрузка комиссионных полей
+            # Загрузка комиссионных полей
             self.total_commission = data.get('total_commission', 0.0)
             self.total_trades = data.get('total_trades', 0)
             self.total_pnl = data.get('total_pnl', 0.0)
             self.commission_spent_today = data.get('commission_spent_today', 0.0)
 
-            # ДОБАВЛЯЕМ: Загрузка стратегий
+            # Загрузка стратегий
             self.strategy_positions = defaultdict(list)
             for ticker, pos in self.positions.items():
                 strategy = pos.get('strategy')
@@ -93,10 +149,8 @@ class PortfolioManager:
             for ticker, pos in self.positions.items():
                 if 'buy_time' in pos and isinstance(pos['buy_time'], str):
                     try:
-                        # Пробуем преобразовать строку во float (timestamp)
                         pos['buy_time'] = float(pos['buy_time'])
                     except:
-                        # Если не получается, устанавливаем текущее время
                         pos['buy_time'] = time.time()
 
             logger.info(f"Загружен портфель: {len(self.positions)} позиций, "
@@ -112,16 +166,11 @@ class PortfolioManager:
     def _create_initial_portfolio(self):
         """Создание начального состояния портфеля"""
         self.positions = {}
-        self.cash = 10000.0  # Начальный капитал по умолчанию
+        self.cash = 10000.0
         self.initial_capital = self.cash
         self.trade_history = []
         self.strategy_positions = defaultdict(list)
-
-        # ✅ ДОБАВЛЯЕМ: Загрузка справочника лотностей из конфига
-        self.lot_size_directory = self._load_lot_size_directory()
-
         self.save_portfolio()
-
         logger.info(f"Создан начальный портфель с капиталом {self.cash:,.0f}₽")
 
     def _load_lot_size_directory(self) -> Dict[str, Dict]:
@@ -147,10 +196,8 @@ class PortfolioManager:
     def save_portfolio(self):
         """Сохранение состояния портфеля в файл"""
         try:
-            # ДОБАВЛЯЕМ: Конвертируем defaultdict в dict для сохранения
             strategy_positions_dict = dict(self.strategy_positions)
 
-            # Подготовка данных для сохранения
             data = {
                 'positions': self.positions,
                 'cash': self.cash,
@@ -160,7 +207,6 @@ class PortfolioManager:
                 'total_value': self.get_total_value({}),
                 'last_update': datetime.now().isoformat(),
                 'stats': self.get_portfolio_stats(),
-                # ПОЛЯ ДЛЯ КОМИССИЙ
                 'total_commission': self.total_commission,
                 'total_trades': self.total_trades,
                 'total_pnl': self.total_pnl,
@@ -171,7 +217,7 @@ class PortfolioManager:
                 json.dump(data, f, indent=2, default=str)
 
             logger.debug(f"Портфель сохранен: {len(self.positions)} позиций, "
-                         f"{self.cash:,.0f}₽ кэша, {len(strategy_positions_dict)} стратегий")
+                         f"{self.cash:,.0f}₽ кэша")
 
             return True
 
@@ -185,8 +231,8 @@ class PortfolioManager:
         self.total_commission += commission_amount
         self.commission_reserve = self.commission_spent_today + (self.commission_rate * 1000)
 
-
-    def buy(self, ticker: str, quantity: int, price: float, strategy: str = None, time_horizon: str = 'balanced', **kwargs) -> bool:
+    def buy(self, ticker: str, quantity: int, price: float, strategy: str = None,
+            time_horizon: str = 'balanced', **kwargs) -> bool:
         """Покупка акций с указанием стратегии"""
         try:
             # Получение информации о бумаге
@@ -212,14 +258,12 @@ class PortfolioManager:
                 logger.error(f"Количество меньше размера лота {lot_size}: {quantity}")
                 return False
 
-            # ✅ 1. СНАЧАЛА рассчитываем стоимость покупки
+            # ========== РАСЧЁТ СТОИМОСТИ И КОМИССИИ ==========
             cost = quantity * price
+            commission_buy = self._calculate_commission(cost)
+            total_required = cost + commission_buy
 
-            # ✅ 2. ПОТОМ рассчитываем комиссию (self.commission_rate загружен из конфига)
-            estimated_commission = cost * self.commission_rate
-            total_required = cost + estimated_commission
-
-            # ✅ 3. ЕДИНСТВЕННАЯ проверка доступности средств
+            # ========== ПРОВЕРКА ДОСТУПНОСТИ СРЕДСТВ ==========
             available_cash = self.cash - self.reserved_cash
             if total_required > available_cash:
                 logger.error(f"Недостаточно средств: нужно {total_required:,.0f}₽, "
@@ -227,7 +271,7 @@ class PortfolioManager:
                              f"резерв: {self.reserved_cash:,.0f}₽)")
                 return False
 
-            # Выполнение покупки
+            # ========== ВЫПОЛНЕНИЕ ПОКУПКИ ==========
             if ticker in self.positions:
                 # Усреднение позиции
                 pos = self.positions[ticker]
@@ -237,6 +281,10 @@ class PortfolioManager:
                 pos['qty'] = total_qty
                 pos['avg_price'] = total_cost / total_qty
                 pos['buy_time'] = time.time()
+
+                # Суммируем комиссию покупок (для пропорционального расчёта при продаже)
+                old_commission = pos.get('commission_buy', 0.0)
+                pos['commission_buy'] = old_commission + commission_buy
 
                 if strategy and 'strategy' not in pos:
                     pos['strategy'] = strategy
@@ -256,6 +304,7 @@ class PortfolioManager:
                     'avg_price': price,
                     'buy_time': time.time(),
                     'total_cost': cost,
+                    'commission_buy': commission_buy,  # ← сохраняем комиссию покупки
                     'time_horizon': time_horizon
                 }
 
@@ -267,12 +316,12 @@ class PortfolioManager:
                     for key, value in kwargs.items():
                         self.positions[ticker][key] = value
 
-            # ✅ 4. ЕДИНСТВЕННОЕ списание средств (с учетом комиссии)
+            # ========== СПИСАНИЕ СРЕДСТВ И РЕЗЕРВИРОВАНИЕ КОМИССИИ ==========
             self.cash -= cost
-            self.reserved_cash += estimated_commission
-            self._update_commission_stats(estimated_commission)
+            self.reserved_cash += commission_buy
+            self._update_commission_stats(commission_buy)
 
-            # Запись в историю
+            # ========== ЗАПИСЬ В ИСТОРИЮ ==========
             trade_record = {
                 'timestamp': datetime.now().isoformat(),
                 'action': 'BUY',
@@ -280,7 +329,7 @@ class PortfolioManager:
                 'quantity': quantity,
                 'price': price,
                 'cost': cost,
-                'commission': estimated_commission,
+                'commission': commission_buy,
                 'cash_after': self.cash,
                 'reserved_after': self.reserved_cash,
                 'position_after': self.positions[ticker].copy(),
@@ -299,14 +348,14 @@ class PortfolioManager:
                 'quantity': quantity,
                 'price': price,
                 'value': cost,
-                'commission_reserved': estimated_commission,
+                'commission_reserved': commission_buy,
                 'strategy': strategy
             })
 
             self.save_portfolio()
 
             logger.info(f"КУПЛЕНО: {ticker} {quantity} @ {price:.2f} = {cost:,.0f}₽, "
-                        f"комиссия: {estimated_commission:,.2f}₽, "
+                        f"комиссия: {commission_buy:.2f}₽, "
                         f"кэш: {self.cash:,.0f}₽, резерв: {self.reserved_cash:,.0f}₽")
 
             return True
@@ -321,7 +370,7 @@ class PortfolioManager:
             # Получение информации о бумаге из позиции
             if ticker not in self.positions:
                 logger.error(f"Нет позиции для продажи: {ticker}")
-                return False, 0.0  # ✅ Tuple[bool, float]
+                return False, 0.0
 
             pos = self.positions[ticker]
             lot_size = pos.get('lot_size', 1)
@@ -332,48 +381,77 @@ class PortfolioManager:
                 quantity = (quantity // lot_size) * lot_size
                 if quantity == 0:
                     logger.error(f"После округления количество стало нулевым")
-                    return False, 0.0  # ✅ Tuple[bool, float]
+                    return False, 0.0
                 logger.info(f"Количество скорректировано до {quantity}")
 
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
-                logger.error(f"Некорректные данные для продажи {ticker}: qty={quantity}, price={price}")
-                return False, 0.0  # ✅ Tuple[bool, float]
+                logger.error(f"Некорректные данные для продажи {ticker}")
+                return False, 0.0
 
             if quantity > pos['qty']:
                 logger.error(f"Недостаточно акций: нужно {quantity}, есть {pos['qty']}")
-                return False, 0.0  # ✅ Tuple[bool, float]
+                return False, 0.0
 
-            # Расчет revenue и комиссии
+            # ========== РАСЧЁТ КОМИССИЙ ==========
             revenue = quantity * price
-            estimated_commission = revenue * self.commission_rate
+            commission_sell = self._calculate_commission(revenue)
 
-            # Расчет PnL
+            # Комиссия покупки (пропорционально продаваемой части)
+            total_commission_buy = pos.get('commission_buy', 0.0)
+            total_qty = pos['qty']
+            commission_buy_for_part = total_commission_buy * (quantity / total_qty)
+
+            # ========== РАСЧЁТ PnL ==========
             entry_cost = quantity * pos['avg_price']
-            pnl = revenue - entry_cost - estimated_commission  # ✅ PnL УЖЕ с комиссией!
+            pnl = revenue - entry_cost - commission_buy_for_part - commission_sell
 
-            # Выполнение продажи
+            # ========== ОБНОВЛЕНИЕ ПОЗИЦИИ ==========
             if quantity == pos['qty']:
+                # Полностью закрываем позицию
                 del self.positions[ticker]
                 if strategy:
                     self.remove_strategy_from_tracker(ticker, strategy)
                 logger.debug(f"Закрыта позиция {ticker}")
             else:
+                # Частичная продажа
                 pos['qty'] -= quantity
+
+                # Уменьшаем накопленную комиссию покупки
+                remaining_commission_buy = total_commission_buy - commission_buy_for_part
+                if remaining_commission_buy > 0:
+                    pos['commission_buy'] = remaining_commission_buy
+                else:
+                    pos.pop('commission_buy', None)
+
                 logger.debug(f"Частичная продажа {ticker}: -{quantity}, осталось {pos['qty']}")
 
-            # Зачисление средств
+            # ========== СПИСАНИЕ КОМИССИЙ И ОБНОВЛЕНИЕ СРЕДСТВ ==========
+            # Зачисляем выручку от продажи
             self.cash += revenue
-            self.reserved_cash += estimated_commission
 
-            # Обновление статистики комиссий
-            self._update_commission_stats(estimated_commission)
+            # Списание комиссии продажи
+            self.cash -= commission_sell
 
-            # Обновление статистики сделок
+            # Освобождаем зарезервированную комиссию покупки и продажи
+            total_commission_to_release = commission_buy_for_part + commission_sell
+
+            if self.reserved_cash >= total_commission_to_release:
+                self.reserved_cash -= total_commission_to_release
+            else:
+                # Защита от отрицательного резерва (на всякий случай)
+                logger.warning(f"Недостаточно резерва для {ticker}: "
+                               f"нужно {total_commission_to_release:.2f}₽, "
+                               f"есть {self.reserved_cash:.2f}₽")
+                total_commission_to_release = self.reserved_cash
+                self.reserved_cash = 0
+
+            # ========== ОБНОВЛЕНИЕ СТАТИСТИКИ ==========
+            self._update_commission_stats(commission_sell)
             self.total_trades += 1
             self.total_pnl += pnl
 
-            # Запись в историю
+            # ========== ЗАПИСЬ В ИСТОРИЮ ==========
             trade_record = {
                 'timestamp': datetime.now().isoformat(),
                 'action': 'SELL',
@@ -381,7 +459,9 @@ class PortfolioManager:
                 'quantity': quantity,
                 'price': price,
                 'revenue': revenue,
-                'commission': estimated_commission,
+                'commission_buy': commission_buy_for_part,
+                'commission_sell': commission_sell,
+                'commission_total': commission_buy_for_part + commission_sell,
                 'pnl': pnl,
                 'pnl_percent': (pnl / entry_cost * 100) if entry_cost > 0 else 0,
                 'cash_after': self.cash,
@@ -398,7 +478,7 @@ class PortfolioManager:
                 'quantity': quantity,
                 'price': price,
                 'value': revenue,
-                'commission_reserved': estimated_commission,
+                'commission': commission_sell,
                 'pnl': pnl,
                 'strategy': strategy
             })
@@ -406,34 +486,25 @@ class PortfolioManager:
             self.save_portfolio()
 
             logger.info(f"ПРОДАНО: {ticker} {quantity} @ {price:.2f} = {revenue:,.0f}₽, "
-                        f"комиссия: {estimated_commission:,.2f}₽, PnL: {pnl:+,.0f}₽ ({trade_record['pnl_percent']:+.1f}%), "
+                        f"комиссия покупки: {commission_buy_for_part:.2f}₽, "
+                        f"комиссия продажи: {commission_sell:.2f}₽, "
+                        f"PnL: {pnl:+,.0f}₽ ({trade_record['pnl_percent']:+.1f}%), "
                         f"кэш: {self.cash:,.0f}₽, резерв: {self.reserved_cash:,.0f}₽")
 
-            return True, pnl  # ✅ Tuple[bool, float]
+            return True, pnl
 
         except Exception as e:
             logger.error(f"Ошибка продажи {ticker}: {e}")
-            return False, 0.0  # ✅ Tuple[bool, float]
-
-        except Exception as e:
-            logger.error(f"Ошибка продажи {ticker}: {e}")
-            return False
+            return False, 0.0
 
     def get_total_value(self, current_prices: Dict[str, float]) -> float:
         """Расчет общей стоимости портфеля"""
         try:
-            # Стоимость позиций
             positions_value = 0.0
-
             for ticker, pos in self.positions.items():
                 current_price = current_prices.get(ticker, pos.get('avg_price', 0))
                 positions_value += pos['qty'] * current_price
-
-            # Общая стоимость
-            total_value = self.cash + positions_value
-
-            return total_value
-
+            return self.cash + positions_value
         except Exception as e:
             logger.error(f"Ошибка расчета стоимости портфеля: {e}")
             return self.cash
@@ -455,55 +526,13 @@ class PortfolioManager:
             'last_update': datetime.now().isoformat(),
             'strategies_count': len(self.strategy_positions)
         }
-        # Расчет стоимости с текущими ценами если есть
+
         if current_prices:
             total_value = self.get_total_value(current_prices)
             stats['total_value_with_current_prices'] = total_value
             stats['total_pnl_with_current_prices'] = total_value - self.initial_capital
 
-        # Расчет PnL
-        if self.trade_history:
-            # Только завершенные сделки (SELL)
-            sell_trades = [t for t in self.trade_history if t['action'] == 'SELL']
-            if sell_trades:
-                total_pnl = sum(t.get('pnl', 0) for t in sell_trades)
-                stats['total_pnl'] = total_pnl
-                stats['total_pnl_percent'] = (total_pnl / self.initial_capital * 100) if self.initial_capital > 0 else 0
-
-                # ДОБАВЛЯЕМ: PnL по стратегиям
-                strategy_pnl = {}
-                for trade in sell_trades:
-                    strategy = trade.get('strategy', 'unknown')
-                    if strategy not in strategy_pnl:
-                        strategy_pnl[strategy] = 0
-                    strategy_pnl[strategy] += trade.get('pnl', 0)
-
-                stats['pnl_by_strategy'] = strategy_pnl
-
-                # Анализ позиций
-                if self.positions:
-                    # Находим самую крупную позицию
-                    largest = max(
-                        self.positions.items(),
-                        key=lambda x: x[1]['qty'] * x[1].get('avg_price', 0)
-                    )
-                    stats['largest_position'] = {
-                        'ticker': largest[0],
-                        'value': largest[1]['qty'] * largest[1]['avg_price'],
-                        'strategy': largest[1].get('strategy', 'unknown')
-                    }
-
-                    # ДОБАВЛЯЕМ: Распределение по стратегиям
-                    strategy_distribution = {}
-                    for pos in self.positions.values():
-                        strategy = pos.get('strategy', 'unknown')
-                        if strategy not in strategy_distribution:
-                            strategy_distribution[strategy] = 0
-                        strategy_distribution[strategy] += 1
-
-                    stats['strategy_distribution'] = strategy_distribution
-
-                return stats
+        return stats
 
     def calculate_projected_weight(self,
                                    ticker: str,
@@ -802,9 +831,6 @@ class PortfolioManager:
         """Удаление позиции из трекера стратегий"""
         if strategy in self.strategy_positions and ticker in self.strategy_positions[strategy]:
             self.strategy_positions[strategy].remove(ticker)
-
-            # Если стратегия больше не имеет позиций, удаляем её
             if not self.strategy_positions[strategy]:
                 del self.strategy_positions[strategy]
-
             logger.debug(f"Удален {ticker} из трекера стратегии {strategy}")

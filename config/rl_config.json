@@ -22,7 +22,8 @@
     "max_hold_time_hours": 72,
     "speed_bonus_multiplier": 50.0,
     "time_penalty_multiplier": 200.0,
-    "base_reward_multiplier": 100.0
+    "base_reward_multiplier": 100.0,
+    "reward_pnl_scaling": 100.0
   },
 
   "strategy_adaptation": {
@@ -54,7 +55,10 @@
     "save_model_interval": 100,
     "extreme_batch_size": 16,
     "aggressive_lr_multiplier": 3.0,
-    "extreme_training_steps": 3
+    "extreme_training_steps": 3,
+    "convergence_check_interval": 100,
+    "convergence_lookback": 20,
+    "convergence_threshold": 0.1
   },
 
   "exploration": {
@@ -73,7 +77,8 @@
     "min_news_for_market_sentiment": 10,
     "sentiment_time_decay_hours": 24,
     "high_impact_multiplier": 2.0,
-    "market_sentiment_cache_minutes": 5
+    "market_sentiment_cache_minutes": 5,
+    "search_news_in_summary": true
   },
 
   "state_parameters": {
@@ -209,7 +214,9 @@
   "commission_learning": {
     "enable_commission_penalty": true,
     "enable_frequency_penalty": true,
-    "enable_commission_bonus": true
+    "enable_commission_bonus": true,
+    "commission_settlement_time": "14:00",
+    "commission_settlement_days": 1
   },
   "feature_config": {
     "reserved_slots": 6,
