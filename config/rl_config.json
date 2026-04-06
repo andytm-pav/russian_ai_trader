@@ -232,5 +232,18 @@
         "market_liquidity",
         "vix"
     ]
+  },
+  "reward_config": {
+    "pnl_scale_factor": 100.0,
+    "speed_bonus_max_percent": 50.0,
+    "time_penalty_max_percent": 20.0,
+    "commission_penalty_scale": 50.0,
+    "concentration_penalty_per_position": 0.1,
+    "reward_clip_max": 20.0,
+    "reward_clip_min": -10.0,
+    "speed_bonus_enabled": true,
+    "time_penalty_enabled": true,
+    "commission_penalty_enabled": true,
+    "concentration_penalty_enabled": true
   }
 }

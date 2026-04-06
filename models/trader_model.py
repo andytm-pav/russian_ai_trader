@@ -1236,16 +1236,22 @@ class AdvancedTraderModel:
                              market_conditions: Dict, strategy: str = None,
                              market_sentiment: float = 0.0) -> Tuple[float, float]:
         """Запись результата сделки"""
-        norm = self.normalization  # <--- Добавлено!
+
+        # ✅ ИНИЦИАЛИЗАЦИЯ ВСЕХ ПЕРЕМЕННЫХ В НАЧАЛЕ
+        pnl = 0.0
+        price_change = 0.0
+        norm = self.normalization
 
         if entry_price > 0 and exit_price > 0:
             price_change = (exit_price - entry_price) / entry_price
             if action == 'SELL':
-                pnl = price_change
+                # Приоритет: реальный PnL из market_conditions (в рублях)
+                pnl = market_conditions.get('pnl', price_change)
             else:
                 pnl = 0.0
         else:
             pnl = 0.0
+            price_change = 0.0
 
         stats = self.ticker_stats[ticker]
         stats['total_trades'] += 1
@@ -1270,7 +1276,8 @@ class AdvancedTraderModel:
         if pnl < loss_threshold and action == 'SELL':
             error_data = self.error_memory[ticker]
             error_data['failure_count'] += 1
-            error_data['last_failure'] = datetime.now().isoformat()
+            # ✅ ИСПРАВЛЕНО: используем time.time() вместо datetime.now().isoformat()
+            error_data['last_failure'] = time.time()
 
         # Расчет награды
         reward = pnl

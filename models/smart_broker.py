@@ -577,7 +577,6 @@ class SmartPortfolioBroker:
         logger.debug(f"[DEBUG] Завершение RL опыта для {ticker} @ {exit_price}")
 
         found_any = False
-
         for exp in self.pending_experiences:
             if exp['ticker'] == ticker and not exp['completed']:
                 found_any = True
@@ -588,11 +587,8 @@ class SmartPortfolioBroker:
                 if actual_pnl is not None:
                     pnl = actual_pnl
                 else:
-                    # Fallback: берём из портфеля если есть
                     pnl = exp.get('calculated_pnl')
                     if pnl is None:
-                        # Единоразовый расчёт (без повторного вычитания комиссии)
-                        # Используем commission_rate из PortfolioManager
                         commission_rate = getattr(self.portfolio, 'commission_rate', 0.003)
                         price_diff = exit_price - exp['entry_price']
                         gross_pnl = price_diff * exp['quantity']
@@ -602,141 +598,88 @@ class SmartPortfolioBroker:
 
                 hold_time = (time.time() - exp['entry_time']) / 3600
 
-                # ... остальной код метода без изменений ...
+                # Создаём следующее состояние
+                next_base_state = self._create_next_state(ticker, exit_price)
+                strategy_params = self.model.strategies[exp['strategy']]
+
+                full_start_state = self.model._create_strategy_state(
+                    exp['start_state'].to(self.model.device), strategy_params
+                )
+                full_next_state = self.model._create_strategy_state(next_base_state, strategy_params)
+
+                # Расчёт награды
+                reward = self._calculate_reward(pnl, hold_time, exp['strategy'])
+
+                # Запись опыта в модель
+                self.model.remember_experience(
+                    state=full_start_state,
+                    action=exp['action'],
+                    reward=reward,
+                    next_state=full_next_state,
+                    done=True,
+                    news_features=None,
+                    pnl_rub=pnl
+                )
+
+                exp['completed'] = True
+                logger.debug(f"RL опыт завершен: {ticker}, reward={reward:.3f}, pnl={pnl:.2f}")
+
+        # Удаляем завершённые опыты
+        self.pending_experiences = [exp for exp in self.pending_experiences if not exp.get('completed', False)]
 
     def _calculate_reward(self, pnl: float, hold_time: float, strategy: str) -> float:
-        pnl_abs = abs(float(pnl))
-        global logger
-        if logger is None:
-            from utils.logger import get_logger
-            logger = get_logger('SMART_BROKER')
+        """Расчёт награды для RL - ВСЕ ПАРАМЕТРЫ ИЗ КОНФИГА"""
 
-        # HOLD reward
-        hold_config = self.rl_config.get('hold_reward', {})
-        if hold_config.get('enabled', False) and pnl == 0 and hold_time > 0:
+        portfolio_value = self.portfolio.get_total_value({})
+        if portfolio_value <= 0:
+            portfolio_value = self.settings.get('initial_capital_rub', 10000)
+
+        # Загружаем конфиг наград (с fallback)
+        reward_config = self.rl_config.get('reward_config', {})
+
+        # 1. Нормируем на капитал (доходность в долях)
+        pnl_percent = pnl / portfolio_value if portfolio_value > 0 else 0.0
+
+        # 2. Масштабируем (коэффициент из конфига)
+        scale = reward_config.get('pnl_scale_factor', 100.0)
+        reward = pnl_percent * scale
+
+        # 3. Бонус за скорость (только для прибыльных сделок)
+        if reward_config.get('speed_bonus_enabled', True) and pnl_percent > 0:
             strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
             target_time = strategy_params.get('target_hold_time_hours', 6)
-            time_ratio = min(hold_time / target_time, 1.0)
-            hold_reward = time_ratio * hold_config.get('max_bonus', 0.1)
-            if hold_time > target_time * hold_config.get('overhold_threshold', 1.5):
-                hold_reward -= hold_config.get('overhold_penalty', 0.05)
-            logger.debug(f"🏆 HOLD reward: {hold_reward:.2f}")
-            return hold_reward
+            if hold_time < target_time:
+                speed_max = reward_config.get('speed_bonus_max_percent', 50.0)
+                speed_bonus = pnl_percent * speed_max * (1 - hold_time / target_time)
+                reward += speed_bonus
 
-        profit_config = self.profit_config
+        # 4. Штраф за долгий убыток
+        if reward_config.get('time_penalty_enabled', True) and pnl_percent < 0 and hold_time > 6:
+            time_penalty_max = reward_config.get('time_penalty_max_percent', 20.0)
+            time_penalty = abs(pnl_percent) * time_penalty_max
+            reward -= time_penalty
 
-        base_multiplier = profit_config.get('base_reward_multiplier', 1.0)
-        speed_bonus_mult = profit_config.get('speed_bonus_multiplier', 0.5)
-        time_penalty_mult = profit_config.get('time_penalty_multiplier', 2.0)
-        concentration_penalty = profit_config.get('concentration_penalty', 5.0)
-        patience_bonus_mult = profit_config.get('patience_bonus_multiplier', 0.3)
+        # 5. Штраф за комиссию (относительный)
+        if reward_config.get('commission_penalty_enabled', True):
+            total_commission = getattr(self.portfolio, 'total_commission', 0.0)
+            if total_commission > 0 and portfolio_value > 0:
+                commission_ratio = total_commission / portfolio_value
+                penalty_scale = reward_config.get('commission_penalty_scale', 50.0)
+                reward -= commission_ratio * penalty_scale
 
-        # НОВЫЕ КОНСТАНТЫ
-        scalping_penalty = profit_config.get('scalping_penalty', 0.5)
-        quick_loss_bonus = profit_config.get('quick_loss_bonus', 0.3)
-        commission_penalty_mult = profit_config.get('commission_penalty_multiplier', 5.0)
-        frequency_penalty_mult = profit_config.get('frequency_penalty_multiplier', 0.1)
-        commission_bonus_mult = profit_config.get('commission_bonus_multiplier', 0.1)
-
-        strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
-        target_time = strategy_params.get('target_hold_time_hours', 6)
-
-        base_reward = pnl * base_multiplier
-
-        # БОНУС/ШТРАФ ЗА СКОРОСТЬ
-        if pnl > 0:
-            if hold_time < 0.25:
-                speed_component = -pnl_abs * scalping_penalty
-                logger.debug(f"⚠️ Штраф за скальпинг: {speed_component:.2f}")
-            else:
-                speed_ratio = max(0, (target_time - hold_time) / target_time)
-                speed_component = speed_ratio * speed_bonus_mult
-                logger.debug(f"🏆 Бонус за быструю прибыль: {speed_component:.2f}")
-        else:
-            if hold_time < 0.25:
-                speed_component = pnl_abs * quick_loss_bonus
-                logger.debug(f"✅ Быстрый убыток: {speed_component:.2f}")
-            else:
-                speed_component = -pnl_abs * time_penalty_mult
-                logger.debug(f"⚠️ Штраф за долгий убыток: {speed_component:.2f}")
-
-        # ШТРАФ ЗА КОНЦЕНТРАЦИЮ
-        concentration_penalty_val = 0
-        if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'positions'):
+        # 6. Штраф за концентрацию
+        if reward_config.get('concentration_penalty_enabled', True):
             positions_count = len(self.portfolio.positions)
             if positions_count > 5:
-                concentration_penalty_val = -concentration_penalty * (positions_count - 5)
-                logger.debug(f"⚠️ Штраф за концентрацию: {concentration_penalty_val:.2f}")
+                penalty_per_pos = reward_config.get('concentration_penalty_per_position', 0.1)
+                reward -= penalty_per_pos * (positions_count - 5)
 
-        # БОНУС ЗА ТЕРПЕНИЕ
-        patience_bonus = 0
-        if pnl > 0 and hold_time > target_time * 2:
-            patience_bonus = pnl * patience_bonus_mult
-            logger.debug(f"🏆 Бонус за терпение: {patience_bonus:.2f}")
+        # 7. Обрезание награды (из конфига)
+        max_reward = reward_config.get('reward_clip_max', 20.0)
+        min_reward = reward_config.get('reward_clip_min', -10.0)
+        reward = max(min_reward, min(max_reward, reward))
 
-        # НОВЫЕ КОМИССИОННЫЕ ШТРАФЫ/БОНУСЫ
-        commission_penalty = 0
-        frequency_penalty = 0
-        commission_bonus = 0
-
-        commission_config = self.rl_config.get('commission_learning', {})
-
-        if commission_config.get('enable_commission_penalty', True):
-            # Штраф за комиссию
-            if hasattr(self, 'portfolio'):
-                total_commission = getattr(self.portfolio, 'total_commission', 0.0)
-                commission_penalty = -total_commission * commission_penalty_mult
-                logger.debug(f"💰 Штраф за комиссию: {commission_penalty:.2f}")
-
-        if commission_config.get('enable_frequency_penalty', True):
-            # ШТРАФ ЗА ЧАСТОТУ СДЕЛОК
-            frequency_penalty = 0
-            if commission_config.get('enable_frequency_penalty', True):
-                if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'trade_history'):
-                    trade_history = self.portfolio.trade_history
-                    now = time.time()
-                    trades_last_hour = 0
-                    timestamp_format = self.settings.get('timestamp_format', '%Y-%m-%dT%H:%M:%S.%f')
-
-                    for trade in trade_history:
-                        ts = trade.get('timestamp')
-                        if ts:
-                            if isinstance(ts, str):
-                                try:
-                                    from datetime import datetime
-                                    ts_float = datetime.strptime(ts, timestamp_format).timestamp()
-                                except:
-                                    continue
-                            else:
-                                ts_float = float(ts)
-                            if ts_float > now - 3600:
-                                trades_last_hour += 1
-
-                    max_trades = getattr(self.portfolio, 'max_trades_per_hour', 10)
-                    frequency_penalty_mult = profit_config.get('frequency_penalty_multiplier', 0.1)
-                    frequency_penalty = -min(trades_last_hour / max_trades, 1.0) * frequency_penalty_mult
-                    logger.debug(f"📊 Штраф за частоту: {frequency_penalty:.2f}")
-
-        if commission_config.get('enable_commission_bonus', True) and pnl > 0:
-            # Бонус за низкую комиссию (стимул к редким сделкам)
-            if hasattr(self, 'portfolio'):
-                total_commission = getattr(self.portfolio, 'total_commission', 0.0)
-                total_pnl = getattr(self.portfolio, 'total_pnl', 0.0)
-                if total_pnl > 0:
-                    commission_ratio = total_commission / total_pnl
-                    commission_bonus = (1 - min(commission_ratio, 1.0)) * commission_bonus_mult
-                    logger.debug(f"🎯 Бонус за низкую комиссию: {commission_bonus:.2f}")
-
-        pre_multiplier_reward = (base_reward + speed_component + concentration_penalty_val +
-                                 patience_bonus + commission_penalty + frequency_penalty + commission_bonus)
-        final_reward = pre_multiplier_reward * strategy_params.get('risk_multiplier', 1.0)
-
-        max_reward = self.rl_config.get('reward_clip_max', 0.5)
-        min_reward = self.rl_config.get('reward_clip_min', -0.5)
-        limited_reward = max(min_reward, min(max_reward, final_reward))
-
-        logger.debug(f"Reward: pnl={pnl:.2f}, hold={hold_time:.2f}ч, final={limited_reward:.2f}")
-        return limited_reward
+        return reward
 
     def _create_initial_state(self, ticker: str, price: float, security_info: Dict) -> torch.Tensor:
         """Создание начального состояния для RL"""
@@ -1939,7 +1882,9 @@ class SmartPortfolioBroker:
                 'position_value': position_value,
                 'pnl': (current_price - pos['avg_price']) * pos['qty'],
                 'pnl_percent': ((current_price / pos['avg_price']) - 1) * 100,
-                'weight': (position_value / total_value * 100) if total_value > 0 else 0
+                'weight': (position_value / total_value * 100) if total_value > 0 else 0,
+                'strategy': pos.get('strategy', 'unknown'),  # ← ДОБАВИТЬ
+                'buy_time': pos.get('buy_time')  # ← ДОБАВИТЬ (для дней удержания)
             })
 
         summary['positions'] = positions_detail
