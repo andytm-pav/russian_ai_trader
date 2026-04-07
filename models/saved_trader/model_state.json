@@ -1279,6 +1279,38 @@
       "failure_count": 0,
       "success_rate": 0.5,
       "total_trades": 0
+    },
+    "CARM": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "WTCM": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MRKK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "KLSB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
     }
   },
   "ticker_stats": {
@@ -2561,9 +2593,41 @@
       "avg_hold_time": 0.0,
       "success_rate": 0.5,
       "last_trade": null
+    },
+    "CARM": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "WTCM": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MRKK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "KLSB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
     }
   },
-  "market_sentiment": -0.08708744418441933,
+  "market_sentiment": -0.07339802471767909,
   "volatility_index": 1.0,
   "strategy_performance": {
     "balanced": {
@@ -2588,11 +2652,11 @@
       "win_rate": 0.4230769230769231
     },
     "momentum": {
-      "total_trades": 106,
+      "total_trades": 108,
       "profitable_trades": 56,
-      "total_pnl": -32.11697678816399,
-      "avg_pnl": -0.3029903470581508,
-      "win_rate": 0.5283018867924528
+      "total_pnl": -40.04697678816396,
+      "avg_pnl": -0.3708053406311478,
+      "win_rate": 0.5185185185185185
     },
     "swing": {
       "total_trades": 35,
@@ -2602,18 +2666,18 @@
       "win_rate": 0.3142857142857143
     },
     "mean_reversion": {
-      "total_trades": 29,
+      "total_trades": 30,
       "profitable_trades": 13,
-      "total_pnl": -43.542649939170865,
-      "avg_pnl": -1.501470687557616,
-      "win_rate": 0.4482758620689655
+      "total_pnl": -43.88264993917088,
+      "avg_pnl": -1.4627549979723626,
+      "win_rate": 0.43333333333333335
     },
     "breakout": {
-      "total_trades": 124,
+      "total_trades": 125,
       "profitable_trades": 66,
-      "total_pnl": 22.641759328393114,
-      "avg_pnl": 0.18259483329349285,
-      "win_rate": 0.532258064516129
+      "total_pnl": 21.23175932839311,
+      "avg_pnl": 0.16985407462714489,
+      "win_rate": 0.528
     },
     "price_prediction": {
       "total_trades": 4,
@@ -2763,5 +2827,5 @@
       "prediction_weight": 0.5
     }
   },
-  "save_time": "2026-04-06T20:59:12.083552"
+  "save_time": "2026-04-07T15:29:50.083650"
 }
