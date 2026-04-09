@@ -129,7 +129,7 @@ def main():
                     logger.debug(f"⏸ [MAIN] Рынок закрыт, пропускаю цикл. Время: {now_moscow.strftime('%H:%M:%S')}")
 
             # Пауза между циклами
-            pause = 30 if scheduler.is_trading_time() else 60
+            pause = 10 if scheduler.is_trading_time() else 60
 
             # Диагностика перед сном
             if cycle_counter > 0 and time.time() - last_cycle_time > 60:

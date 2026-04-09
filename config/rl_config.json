@@ -12,6 +12,8 @@
     }
   },
 
+
+
   "reward_calculation": {
     "pnl_normalization": 100,
     "time_penalty_factor": 0.1,
@@ -62,11 +64,11 @@
   },
 
   "exploration": {
-    "initial_exploration_rate": 0.3,
-    "final_exploration_rate": 0.1,
+    "initial_exploration_rate": 0.15,
+    "final_exploration_rate": 0.05,
     "exploration_decay_steps": 10000,
-    "action_exploration_rate": 0.2,
-    "min_exploration_rate": 0.05,
+    "action_exploration_rate": 0.1,
+    "min_exploration_rate": 0.03,
     "max_exploration_rate": 0.5
   },
 
@@ -135,7 +137,25 @@
     "volatility_index": 1.0
   },
 
-  "action_dim": 3,
+  "action_dim": 7,
+  "action_mapping": {
+    "0": "BUY_MIN",
+    "1": "BUY_SMALL",
+    "2": "BUY_NORMAL",
+    "3": "HOLD",
+    "4": "SELL_SMALL",
+    "5": "SELL_NORMAL",
+    "6": "SELL_ALL"
+  },
+  "position_sizes": {
+    "BUY_MIN": 0.02,
+    "BUY_SMALL": 0.05,
+    "BUY_NORMAL": 0.10,
+    "SELL_SMALL": 0.25,
+    "SELL_NORMAL": 0.50,
+    "SELL_ALL": 1.0
+  },
+  "strategy_selection_timeout": 10,
 
   "normalization": {
     "hours_in_day": 24.0,
@@ -288,18 +308,43 @@
   },
 
   "reward_config": {
-    "pnl_scale_factor": 100.0,
-    "speed_bonus_max_percent": 50.0,
-    "time_penalty_max_percent": 20.0,
-    "commission_penalty_scale": 50.0,
-    "concentration_penalty_per_position": 0.1,
-    "reward_clip_max": 20.0,
-    "reward_clip_min": -10.0,
-    "speed_bonus_enabled": true,
-    "time_penalty_enabled": true,
-    "commission_penalty_enabled": true,
-    "concentration_penalty_enabled": true
+  "pnl_scale_factor": 100.0,
+  "profit_bonus_enabled": true,
+  "profit_fixed_bonus": 0.5,
+  "profit_proportional_bonus_scale": 200.0,
+  "loss_penalty_scale": 50.0,
+  "speed_bonus_enabled": true,
+  "speed_bonus_max_percent": 50.0,
+  "time_penalty_enabled": true,
+  "time_penalty_max_percent": 20.0,
+  "loss_hold_threshold": 6.0,
+  "hold_penalty_threshold": 24.0,
+  "hold_penalty_rate": 0.1,
+  "commission_penalty_enabled": true,
+  "commission_penalty_scale": 50.0,
+  "concentration_penalty_enabled": true,
+  "max_positions_before_penalty": 5,
+  "concentration_penalty_per_position": 0.1,
+  "reward_clip_max": 20.0,
+  "reward_clip_min": -10.0
+},
+
+  "logging": {
+    "pnl_summary_interval": 10
   },
+
+  "signal_filter": {
+  "enabled": true,
+  "min_trades_for_filter": 3,
+  "min_success_rate": 0.5,
+  "new_ticker_confidence_mult": 0.7
+},
+
+  "memory_clean": {
+  "keep_profitable_only": true,
+  "keep_hold_ratio": 0.1,
+  "max_memory_after_clean": 3000
+},
 
   "bert_config": {
     "max_length": 128,

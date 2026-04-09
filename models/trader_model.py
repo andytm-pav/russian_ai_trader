@@ -384,6 +384,8 @@ class AdvancedTraderModel:
             encoded_dim=self.news_encoded_dim
         ).to(self.device)
 
+        self.action_dim = self.rl_config.get('action_dim', 7)
+
         self.policy_net = TradingPolicyNetwork(
             state_dim=self.total_state_dim,
             action_dim=self.action_dim
@@ -909,7 +911,10 @@ class AdvancedTraderModel:
 
         action_probs = strategy_scores[chosen_strategy]['action_probs']
 
-        if np.random.random() < DEFAULT_CONFIG["action_exploration_rate"]:
+        exploration_config = self.rl_config.get('exploration', {})
+        action_exploration_rate = exploration_config.get('action_exploration_rate', 0.1)
+
+        if np.random.random() < action_exploration_rate:
             action = np.random.choice(len(action_probs))
         else:
             action = np.argmax(action_probs)

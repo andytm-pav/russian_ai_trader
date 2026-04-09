@@ -1,0 +1,50 @@
+{
+  "_get_commission_to_pnl_ratio": {
+    "definitions_count": 1,
+    "calls_count": 0,
+    "definitions": [
+      {
+        "file": "models\\trader_model.py",
+        "line": 836,
+        "content": "def _get_commission_to_pnl_ratio(self) -> float:"
+      }
+    ],
+    "calls": []
+  },
+  "_get_trade_frequency_penalty": {
+    "definitions_count": 1,
+    "calls_count": 0,
+    "definitions": [
+      {
+        "file": "models\\trader_model.py",
+        "line": 848,
+        "content": "def _get_trade_frequency_penalty(self) -> float:"
+      }
+    ],
+    "calls": []
+  },
+  "_get_expected_commission": {
+    "definitions_count": 1,
+    "calls_count": 0,
+    "definitions": [
+      {
+        "file": "models\\trader_model.py",
+        "line": 860,
+        "content": "def _get_expected_commission(self, ticker: str, price: float) -> float:"
+      }
+    ],
+    "calls": []
+  },
+  "_get_breakeven_price_ratio": {
+    "definitions_count": 1,
+    "calls_count": 0,
+    "definitions": [
+      {
+        "file": "models\\trader_model.py",
+        "line": 874,
+        "content": "def _get_breakeven_price_ratio(self, ticker: str, price: float) -> float:"
+      }
+    ],
+    "calls": []
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "timestamp": "2026-04-09 15:18:20",
+  "checks": {
+    "import": {
+      "status": "OK",
+      "time": 6.645852088928223
+    },
+    "config": {
+      "status": "OK",
+      "details": {
+        "config/rl_config.json": "exists",
+        "config/strategies.json": "exists",
+        "config/market_schedule.json": "exists",
+        "base_state_dim": 210,
+        "total_state_dim": 216,
+        "news_encoded_dim": 132,
+        "strategy_params_dim": 6,
+        "device": "cpu",
+        "gamma": 0.95,
+        "exploration_rate": 0.3
+      }
+    },
+    "networks": {
+      "status": "OK"
+    },
+    "memory": {
+      "status": "OK",
+      "memory_size": 4110,
+      "prioritized_size": 4110
+    },
+    "forward_pass": {
+      "status": "OK",
+      "time_ms": 0.9837150573730469,
+      "probs_sum": 0.9999999403953552
+    },
+    "choose_action": {
+      "status": "OK",
+      "time_ms": 5.5103302001953125,
+      "action": "1",
+      "strategy": "momentum",
+      "confidence": "0.99891007"
+    },
+    "build_state": {
+      "status": "OK",
+      "actual_dim": 210,
+      "expected_dim": 210
+    },
+    "saved_files": {
+      "model_weights.pth": {
+        "size": "2.45 MB",
+        "exists": true,
+        "keys": [
+          "news_encoder",
+          "policy_net",
+          "policy_optimizer"
+        ]
+      },
+      "model_state.json": {
+        "size": "69.13 KB",
+        "exists": true,
+        "keys": [
+          "error_memory",
+          "ticker_stats",
+          "market_sentiment",
+          "volatility_index",
+          "strategy_performance",
+          "strategies",
+          "save_time"
+        ]
+      }
+    }
+  },
+  "warnings": [],
+  "errors": [],
+  "overall_status": "HEALTHY"
+}

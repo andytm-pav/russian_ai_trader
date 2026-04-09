@@ -1,0 +1,28 @@
+{
+  "config_values": {
+    "base_dim": 210,
+    "total_dim": 216,
+    "news_dim": 132,
+    "strategy_dim": 6
+  },
+  "model_values": {
+    "base_dim": 210,
+    "total_dim": 216,
+    "news_dim": 132,
+    "strategy_dim": 6,
+    "global_base": 210,
+    "global_total": 216,
+    "policy_net_input": 216
+  },
+  "portfolio_values": {
+    "dimensions": {
+      "210": 15
+    },
+    "total_positions": 15
+  },
+  "mismatches": [],
+  "test_build": {
+    "actual_dim": 210,
+    "expected_dim": 210
+  }
+}

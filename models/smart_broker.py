@@ -78,6 +78,16 @@ class SmartPortfolioBroker:
         self.profit_config = settings.get("profit_optimization", {})
         self.rl_config = self._load_rl_config()
 
+        # Загрузка конфигурации действий
+        self.action_mapping = self.rl_config.get('action_mapping', {
+            "0": "BUY_MIN", "1": "BUY_SMALL", "2": "BUY_NORMAL",
+            "3": "HOLD", "4": "SELL_SMALL", "5": "SELL_NORMAL", "6": "SELL_ALL"
+        })
+        self.position_sizes = self.rl_config.get('position_sizes', {
+            "BUY_MIN": 0.02, "BUY_SMALL": 0.05, "BUY_NORMAL": 0.10,
+            "SELL_SMALL": 0.25, "SELL_NORMAL": 0.50, "SELL_ALL": 1.0
+        })
+
         # ✅ ЗАГРУЖАЕМ КОНФИГИ СЕНТИМЕНТА
         self.sentiment_config = self.rl_config.get("sentiment_integration", {})
         self.market_sentiment_weight = self.sentiment_config.get("market_sentiment_weight", 0.3)
@@ -292,10 +302,8 @@ class SmartPortfolioBroker:
                                    prices: Dict[str, float], securities: Dict):
         """Исполнение торговых решений с RL и учетом лотности"""
 
-        # Распределяем сигналы по временным горизонтам
         allocated_signals = self._allocate_by_time_horizon(signals)
 
-        # Объединяем все сигналы с их горизонтами
         all_signals_with_horizon = []
         for horizon, sig_list in allocated_signals.items():
             for sig in sig_list:
@@ -306,213 +314,124 @@ class SmartPortfolioBroker:
 
         executed_count = 0
 
-        for signal in all_signals_with_horizon[:5]:  # Обрабатываем только топ-5 сигналов
+        for signal in all_signals_with_horizon[:5]:
             ticker = signal['ticker']
-            action_str = signal['action']  # 'BUY', 'SELL', 'HOLD'
             confidence = signal['confidence']
             horizon = signal.get('assigned_horizon', 'balanced')
 
             if ticker not in prices or ticker not in securities:
                 continue
 
-            # ✅ ИСПРАВЛЕНО: ОПРЕДЕЛЯЕМ action_idx СРАЗУ
-            action_map = {'BUY': 0, 'HOLD': 1, 'SELL': 2}
-            action_idx = action_map.get(action_str, 1)  # 1 = HOLD по умолчанию
-
-            # Получение параметров лотности
             security_info = securities[ticker]
             lot_size = security_info.get('lot_size', 1)
             min_step = security_info.get('min_step', 0.01)
-
             price = prices[ticker]
 
-            # Корректировка цены по min_step
             if min_step and min_step > 0:
                 remainder = price % min_step
                 if abs(remainder) > 0.0001:
                     price = round(price / min_step) * min_step
-                    logger.debug(f"Цена {ticker} скорректирована с {prices[ticker]:.4f} до {price:.4f}")
 
-            # Логируем каждый сигнал
-            logger.debug(f"[DEBUG] Сигнал: {ticker} {action_str} (action_idx={action_idx}) conf={confidence:.2f}")
-
-            # 1. Получаем или создаем состояние для тикера
             if ticker in self.ticker_states:
                 current_state = self.ticker_states[ticker]
             else:
-                # Создаем начальное состояние
                 current_state = self._create_initial_state(ticker, price, security_info)
                 self.ticker_states[ticker] = current_state
 
-            if action_str == 'BUY':
-                # 2. Выбор стратегии для покупки
-                strategy, stop_loss, take_profit = self._select_buy_strategy(
-                    ticker, price, confidence, current_state,
-                    assigned_horizon=signal.get('assigned_horizon', 'week')
-                )
+            strategy, stop_loss, take_profit, action_idx = self._select_buy_strategy_with_action(
+                ticker, price, confidence, current_state,
+                assigned_horizon=signal.get('assigned_horizon', 'week')
+            )
 
-                # 3. Получение множителя стратегии
-                strategy_multiplier = 1.0
-                if hasattr(self.model, 'strategies') and strategy in self.model.strategies:
-                    strategy_multiplier = self.model.strategies[strategy].get('risk_multiplier', 1.0)
-                else:
-                    logger.warning(f"Стратегия {strategy} не найдена в модели")
+            action_str = self.action_mapping.get(str(action_idx), 'HOLD')
 
-                # 4. Расчет размера позиции с учетом лотности
-                quantity, risk_amount = self.risk_manager.calculate_position_size(
-                    ticker=ticker,
-                    price=price,
-                    stop_loss=stop_loss,
-                    confidence=confidence,
-                    lot_size=lot_size
-                )
+            logger.debug(f"[DEBUG] Сигнал: {ticker} {action_str} (action_idx={action_idx}) conf={confidence:.2f}")
 
-                # Применяем стратегический множитель
-                if strategy_multiplier != 1.0:
-                    quantity = max(lot_size, int(round(quantity * strategy_multiplier)))
-                    logger.debug(f"Стратегический множитель {strategy}: {strategy_multiplier:.2f}x → {quantity} акций")
+            # BUY действия
+            if action_str.startswith('BUY'):
+                target_position_ratio = self.position_sizes.get(action_str, 0.05)
 
-                logger.debug(f"[DEBUG] {ticker}: quantity={quantity}, risk_amount={risk_amount}, lot_size={lot_size}")
+                portfolio_value = self.portfolio.get_total_value(prices)
+                target_value = portfolio_value * target_position_ratio
+                quantity = int(target_value / price) if price > 0 else 0
 
-                # Проверка лотности
                 if lot_size > 1:
-                    original_quantity = quantity
-                    quantity, qty_adjusted = LotValidator.validate_and_adjust_quantity(quantity, lot_size)
-
-                    if qty_adjusted:
-                        logger.debug(
-                            f"Количество {ticker} скорректировано с {original_quantity} до {quantity} (лот: {lot_size})")
-
+                    quantity = (quantity // lot_size) * lot_size
                     if quantity == 0:
-                        one_lot_cost = lot_size * price
-                        if one_lot_cost <= self.portfolio.cash * 0.5:
-                            quantity = lot_size
-                            logger.debug(f"✋ Берем минимальный лот: {quantity} (стоимость: {one_lot_cost:.2f}₽)")
-                        else:
-                            logger.warning(
-                                f"❌ Недостаточно средств для 1 лота {ticker}: нужно {one_lot_cost:.2f}₽, есть {self.portfolio.cash:.2f}₽")
-                            continue
+                        quantity = lot_size
 
-                if quantity > 0:
-                    # Получаем сентимент
+                if quantity <= 0:
+                    continue
+
+                available_cash = self.portfolio.cash - self.portfolio.reserved_cash
+                total_cost = quantity * price
+
+                if available_cash < total_cost:
+                    logger.warning(f"❌ Недостаточно средств для {ticker}: нужно {total_cost:.2f}₽")
+                    continue
+
+                daily_volume_rub = security_info.get('volume') or 0
+                liquidity_multiplier = self.settings.get('liquidity_check_multiplier', 10.0)
+                if daily_volume_rub < total_cost * liquidity_multiplier:
+                    logger.warning(f"⚠️ Низкая ликвидность {ticker}")
+                    continue
+
+                if self.portfolio.buy(ticker, quantity, price, strategy,
+                                      lot_size=lot_size, min_step=min_step,
+                                      stop_loss=stop_loss, take_profit=take_profit,
+                                      time_horizon=horizon):
                     ticker_sentiment = self._get_ticker_sentiment(ticker)
                     sentiment_data = {
                         'sentiment': ticker_sentiment,
-                        'news_count': signal.get('news_count', 0),
-                        'impact_level': 'high_impact' if abs(ticker_sentiment) > 0.5 else 'medium_impact'
+                        'news_count': signal.get('news_count', 0)
                     }
 
-                    # Проверяем свободные средства
-                    available_cash = self.portfolio.cash - self.portfolio.reserved_cash
-                    total_cost = quantity * price
+                    self._record_rl_experience(
+                        ticker=ticker, state=current_state, action=action_idx,
+                        strategy=strategy, price=price, quantity=quantity,
+                        sentiment_data=sentiment_data
+                    )
 
-                    logger.debug(
-                        f"[DEBUG] {ticker}: available_cash={available_cash:.2f}, price={price}, total={total_cost}")
+                    executed_count += 1
+                    logger.info(
+                        f"✅ BUY {ticker}: {quantity} @ {price:.2f} ({target_position_ratio * 100:.1f}% портфеля)")
 
-                    if available_cash < total_cost:
-                        logger.warning(f"❌ Недостаточно свободных средств для {ticker}: "
-                                       f"нужно {total_cost:.2f}₽, доступно {available_cash:.2f}₽")
-                        continue
+            # SELL действия
+            elif action_str.startswith('SELL') and ticker in self.portfolio.positions:
+                pos = self.portfolio.positions[ticker]
+                sell_ratio = self.position_sizes.get(action_str, 0.5)
 
-                    # Проверка ликвидности
-                    daily_volume_rub = security_info.get('volume') or 0
-                    liquidity_multiplier = self.settings.get('liquidity_check_multiplier', 10.0)
-                    if daily_volume_rub < total_cost * liquidity_multiplier:
-                        logger.warning(
-                            f"⚠️ Низкая ликвидность {ticker}: объём {daily_volume_rub:,.0f}₽ < {total_cost * liquidity_multiplier:,.0f}₽")
-                        continue
+                qty = int(pos['qty'] * sell_ratio)
+                pos_lot_size = pos.get('lot_size', 1)
 
-                    # Выполняем покупку
-                    if self.portfolio.buy(ticker, quantity, price, strategy,
-                                          lot_size=lot_size,
-                                          min_step=min_step,
-                                          stop_loss=stop_loss,
-                                          take_profit=take_profit,
-                                          time_horizon=horizon):
-                        # ✅ Теперь action_idx определён и может быть использован
-                        self._record_rl_experience(
-                            ticker=ticker,
-                            state=current_state,
-                            action=action_idx,
-                            strategy=strategy,
-                            price=price,
-                            quantity=quantity,
-                            sentiment_data=sentiment_data
+                if pos_lot_size > 1:
+                    qty = (qty // pos_lot_size) * pos_lot_size
+
+                if qty <= 0:
+                    continue
+
+                pos_info = {
+                    'avg_price': pos['avg_price'],
+                    'strategy': pos.get('strategy', 'balanced'),
+                    'qty': pos['qty'],
+                    'buy_time': pos.get('buy_time', time.time())
+                }
+
+                success, pnl = self.portfolio.sell(ticker, qty, price)
+
+                if success:
+                    self._complete_rl_experience(ticker, price, actual_pnl=pnl, pos_info=pos_info)
+                    executed_count += 1
+                    logger.info(
+                        f"💰 SELL {ticker}: {qty} @ {price:.2f} ({sell_ratio * 100:.0f}% позиции, PnL: {pnl:+.2f}₽)")
+
+                    if hasattr(self.model, 'record_strategy_outcome'):
+                        self.model.record_strategy_outcome(
+                            strategy_name=pos.get('strategy', 'balanced'),
+                            action='SELL',
+                            pnl=pnl,
+                            hold_time=time.time() - pos.get('buy_time', time.time())
                         )
-
-                        # Обновляем позицию
-                        self.portfolio.positions[ticker]['strategy'] = strategy
-                        self.portfolio.positions[ticker]['stop_loss'] = stop_loss
-                        self.portfolio.positions[ticker]['take_profit'] = take_profit
-                        self.portfolio.positions[ticker]['entry_state'] = current_state.cpu().numpy().tolist()
-
-                        executed_count += 1
-                        logger.debug(f"[DEBUG] Куплено: {ticker} {quantity} @ {price:.2f}")
-
-            elif action_str == 'SELL':
-                if ticker in self.portfolio.positions:
-                    logger.debug(f"[DEBUG] Продажа {ticker}, есть позиция")
-
-                    # Получаем параметры из позиции
-                    pos = self.portfolio.positions[ticker]
-                    pos_lot_size = pos.get('lot_size', 1)
-                    pos_min_step = pos.get('min_step', 0.01)
-
-                    # Сохраняем данные до продажи
-                    pos_info = {
-                        'avg_price': pos['avg_price'],
-                        'strategy': pos.get('strategy', 'balanced'),
-                        'lot_size': pos.get('lot_size', 1),
-                        'qty': pos['qty'],
-                        'buy_time': pos.get('buy_time', time.time())
-                    }
-
-                    # Корректировка цены продажи
-                    sell_price = price
-                    if pos_min_step > 0:
-                        remainder = sell_price % pos_min_step
-                        if abs(remainder) > 0.0001:
-                            sell_price = round(sell_price / pos_min_step) * pos_min_step
-                            logger.debug(f"Цена продажи {ticker} скорректирована")
-
-                    # Исполнение продажи
-                    qty = pos['qty'] // 2 if pos['qty'] > 1 else pos['qty']
-
-                    # Корректировка по лотности
-                    if pos_lot_size > 1:
-                        qty, qty_adjusted = LotValidator.validate_and_adjust_quantity(qty, pos_lot_size)
-                        if qty_adjusted:
-                            logger.debug(f"Количество продажи {ticker} скорректировано по лотности")
-                        if qty == 0:
-                            qty = pos_lot_size
-
-                    if qty > 0:
-                        success, pnl_with_commission = self.portfolio.sell(ticker, qty, sell_price)
-
-                        if success:
-                            strategy = pos.get('strategy', 'balanced')
-                            executed_count += 1
-                            logger.debug(
-                                f"[DEBUG] Продано: {ticker} {qty} @ {sell_price:.2f} (PnL с комиссией: {pnl_with_commission:.2f})")
-
-                            # ✅ Здесь action_idx = 2 (SELL)
-                            self._complete_rl_experience(
-                                ticker,
-                                sell_price,
-                                actual_pnl=pnl_with_commission,
-                                pos_info=pos_info
-                            )
-
-                            # Записываем результат стратегии
-                            if hasattr(self.model, 'record_strategy_outcome'):
-                                self.model.record_strategy_outcome(
-                                    strategy_name=strategy,
-                                    action='SELL',
-                                    pnl=pnl_with_commission,
-                                    hold_time=time.time() - pos.get('buy_time', time.time())
-                                )
-
-            # HOLD - ничего не делаем
 
         logger.debug(f"[DEBUG] Всего исполнено сделок: {executed_count}")
         return executed_count
@@ -635,7 +554,7 @@ class SmartPortfolioBroker:
         if portfolio_value <= 0:
             portfolio_value = self.settings.get('initial_capital_rub', 10000)
 
-        # Загружаем конфиг наград (с fallback)
+        # Загружаем конфиг наград
         reward_config = self.rl_config.get('reward_config', {})
 
         # 1. Нормируем на капитал (доходность в долях)
@@ -645,7 +564,19 @@ class SmartPortfolioBroker:
         scale = reward_config.get('pnl_scale_factor', 100.0)
         reward = pnl_percent * scale
 
-        # 3. Бонус за скорость (только для прибыльных сделок)
+        # 3. Бонус за положительный PnL (параметры из конфига)
+        profit_bonus_enabled = reward_config.get('profit_bonus_enabled', True)
+        if profit_bonus_enabled and pnl_percent > 0:
+            fixed_bonus = reward_config.get('profit_fixed_bonus', 0.5)
+            proportional_bonus_scale = reward_config.get('profit_proportional_bonus_scale', 200.0)
+            reward += fixed_bonus
+            reward += pnl_percent * proportional_bonus_scale
+        elif pnl_percent < 0:
+            # Меньший штраф за убыток
+            loss_penalty_scale = reward_config.get('loss_penalty_scale', 50.0)
+            reward += pnl_percent * loss_penalty_scale
+
+        # 4. Бонус за скорость (только для прибыльных сделок)
         if reward_config.get('speed_bonus_enabled', True) and pnl_percent > 0:
             strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
             target_time = strategy_params.get('target_hold_time_hours', 6)
@@ -654,13 +585,17 @@ class SmartPortfolioBroker:
                 speed_bonus = pnl_percent * speed_max * (1 - hold_time / target_time)
                 reward += speed_bonus
 
-        # 4. Штраф за долгий убыток
-        if reward_config.get('time_penalty_enabled', True) and pnl_percent < 0 and hold_time > 6:
-            time_penalty_max = reward_config.get('time_penalty_max_percent', 20.0)
-            time_penalty = abs(pnl_percent) * time_penalty_max
-            reward -= time_penalty
+        # 5. Штраф за долгий убыток или долгий HOLD
+        if reward_config.get('time_penalty_enabled', True):
+            if pnl_percent < 0 and hold_time > reward_config.get('loss_hold_threshold', 6.0):
+                time_penalty_max = reward_config.get('time_penalty_max_percent', 20.0)
+                time_penalty = abs(pnl_percent) * time_penalty_max
+                reward -= time_penalty
+            elif pnl_percent <= 0 and hold_time > reward_config.get('hold_penalty_threshold', 24.0):
+                hold_penalty_rate = reward_config.get('hold_penalty_rate', 0.1)
+                reward -= hold_penalty_rate * (hold_time / reward_config.get('hold_penalty_threshold', 24.0))
 
-        # 5. Штраф за комиссию (относительный)
+        # 6. Штраф за комиссию (относительный)
         if reward_config.get('commission_penalty_enabled', True):
             total_commission = getattr(self.portfolio, 'total_commission', 0.0)
             if total_commission > 0 and portfolio_value > 0:
@@ -668,14 +603,15 @@ class SmartPortfolioBroker:
                 penalty_scale = reward_config.get('commission_penalty_scale', 50.0)
                 reward -= commission_ratio * penalty_scale
 
-        # 6. Штраф за концентрацию
+        # 7. Штраф за концентрацию
         if reward_config.get('concentration_penalty_enabled', True):
             positions_count = len(self.portfolio.positions)
-            if positions_count > 5:
+            max_positions = reward_config.get('max_positions_before_penalty', 5)
+            if positions_count > max_positions:
                 penalty_per_pos = reward_config.get('concentration_penalty_per_position', 0.1)
-                reward -= penalty_per_pos * (positions_count - 5)
+                reward -= penalty_per_pos * (positions_count - max_positions)
 
-        # 7. Обрезание награды (из конфига)
+        # 8. Обрезание награды (из конфига)
         max_reward = reward_config.get('reward_clip_max', 20.0)
         min_reward = reward_config.get('reward_clip_min', -10.0)
         reward = max(min_reward, min(max_reward, reward))
@@ -741,15 +677,15 @@ class SmartPortfolioBroker:
 
         return state
 
-    def _select_buy_strategy(self, ticker: str, price: float,
-                             confidence: float, base_state: torch.Tensor,
-                             assigned_horizon: str = 'week') -> Tuple[str, float, float]:
-        """Выбор стратегии с таймаутом для Windows"""
+    def _select_buy_strategy_with_action(self, ticker: str, price: float,
+                                         confidence: float, base_state: torch.Tensor,
+                                         assigned_horizon: str = 'week') -> Tuple[str, float, float, int]:
+        """Выбор стратегии и действия с таймаутом"""
+
+        timeout = self.settings.get('strategy_selection_timeout', 10)
 
         def _impl():
-            print(f"   base_state.dtype: {base_state.dtype}")
             if base_state.dtype != torch.float32:
-                print(f"   ⚠️ КОНВЕРТИРУЕМ base_state в float32")
                 base_state_local = base_state.to(dtype=torch.float32)
             else:
                 base_state_local = base_state
@@ -776,10 +712,11 @@ class SmartPortfolioBroker:
         result_queue = queue.Queue()
         thread = threading.Thread(target=lambda: result_queue.put(_impl()), daemon=True)
         thread.start()
-        thread.join(timeout=self.settings.get('strategy_selection_timeout', 10))
+        thread.join(timeout=timeout)
 
         if thread.is_alive():
-            logger.error(f"⏰ ТАЙМАУТ выбора стратегии для {ticker} (>10с), использую balanced")
+            logger.error(f"⏰ ТАЙМАУТ выбора стратегии для {ticker}, использую balanced")
+            action = 3  # HOLD
             final_strategy = 'balanced'
             strategy_confidence = 0.5
             sentiment_score = 0.0
@@ -787,7 +724,7 @@ class SmartPortfolioBroker:
             try:
                 action, final_strategy, strategy_confidence, sentiment_score = result_queue.get_nowait()
             except:
-                logger.error(f"❌ Ошибка получения результата для {ticker}")
+                action = 3  # HOLD
                 final_strategy = 'balanced'
                 strategy_confidence = 0.5
                 sentiment_score = 0.0
@@ -811,12 +748,11 @@ class SmartPortfolioBroker:
         take_profit = price * (1 + adjusted_take_profit / 100)
 
         logger.debug(
-            f"🤖 Стратегия {ticker}: {final_strategy} "
-            f"(sentiment: {sentiment_score:.3f}, confidence: {strategy_confidence:.2f}) "
-            f"SL={adjusted_stop_loss:.1f}%, TP={adjusted_take_profit:.1f}%"
+            f"🤖 {ticker}: action={action}, strategy={final_strategy}, "
+            f"conf={strategy_confidence:.2f}, SL={adjusted_stop_loss:.1f}%, TP={adjusted_take_profit:.1f}%"
         )
 
-        return final_strategy, stop_loss, take_profit
+        return final_strategy, stop_loss, take_profit, action
 
     def _periodic_learning(self):
         """ОПТИМИЗИРОВАННОЕ онлайн-обучение с приоритетами"""
@@ -1328,8 +1264,11 @@ class SmartPortfolioBroker:
                 logger.debug(f"Сгенерировано технических сигналов: {len(tech_signals)}")
 
             filtered_signals = self._aggregate_signals(all_signals)
-            self.signals_cache = filtered_signals[:10]
 
+            # Применяем фильтрацию по успешности тикеров
+            filtered_signals = self._filter_signals_by_success_rate(filtered_signals)
+
+            self.signals_cache = filtered_signals[:10]
             self.check_stops_and_tp(prices)
 
             hold_config = self.rl_config.get('hold_reward', {})
@@ -1385,6 +1324,15 @@ class SmartPortfolioBroker:
                         f"Портфель: {total_value:,.0f}₽ | "
                         f"Позиций: {len(self.portfolio.positions)} | "
                         f"Сигналов: {len(filtered_signals)}")
+
+            # Периодическая сводка PnL
+            pnl_summary_interval = self.rl_config.get('logging', {}).get('pnl_summary_interval', 10)
+            if self.cycle_count % pnl_summary_interval == 0:
+                initial_capital = self.settings.get('initial_capital_rub', 10000)
+                total_pnl = total_value - initial_capital
+                pnl_percent = (total_pnl / initial_capital) * 100 if initial_capital > 0 else 0
+                daily_trades = getattr(self.risk_manager, 'daily_trades', 0)
+                logger.info(f"📈 СВОДКА PNL: {total_pnl:+,.0f}₽ ({pnl_percent:+.2f}%) | Сделок за день: {daily_trades}")
 
         except Exception as e:
             logger.error(f"Критическая ошибка в run_cycle: {e}")
@@ -1477,6 +1425,34 @@ class SmartPortfolioBroker:
         aggregated.sort(key=lambda x: x['confidence'], reverse=True)
 
         return aggregated
+
+    def _filter_signals_by_success_rate(self, signals: List[Dict]) -> List[Dict]:
+        """Фильтрация сигналов по исторической успешности тикера"""
+        filter_config = self.rl_config.get('signal_filter', {})
+
+        if not filter_config.get('enabled', True):
+            return signals
+
+        filtered = []
+        min_trades = filter_config.get('min_trades_for_filter', 3)
+        min_success_rate = filter_config.get('min_success_rate', 0.5)
+        new_ticker_confidence_mult = filter_config.get('new_ticker_confidence_mult', 0.7)
+
+        for signal in signals:
+            ticker = signal['ticker']
+            stats = self.model.ticker_stats.get(ticker, {})
+            total_trades = stats.get('total_trades', 0)
+
+            if total_trades >= min_trades:
+                if stats.get('success_rate', 0) >= min_success_rate:
+                    filtered.append(signal)
+            else:
+                # Новые тикеры - с пониженной уверенностью
+                signal['confidence'] = signal.get('confidence', 0.5) * new_ticker_confidence_mult
+                filtered.append(signal)
+
+        logger.debug(f"Отфильтровано сигналов: {len(signals)} -> {len(filtered)}")
+        return filtered
 
     def _record_trade_for_learning(self, ticker: str, action: str, price: float,
                                    quantity: int, confidence: float, pnl: float = 0.0):
