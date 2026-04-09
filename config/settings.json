@@ -6,6 +6,16 @@
   "daily_loss_limit_percent": 5,
   "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f",
 
+  "strategy_selection_timeout": 10,
+  "cycle_timeout": 90,
+  "cycle_intervals": {
+    "rebalance": 5,
+    "learning": 10,
+    "save_state": 20,
+    "top_tickers": 120
+  },
+
+
   "trading_hours": {
     "main_session": "06:50-18:50",
     "evening_session": "19:00-23:50",

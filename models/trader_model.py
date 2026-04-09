@@ -228,9 +228,15 @@ class AdvancedTraderModel:
         self.strategy_config = self._load_strategy_config()
         self.memory_config = self._load_memory_config()
 
-        # Загрузка весов модели из конфига
+        # Загрузка весов модели и нормализации из конфига
         self.model_weights = self.rl_config.get('model_weights', {})
         self.normalization = self.rl_config.get('normalization', {})
+
+        # Загрузка BERT конфига
+        self.bert_config = self.rl_config.get('bert_config', {
+            'max_length': 128,
+            'model_name': 'cointegrated/rubert-tiny2'
+        })
 
         # Загрузка расписания торгов
         try:
@@ -271,10 +277,11 @@ class AdvancedTraderModel:
         self.evening_start = self.rl_config.get('evening_start', 19.0)
 
         # Параметры из конфигов
-        self.news_encoded_dim = self.rl_config["state_parameters"]["news_features_size"]
-        self.base_state_dim = self.rl_config["state_parameters"]["state_vector_size"]
-        self.strategy_params_dim = self.rl_config["state_parameters"]["strategy_params_size"]
-        self.total_state_dim = self.rl_config["state_parameters"]["total_state_size"]
+        state_params = self.rl_config["state_parameters"]
+        self.news_encoded_dim = state_params["news_features_size"]
+        self.base_state_dim = state_params["state_vector_size"]
+        self.strategy_params_dim = state_params["strategy_params_size"]
+        self.total_state_dim = state_params["total_state_size"]
 
         # Синхронизация глобальных констант для обратной совместимости
         global NEWS_ENCODED_DIM, BASE_STATE_DIM, TOTAL_STATE_DIM
@@ -282,21 +289,90 @@ class AdvancedTraderModel:
         BASE_STATE_DIM = self.base_state_dim
         TOTAL_STATE_DIM = self.total_state_dim
 
-        self.dimensions = {
+        # Загрузка параметров построения состояния
+        self.state_building = self.rl_config.get('state_building', {
+            'sector_onehot_size': 5,
+            'strategy_onehot_size': 8,
+            'default_stop_loss_mult': 0.97,
+            'default_take_profit_mult': 1.05,
+            'position_size_fraction': 0.5,
+            'breakeven_multiplier': 1.006,
+            'drawdown_multiplier': 2.0
+        })
+
+        # Загрузка размерностей состояния
+        self.state_dimensions = self.rl_config.get('state_dimensions', {
             'price_volume': 4,
             'technical': 7,
-            'news': 134,  # 132 + 2 резерва
+            'news': 134,
             'fundamental': 7,
             'position': 5,
             'portfolio': 5,
             'risk': 3,
             'time': 4,
             'strategy': 11,
-            'macro_extra': 4,  # MOEXOG, MOEXFN, brent_price, brent_change
-            'commission': 8,  # комиссионные признаки
-        }
+            'macro_extra': 4,
+            'commission': 8
+        })
 
-        self.expected_dim = sum(self.dimensions.values()) + self.normalization.get('reserved_slots', 10)
+        # Загрузка сентимент конфига
+        self.sentiment_keywords = self.rl_config.get('sentiment_config', {
+            'positive_keywords': ["рост", "прибыль", "увеличение", "дивиденд", "выше", "улучшение", "рекомендуют",
+                                  "покупать"],
+            'negative_keywords': ["падение", "убыток", "снижение", "проблемы", "ниже", "сокращение", "продавать",
+                                  "снижают"],
+            'market_keywords': ["рынок", "акци", "бирж", "фондов", "инвест", "торг", "ликвид", "волатиль"],
+            'sentiment_divisor': 10,
+            'noise_scale': 0.1
+        })
+
+        # Загрузка параметров приоритетного буфера
+        self.prioritized_buffer_config = self.rl_config.get('prioritized_buffer', {
+            'alpha': 0.6,
+            'beta': 0.4,
+            'beta_increment': 0.001
+        })
+
+        # Загрузка статистик по умолчанию
+        default_stats = self.rl_config.get('default_stats', {})
+
+        default_strategy_perf = default_stats.get('strategy_performance', {
+            'total_trades': 0,
+            'profitable_trades': 0,
+            'total_pnl': 0.0,
+            'avg_pnl': 0.0,
+            'win_rate': 0.5
+        })
+
+        default_error_memory = default_stats.get('error_memory', {
+            'failed_trades': [],
+            'avg_loss': 0.0,
+            'last_failure': None,
+            'failure_count': 0,
+            'success_rate': 0.5,
+            'total_trades': 0
+        })
+
+        default_ticker_stats = default_stats.get('ticker_stats', {
+            'total_trades': 0,
+            'profitable_trades': 0,
+            'total_pnl': 0.0,
+            'avg_hold_time': 0.0,
+            'success_rate': 0.5,
+            'last_trade': None
+        })
+
+        # Загрузка начального рыночного состояния
+        initial_market = self.rl_config.get('initial_market_state', {
+            'market_sentiment': 0.0,
+            'volatility_index': 1.0
+        })
+
+        # Количество действий (BUY/HOLD/SELL)
+        self.action_dim = self.rl_config.get('action_dim', 3)
+
+        # Расчет ожидаемой размерности
+        self.expected_dim = sum(self.state_dimensions.values()) + self.normalization.get('reserved_slots', 10)
 
         # Загрузка BERT
         self.bert_model, self.bert_tokenizer = self._load_bert_model()
@@ -310,7 +386,7 @@ class AdvancedTraderModel:
 
         self.policy_net = TradingPolicyNetwork(
             state_dim=self.total_state_dim,
-            action_dim=3
+            action_dim=self.action_dim
         ).to(self.device)
 
         # Оптимизаторы
@@ -324,52 +400,28 @@ class AdvancedTraderModel:
         self.memory = deque(maxlen=self.rl_config.get("memory_size", 5000))
         self.prioritized_buffer = PrioritizedReplayBuffer(
             max_size=self.rl_config.get("memory_size", 5000),
-            alpha=0.6,
-            beta=0.4
+            alpha=self.prioritized_buffer_config.get('alpha', 0.6),
+            beta=self.prioritized_buffer_config.get('beta', 0.4),
+            beta_increment=self.prioritized_buffer_config.get('beta_increment', 0.001)
         )
 
         # Статистика
-        self.strategy_performance = defaultdict(lambda: {
-            'total_trades': 0,
-            'profitable_trades': 0,
-            'total_pnl': 0.0,
-            'avg_pnl': 0.0,
-            'win_rate': 0.5
-        })
-
+        self.strategy_performance = defaultdict(lambda: default_strategy_perf.copy())
         self.strategies = self.strategy_config['strategies']
-
-        self.error_memory = defaultdict(lambda: {
-            'failed_trades': [],
-            'avg_loss': 0.0,
-            'last_failure': None,
-            'failure_count': 0,
-            'success_rate': 0.5,
-            'total_trades': 0
-        })
-
-        self.ticker_stats = defaultdict(lambda: {
-            'total_trades': 0,
-            'profitable_trades': 0,
-            'total_pnl': 0.0,
-            'avg_hold_time': 0.0,
-            'success_rate': 0.5,
-            'last_trade': None
-        })
+        self.error_memory = defaultdict(lambda: default_error_memory.copy())
+        self.ticker_stats = defaultdict(lambda: default_ticker_stats.copy())
 
         # Рыночное состояние
-        self.market_sentiment = 0.0
+        self.market_sentiment = initial_market.get('market_sentiment', 0.0)
         self.sentiment_history = deque(maxlen=self.model_weights.get('max_sentiment_history', 200))
-        self.volatility_index = 1.0
+        self.volatility_index = initial_market.get('volatility_index', 1.0)
 
         # Параметры обучения
         self.gamma = self.rl_config.get("gamma", 0.95)
-        self.exploration_rate = self.strategy_config['strategy_selection'].get(
-            'exploration_rate', 0.3
-        )
-        self.confidence_boost_factor = self.strategy_config['strategy_selection'].get(
-            'confidence_boost_factor', 0.4
-        )
+
+        strategy_selection = self.strategy_config.get('strategy_selection', {})
+        self.exploration_rate = strategy_selection.get('exploration_rate', 0.3)
+        self.confidence_boost_factor = strategy_selection.get('confidence_boost_factor', 0.4)
 
         # Загрузка сохраненной модели
         self.load_model()
@@ -520,7 +572,7 @@ class AdvancedTraderModel:
         features.extend([0.0] * 2)  # резерв (2 слота)
 
         # === 4. Фундаментальные (7) ===
-        sector_onehot = [0] * 5
+        sector_onehot = [0] * self.state_building.get('sector_onehot_size', 5)
         sector = market_data.get('sector', 'other')
         sector_map = {'финансы': 0, 'нефтегаз': 1, 'металлы': 2, 'телеком': 3, 'other': 4}
         if sector in sector_map:
@@ -543,8 +595,8 @@ class AdvancedTraderModel:
             if ticker in self.portfolio.positions:
                 pos = self.portfolio.positions[ticker]
                 entry = pos.get('avg_price', price)
-                stop = pos.get('stop_loss', entry * 0.97)
-                take = pos.get('take_profit', entry * 1.05)
+                stop = pos.get('stop_loss', entry * self.state_building.get('default_stop_loss_mult', 0.97))
+                take = pos.get('take_profit', entry * self.state_building.get('default_take_profit_mult', 1.05))
 
                 has_position = 1.0
                 pnl_raw = (price - entry) / entry
@@ -603,7 +655,8 @@ class AdvancedTraderModel:
             drawdown = 0.0
             daily_pnl_norm = 0.0
 
-        features.extend([positions_norm, exposure_norm, cash_ratio, min(drawdown * 2, 1.0), daily_pnl_norm])
+        drawdown_mult = self.state_building.get('drawdown_multiplier', 2.0)
+        features.extend([positions_norm, exposure_norm, cash_ratio, min(drawdown * drawdown_mult, 1.0), daily_pnl_norm])
 
         # === 7. Риск (3) ===
         features.extend([
@@ -629,7 +682,7 @@ class AdvancedTraderModel:
         ])
 
         # === 9. Стратегия (11) ===
-        strategy_onehot = [0] * 8
+        strategy_onehot = [0] * self.state_building.get('strategy_onehot_size', 8)
         current_strategy = getattr(self, 'current_strategy', 'balanced')
         strategy_list = list(self.strategies.keys())
         if current_strategy in strategy_list:
@@ -709,13 +762,14 @@ class AdvancedTraderModel:
             trade_frequency_penalty = min(trades_last_hour / max_trades_per_hour, 1.0)
 
             max_positions = getattr(portfolio, 'max_positions', 10)
-            position_value = (initial_capital / max_positions) * 0.5
+            position_value = (initial_capital / max_positions) * self.state_building.get('position_size_fraction', 0.5)
             expected_commission = (position_value * commission_rate) / initial_capital
 
             position = portfolio.positions.get(ticker) if hasattr(portfolio, 'positions') else None
             if position:
                 entry_price = position.get('avg_price', price)
-                breakeven_price_ratio = (entry_price * (1 + commission_rate * 2)) / price if price > 0 else 1.0
+                breakeven_mult = self.state_building.get('breakeven_multiplier', 1.006)
+                breakeven_price_ratio = (entry_price * breakeven_mult) / price if price > 0 else 1.0
 
         commission_features = [
             commission_reserve_ratio,
@@ -796,57 +850,11 @@ class AdvancedTraderModel:
 
         return max(norm.get('min_risk', 0.1), min(norm.get('max_risk', 0.85), final_risk))
 
-    def _get_commission_to_pnl_ratio(self) -> float:
-        """Отношение комиссии к PnL (чем выше, тем хуже)"""
-        if not hasattr(self, 'portfolio') or not self.portfolio:
-            return 0.0
 
-        total_pnl = getattr(self.portfolio, 'total_pnl', 0.0)
-        total_commission = getattr(self.portfolio, 'total_commission', 0.0)
 
-        if total_pnl > 0:
-            return min(total_commission / total_pnl, 2.0)
-        return 0.0
 
-    def _get_trade_frequency_penalty(self) -> float:
-        """Штраф за частоту сделок (0-1)"""
-        if not hasattr(self, 'portfolio') or not self.portfolio:
-            return 0.0
 
-        import time
-        trades_last_hour = len([t for t in getattr(self.portfolio, 'trade_history', [])
-                                if t.get('timestamp', 0) > time.time() - 3600])
-        max_trades = getattr(self.portfolio, 'max_trades_per_hour', 10)
 
-        return min(trades_last_hour / max_trades, 1.0)
-
-    def _get_expected_commission(self, ticker: str, price: float) -> float:
-        """Ожидаемая комиссия для текущей сделки (в долях от капитала)"""
-        if not hasattr(self, 'portfolio') or not self.portfolio:
-            return 0.0
-
-        # Упрощенная оценка размера позиции (1/макс_позиций)
-        max_positions = getattr(self.portfolio, 'max_positions', 10)
-        position_value = (self.portfolio.initial_capital / max_positions) * 0.5  # оценочно
-
-        commission_rate = 0.003  # 0.3%
-        expected = position_value * commission_rate
-
-        return expected / self.portfolio.initial_capital
-
-    def _get_breakeven_price_ratio(self, ticker: str, price: float) -> float:
-        """Отношение цены безубыточности к текущей цене"""
-        if not hasattr(self, 'portfolio') or not self.portfolio:
-            return 1.0
-
-        position = self.portfolio.positions.get(ticker)
-        if not position:
-            return 1.0
-
-        entry_price = position.get('avg_price', price)
-        breakeven = entry_price * 1.006  # 0.6% (вход 0.3% + выход 0.3%)
-
-        return breakeven / price if price > 0 else 1.0
 
     def get_price_pred_probs(self, price_pred):
         """Универсальное получение вероятностей из price_pred"""
@@ -1126,7 +1134,7 @@ class AdvancedTraderModel:
                     news_texts,
                     padding=True,
                     truncation=True,
-                    max_length=128,
+                    max_length=self.bert_config.get('max_length', 128),
                     return_tensors="pt"
                 ).to(self.device)
 
@@ -1154,10 +1162,15 @@ class AdvancedTraderModel:
         embeddings = torch.zeros(batch_size, news_embedding_dim).to(self.device)
 
         sentiment_dict = {
-            'positive': ['рост', 'прибыль', 'увеличение', 'дивиденд', 'выше', 'улучшение', 'рекомендуют', 'покупать'],
-            'negative': ['падение', 'убыток', 'снижение', 'проблемы', 'ниже', 'сокращение', 'продавать', 'снижают'],
-            'market': ['рынок', 'акци', 'бирж', 'фондов', 'инвест', 'торг', 'ликвид', 'волатиль']
+            'positive': self.sentiment_keywords.get('positive_keywords', ['рост', 'прибыль']),
+            'negative': self.sentiment_keywords.get('negative_keywords', ['падение', 'убыток']),
+            'market': self.sentiment_keywords.get('market_keywords', ['рынок', 'акци'])
         }
+
+        max_length = norm.get('news_max_length', 1000)
+        max_words = norm.get('news_max_words', 200)
+        sentiment_divisor = self.sentiment_keywords.get('sentiment_divisor', 10)
+        noise_scale = self.sentiment_keywords.get('noise_scale', 0.1)
 
         max_length = norm.get('news_max_length', 1000)
         max_words = norm.get('news_max_words', 200)
@@ -1412,10 +1425,17 @@ class AdvancedTraderModel:
             self.memory.extend(loaded_memory)
 
             if hasattr(self, 'prioritized_buffer'):
+                old_alpha = getattr(self.prioritized_buffer, 'alpha',
+                                    self.prioritized_buffer_config.get('alpha', 0.6))
+                old_beta = getattr(self.prioritized_buffer, 'beta',
+                                   self.prioritized_buffer_config.get('beta', 0.4))
+                old_beta_inc = getattr(self.prioritized_buffer, 'beta_increment',
+                                       self.prioritized_buffer_config.get('beta_increment', 0.001))
                 self.prioritized_buffer = PrioritizedReplayBuffer(
                     max_size=self.memory.maxlen,
-                    alpha=0.6,
-                    beta=0.4
+                    alpha=old_alpha,
+                    beta=old_beta,
+                    beta_increment=old_beta_inc
                 )
                 for exp in loaded_memory:
                     self.prioritized_buffer.add(exp)

@@ -1,166 +1,240 @@
 #!/usr/bin/env python3
 """
-Диагностика работающей системы без остановки.
-Подключается к тому же коду и читает состояние планировщика.
+Проверка многопоточности и потенциальных deadlock
 """
-
-import sys
-import os
 import time
-from datetime import datetime
+import threading
+import queue
+import sys
+import tracemalloc
 
-# Добавляем путь к проекту
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from core.trading_hours_scheduler import TradingScheduler
-from utils.logger import get_logger
-
-logger = get_logger("ATTACH_DEBUG")
+sys.path.insert(0, '.')
 
 
-def debug_scheduler():
-    """Диагностика планировщика в реальном времени"""
+def test_thread_isolation():
+    """Проверка изоляции потоков"""
+    print("=" * 60)
+    print("ТЕСТ МНОГОПОТОЧНОСТИ")
+    print("=" * 60)
 
-    # Создаём НОВЫЙ экземпляр (читает те же конфиги)
-    scheduler = TradingScheduler()
+    results = {'main': None, 'thread1': None, 'thread2': None}
+    errors = []
 
-    print("\n" + "=" * 80)
-    print("🔍 ДИАГНОСТИКА ПЛАНИРОВЩИКА (работает параллельно)")
-    print("=" * 80)
-
-    while True:
+    def worker1():
         try:
-            now_moscow = datetime.now(scheduler.moscow_tz)
+            from models.trader_model import trader_model_instance
+            import torch
 
-            # 1. Базовая проверка
-            is_trading_day = scheduler.is_trading_day()
-            is_trading_time = scheduler.is_trading_time()
-            period = scheduler.get_current_moex_period()
-            can_trade = scheduler.can_trade_now()
+            # Имитация выбора стратегии
+            state = torch.randn(210)
+            market_context = {
+                'market_sentiment': 0.1,
+                'volatility': 0.2,
+                'confidence': 0.5,
+                'time_of_day': 0.5,
+                'ticker_sentiment': 0.0,
+                'assigned_horizon': 'day'
+            }
 
-            # 2. Детальная проверка времени
-            current_time = now_moscow.time()
-            current_hour = current_time.hour
-            current_minute = current_time.minute
-
-            # 3. Загружаем конфиг
-            import json
-            with open("config/market_schedule.json", "r") as f:
-                config = json.load(f)
-
-            sessions = config.get('sessions', {})
-            main_session = sessions.get('main_session', {})
-            evening_session = sessions.get('evening_session', {})
-
-            # 4. Парсим время сессий
-            main_start = main_session.get('start', 'N/A')
-            main_end = main_session.get('end', 'N/A')
-            evening_start = evening_session.get('start', 'N/A')
-            evening_end = evening_session.get('end', 'N/A')
-            evening_enabled = evening_session.get('enabled', False)
-
-            # 5. Проверяем попадание в интервалы
-            in_main = False
-            in_evening = False
-
-            if main_start != 'N/A':
-                sh, sm = map(int, main_start.split(':'))
-                eh, em = map(int, main_end.split(':'))
-                from datetime import time as dt_time
-                main_start_t = dt_time(sh, sm)
-                main_end_t = dt_time(eh, em)
-                in_main = main_start_t <= current_time <= main_end_t
-
-            if evening_enabled and evening_start != 'N/A':
-                sh, sm = map(int, evening_start.split(':'))
-                eh, em = map(int, evening_end.split(':'))
-                evening_start_t = dt_time(sh, sm)
-                evening_end_t = dt_time(eh, em)
-                in_evening = evening_start_t <= current_time <= evening_end_t
-
-            # 6. ВЫВОД
-            print(f"\n{'=' * 60}")
-            print(f"🕐 Время МСК: {now_moscow.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"{'=' * 60}")
-            print(f"📅 Торговый день: {is_trading_day}")
-            print(f"💰 Торговое время (is_trading_time): {is_trading_time}")
-            print(f"📊 Текущий период MOEX: {period}")
-            print(f"✅ Можно торговать: {can_trade.get('can_place_orders', False)}")
-            print(f"🎯 Текущий период из can_trade: {can_trade.get('current_period', 'unknown')}")
-
-            print(f"\n📋 СЕССИИ ИЗ КОНФИГА:")
-            print(f"   Основная: {main_start} - {main_end} → текущее время ВНУТРИ: {in_main}")
-            print(f"   Вечерняя: enabled={evening_enabled}, {evening_start} - {evening_end} → внутри: {in_evening}")
-
-            # 7. Предупреждение, если не совпадает
-            if is_trading_time != (in_main or in_evening):
-                print(
-                    f"\n⚠️ ВНИМАНИЕ: is_trading_time()={is_trading_time}, но по интервалам должно быть {in_main or in_evening}!")
-                print(f"   → Проблема в логике is_trading_time() или is_trading_day()")
-
-            if not is_trading_time and (in_main or in_evening):
-                print(f"\n🔴 КРИТИЧЕСКАЯ ОШИБКА: Рынок должен быть открыт, но is_trading_time()=False!")
-                print(f"   → Проверьте метод is_trading_day() и праздники")
-
-            # Пауза между проверками
-            time.sleep(5)
-
-        except KeyboardInterrupt:
-            print("\nДиагностика остановлена")
-            break
+            start = time.time()
+            action, strategy, conf = trader_model_instance.choose_action_with_strategy(
+                state=state,
+                ticker='TEST',
+                price=100.0,
+                market_context=market_context
+            )
+            elapsed = time.time() - start
+            results['thread1'] = ('success', elapsed, strategy)
         except Exception as e:
-            print(f"Ошибка: {e}")
-            import traceback
-            traceback.print_exc()
-            time.sleep(10)
+            results['thread1'] = ('error', str(e))
 
-
-def check_main_process():
-    """Проверка, жив ли основной процесс main.py"""
-    import psutil
-    import subprocess
-
-    print("\n" + "=" * 60)
-    print("🔍 ПРОВЕРКА ПРОЦЕССОВ")
-    print("=" * 60)
-
-    # Ищем процесс main.py
-    main_pids = []
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+    def worker2():
         try:
-            cmdline = ' '.join(proc.info['cmdline'] or [])
-            if 'main.py' in cmdline and 'python' in cmdline.lower():
-                main_pids.append(proc.info['pid'])
-                print(f"✅ Найден процесс main.py: PID={proc.info['pid']}")
-                print(f"   Команда: {cmdline[:200]}")
+            from fetchers.moex_fetcher import MoexFetcher
+            moex = MoexFetcher(use_cache=False)
 
-                # Статус потока
-                try:
-                    proc_cpu = proc.cpu_percent(interval=0.5)
-                    proc_mem = proc.memory_info().rss / 1024 / 1024
-                    print(f"   CPU: {proc_cpu}%, RAM: {proc_mem:.1f}MB")
-                    print(f"   Статус: {proc.status()}")
-                except:
-                    pass
-        except:
-            pass
+            start = time.time()
+            price = moex.get_price('SBER')
+            elapsed = time.time() - start
+            results['thread2'] = ('success', elapsed, price)
+        except Exception as e:
+            results['thread2'] = ('error', str(e))
 
-    if not main_pids:
-        print("❌ Процесс main.py НЕ НАЙДЕН! Система не запущена.")
+    print("\nЗапуск параллельных потоков...")
 
+    t1 = threading.Thread(target=worker1, name="ModelThread")
+    t2 = threading.Thread(target=worker2, name="MOEXThread")
+
+    start_all = time.time()
+    t1.start()
+    t2.start()
+
+    t1.join(timeout=15)
+    t2.join(timeout=15)
+    total_time = time.time() - start_all
+
+    print(f"\nОбщее время выполнения: {total_time:.3f}с")
+
+    if t1.is_alive():
+        print("❌ Поток 1 (модель) ЗАВИС!")
+        errors.append("thread1_hang")
+    else:
+        status, elapsed, data = results['thread1']
+        if status == 'success':
+            print(f"✅ Поток 1: {elapsed:.3f}с, стратегия: {data}")
+        else:
+            print(f"❌ Поток 1 ошибка: {data}")
+
+    if t2.is_alive():
+        print("❌ Поток 2 (MOEX) ЗАВИС!")
+        errors.append("thread2_hang")
+    else:
+        status, elapsed, data = results['thread2']
+        if status == 'success':
+            print(f"✅ Поток 2: {elapsed:.3f}с, цена SBER: {data}")
+        else:
+            print(f"❌ Поток 2 ошибка: {data}")
+
+    return len(errors) == 0
+
+
+def test_sequential_vs_parallel():
+    """Сравнение последовательного и параллельного выполнения"""
+    print("\n" + "=" * 60)
+    print("СРАВНЕНИЕ ПОСЛЕДОВАТЕЛЬНОГО И ПАРАЛЛЕЛЬНОГО ВЫПОЛНЕНИЯ")
     print("=" * 60)
+
+    def model_task():
+        from models.trader_model import trader_model_instance
+        import torch
+        state = torch.randn(210)
+        market_context = {
+            'market_sentiment': 0.1, 'volatility': 0.2, 'confidence': 0.5,
+            'time_of_day': 0.5, 'ticker_sentiment': 0.0, 'assigned_horizon': 'day'
+        }
+        return trader_model_instance.choose_action_with_strategy(
+            state=state, ticker='TEST', price=100.0, market_context=market_context
+        )
+
+    def moex_task():
+        from fetchers.moex_fetcher import MoexFetcher
+        moex = MoexFetcher(use_cache=False)
+        return moex.get_price('SBER')
+
+    # Последовательное выполнение
+    print("\n1. ПОСЛЕДОВАТЕЛЬНО:")
+    start = time.time()
+    model_task()
+    moex_task()
+    sequential_time = time.time() - start
+    print(f"   Время: {sequential_time:.3f}с")
+
+    # Параллельное выполнение
+    print("\n2. ПАРАЛЛЕЛЬНО:")
+
+    result_queue = queue.Queue()
+
+    def parallel_worker(task_func, name):
+        try:
+            start = time.time()
+            task_func()
+            elapsed = time.time() - start
+            result_queue.put((name, 'success', elapsed))
+        except Exception as e:
+            result_queue.put((name, 'error', str(e)))
+
+    start = time.time()
+    t1 = threading.Thread(target=lambda: parallel_worker(model_task, "model"))
+    t2 = threading.Thread(target=lambda: parallel_worker(moex_task, "moex"))
+    t1.start()
+    t2.start()
+    t1.join(timeout=15)
+    t2.join(timeout=15)
+    parallel_time = time.time() - start
+
+    print(f"   Время: {parallel_time:.3f}с")
+
+    if parallel_time > sequential_time * 3:
+        print(f"\n⚠️ Параллельное выполнение ЗНАЧИТЕЛЬНО МЕДЛЕННЕЕ ({parallel_time:.3f}с vs {sequential_time:.3f}с)")
+        print("   Это указывает на проблему с GIL или блокировками")
+        return False
+    else:
+        print(f"\n✅ Параллельное выполнение в норме")
+        return True
+
+
+def test_news_fetcher_thread_safety():
+    """Проверка потокобезопасности news_fetcher"""
+    print("\n" + "=" * 60)
+    print("ПРОВЕРКА ПОТОКОБЕЗОПАСНОСТИ NEWS_FETCHER")
+    print("=" * 60)
+
+    from fetchers.news_fetcher import OptimizedNewsFetcher
+
+    fetcher = OptimizedNewsFetcher("config/rss_sources.json")
+
+    def news_worker(worker_id):
+        try:
+            start = time.time()
+            news = fetcher.get_last_news(limit=10)
+            elapsed = time.time() - start
+            return ('success', worker_id, len(news), elapsed)
+        except Exception as e:
+            return ('error', worker_id, str(e))
+
+    threads = []
+    results_queue = queue.Queue()
+
+    def worker_wrapper(wid):
+        results_queue.put(news_worker(wid))
+
+    print("\nЗапуск 5 параллельных запросов к news_fetcher...")
+
+    start_all = time.time()
+    for i in range(5):
+        t = threading.Thread(target=lambda wid=i: worker_wrapper(wid))
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join(timeout=10)
+
+    total_time = time.time() - start_all
+
+    print(f"Общее время: {total_time:.3f}с\n")
+
+    successes = 0
+    while not results_queue.empty():
+        status, wid, data, elapsed = results_queue.get()
+        if status == 'success':
+            successes += 1
+            print(f"  Worker {wid}: {data} новостей за {elapsed:.3f}с")
+        else:
+            print(f"  Worker {wid}: ОШИБКА - {data}")
+
+    if successes == 5:
+        print(f"\n✅ Все 5 потоков отработали успешно")
+        return True
+    else:
+        print(f"\n⚠️ Отработало только {successes}/5 потоков")
+        return False
 
 
 if __name__ == "__main__":
-    # Сначала проверяем процессы
-    check_main_process()
+    print("ЗАПУСК ТЕСТОВ МНОГОПОТОЧНОСТИ\n")
 
-    # Затем запускаем диагностику планировщика
-    print("\n" + "=" * 80)
-    print("ЗАПУСК ДИАГНОСТИКИ ПЛАНИРОВЩИКА (нажмите Ctrl+C для остановки)")
-    print("=" * 80)
+    result1 = test_thread_isolation()
+    result2 = test_sequential_vs_parallel()
+    result3 = test_news_fetcher_thread_safety()
 
-    try:
-        debug_scheduler()
-    except KeyboardInterrupt:
-        print("\nДиагностика завершена")
+    print("\n" + "=" * 60)
+    print("ИТОГ")
+    print("=" * 60)
+
+    if result1 and result2 and result3:
+        print("✅ Все тесты многопоточности пройдены")
+        print("   Проблема НЕ в многопоточности")
+        print("\n   Возможная причина: логика обработки сигналов в smart_broker.py")
+        print("   Рекомендация: добавить подробное логирование в _execute_trading_decisions")
+    else:
+        print("❌ ОБНАРУЖЕНЫ ПРОБЛЕМЫ С МНОГОПОТОЧНОСТЬЮ")

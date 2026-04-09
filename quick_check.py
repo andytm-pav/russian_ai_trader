@@ -1,88 +1,239 @@
-# quick_check_advanced.py
-from models.trader_model import trader_model_instance
-from collections import Counter
-import numpy as np
+#!/usr/bin/env python3
+"""
+Скрипт поиска использования удаляемых методов в проекте
+"""
 
-m = trader_model_instance
-memory_list = list(m.memory)
+import os
+import re
+from pathlib import Path
 
-# Общая статистика
-print("="*50)
-print("📊 ОБЩАЯ СТАТИСТИКА")
-print("="*50)
-print(f"Память: {len(m.memory)} опытов")
-print(f"Размерность: {m.policy_net.state_dim}")
-print(f"Стратегий: {len(m.strategies)}")
-print(f"Тикеров в статистике: {len(m.ticker_stats)}")
 
-# Анализ reward по периодам
-print("\n" + "="*50)
-print("💰 АНАЛИЗ REWARD")
-print("="*50)
+def search_method_usage(method_names, root_dir=".", exclude_dirs=None):
+    """
+    Поиск использования методов в Python файлах
 
-periods = {
-    "первые 100": memory_list[:100] if len(memory_list) >= 100 else memory_list,
-    "последние 100": memory_list[-100:] if len(memory_list) >= 100 else memory_list,
-    "все": memory_list
-}
+    Args:
+        method_names: список имен методов для поиска
+        root_dir: корневая директория проекта
+        exclude_dirs: директории для исключения
+    """
+    if exclude_dirs is None:
+        exclude_dirs = ['.venv', '__pycache__', '.git', 'models/saved_trader', 'data']
 
-for period_name, period_data in periods.items():
-    if period_data:
-        rewards = [e['reward'] for e in period_data]
-        print(f"\n{period_name.upper()}:")
-        print(f"  средний: {sum(rewards)/len(rewards):.3f}")
-        print(f"  медиана: {sorted(rewards)[len(rewards)//2]:.3f}")
-        print(f"  мин/макс: {min(rewards):.3f}/{max(rewards):.3f}")
+    results = {method: {'definitions': [], 'calls': []} for method in method_names}
 
-# Анализ действий
-print("\n" + "="*50)
-print("🔄 АНАЛИЗ ДЕЙСТВИЙ")
-print("="*50)
+    # Конвертируем root_dir в Path
+    root_path = Path(root_dir).resolve()
 
-actions = [e['action'] for e in memory_list]
-action_counts = Counter(actions)
-total = len(actions)
+    # Паттерны для поиска
+    patterns = {
+        'def': re.compile(r'def\s+{method}\s*\('),
+        'call': re.compile(r'{method}\s*\('),
+        'self_call': re.compile(r'self\.{method}\s*\(')
+    }
 
-action_names = {0: "BUY", 1: "HOLD", 2: "SELL"}
-for action_num, count in sorted(action_counts.items()):
-    name = action_names.get(action_num, f"UNKNOWN({action_num})")
-    print(f"{name}: {count} ({count/total*100:.1f}%)")
+    print("=" * 80)
+    print("ПОИСК ИСПОЛЬЗОВАНИЯ МЕТОДОВ")
+    print("=" * 80)
 
-# Анализ по стратегиям
-print("\n" + "="*50)
-print("📈 ЭФФЕКТИВНОСТЬ СТРАТЕГИЙ")
-print("="*50)
+    # Проходим по всем .py файлам
+    for py_file in root_path.rglob("*.py"):
+        # Проверяем, не в исключенной ли директории
+        skip = False
+        for excl in exclude_dirs:
+            if excl in str(py_file):
+                skip = True
+                break
 
-for strategy, perf in m.strategy_performance.items():
-    if perf['total_trades'] > 0:
-        print(f"\n{strategy}:")
-        print(f"  сделок: {perf['total_trades']}")
-        print(f"  win rate: {perf['win_rate']*100:.1f}%")
-        print(f"  avg pnl: {perf['avg_pnl']:.3f}")
+        if skip:
+            continue
 
-# Топ тикеров
-print("\n" + "="*50)
-print("🏆 ТОП-5 ТИКЕРОВ ПО PNL")
-print("="*50)
+        try:
+            with open(py_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+                lines = content.split('\n')
+        except Exception as e:
+            print(f"  ⚠️ Не удалось прочитать {py_file}: {e}")
+            continue
 
-tickers_with_pnl = []
-for ticker, stats in m.ticker_stats.items():
-    if stats['total_trades'] > 0:
-        tickers_with_pnl.append((ticker, stats['total_pnl']))
+        for method in method_names:
+            # Поиск определения метода
+            def_pattern = re.compile(rf'def\s+{method}\s*\(')
+            for i, line in enumerate(lines, 1):
+                if def_pattern.search(line):
+                    results[method]['definitions'].append({
+                        'file': str(py_file.relative_to(root_path)),
+                        'line': i,
+                        'content': line.strip()
+                    })
 
-for ticker, pnl in sorted(tickers_with_pnl, key=lambda x: x[1], reverse=True)[:5]:
-    stats = m.ticker_stats[ticker]
-    print(f"{ticker}: {pnl:.3f} (win rate: {stats['success_rate']*100:.1f}%, сделок: {stats['total_trades']})")
+            # Поиск вызовов метода
+            call_patterns = [
+                re.compile(rf'{method}\s*\('),  # method()
+                re.compile(rf'self\.{method}\s*\('),  # self.method()
+                re.compile(rf'\.{method}\s*\(')  # .method()
+            ]
 
-# Последние 10 опытов
-print("\n" + "="*50)
-print("🆕 ПОСЛЕДНИЕ 10 ОПЫТОВ")
-print("="*50)
+            for i, line in enumerate(lines, 1):
+                for pattern in call_patterns:
+                    if pattern.search(line) and f'def {method}' not in line:
+                        results[method]['calls'].append({
+                            'file': str(py_file.relative_to(root_path)),
+                            'line': i,
+                            'content': line.strip()
+                        })
 
-for i, exp in enumerate(memory_list[-10:]):
-    action_name = action_names.get(exp['action'], f"UNK({exp['action']})")
-    print(f"{i+1:2d}. {action_name:4} | reward: {exp['reward']:6.3f} | pnl_rub: {exp.get('pnl_rub', 0):6.2f}₽")
+    return results
 
-print("\n" + "="*50)
-print("✅ ДИАГНОСТИКА ЗАВЕРШЕНА")
-print("="*50)
+
+def print_results(results):
+    """Вывод результатов поиска"""
+
+    methods_to_delete = [
+        '_get_commission_to_pnl_ratio',
+        '_get_trade_frequency_penalty',
+        '_get_expected_commission',
+        '_get_breakeven_price_ratio'
+    ]
+
+    print("\n" + "=" * 80)
+    print("РЕЗУЛЬТАТЫ ПОИСКА")
+    print("=" * 80)
+
+    all_safe = True
+
+    for method in methods_to_delete:
+        print(f"\n{'─' * 60}")
+        print(f"Метод: {method}")
+        print(f"{'─' * 60}")
+
+        data = results[method]
+
+        # Определения
+        print(f"\n  📍 Определения ({len(data['definitions'])}):")
+        if data['definitions']:
+            for loc in data['definitions']:
+                print(f"     • {loc['file']}:{loc['line']}")
+                print(f"       {loc['content'][:60]}...")
+        else:
+            print("     ❌ ОПРЕДЕЛЕНИЕ НЕ НАЙДЕНО!")
+
+        # Вызовы
+        print(f"\n  🔍 Вызовы ({len(data['calls'])}):")
+        if data['calls']:
+            for call in data['calls']:
+                print(f"     • {call['file']}:{call['line']}")
+                print(f"       {call['content']}")
+            all_safe = False
+        else:
+            print("     ✅ НЕТ ВЫЗОВОВ")
+
+    print("\n" + "=" * 80)
+    print("ИТОГ")
+    print("=" * 80)
+
+    if all_safe:
+        print("\n✅ ВСЕ МЕТОДЫ МОЖНО БЕЗОПАСНО УДАЛИТЬ")
+        print("   Ни один из методов не вызывается в других файлах.")
+        print("\n   Методы для удаления:")
+        for method in methods_to_delete:
+            print(f"     • {method}")
+    else:
+        print("\n⚠️ НАЙДЕНЫ ВЫЗОВЫ МЕТОДОВ!")
+        print("   Удаление может сломать систему.")
+        print("\n   Проверьте вызовы перед удалением.")
+
+    return all_safe
+
+
+def save_results(results, output_file="data/method_usage_report.json"):
+    """Сохранение результатов в JSON"""
+    import json
+
+    output_path = Path(output_file)
+    output_path.parent.mkdir(exist_ok=True)
+
+    # Конвертируем для JSON
+    json_results = {}
+    for method, data in results.items():
+        json_results[method] = {
+            'definitions_count': len(data['definitions']),
+            'calls_count': len(data['calls']),
+            'definitions': data['definitions'],
+            'calls': data['calls']
+        }
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(json_results, f, indent=2, ensure_ascii=False)
+
+    print(f"\n📄 Подробный отчет сохранен: {output_file}")
+
+
+def search_specific_usage():
+    """Дополнительный поиск по содержимому методов"""
+    methods_content = {
+        '_get_commission_to_pnl_ratio': ['commission', 'pnl', 'ratio'],
+        '_get_trade_frequency_penalty': ['frequency', 'penalty', 'trades_per_hour'],
+        '_get_expected_commission': ['expected', 'commission', 'position_value'],
+        '_get_breakeven_price_ratio': ['breakeven', 'entry_price', '1.006']
+    }
+
+    root_path = Path(".").resolve()
+
+    print("\n" + "=" * 80)
+    print("ДОПОЛНИТЕЛЬНЫЙ ПОИСК ПО КЛЮЧЕВЫМ СЛОВАМ")
+    print("=" * 80)
+
+    for method, keywords in methods_content.items():
+        print(f"\n{method}:")
+        found_any = False
+
+        for py_file in root_path.rglob("*.py"):
+            if '.venv' in str(py_file) or '__pycache__' in str(py_file):
+                continue
+
+            try:
+                with open(py_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # Проверяем, есть ли все ключевые слова в логическом блоке
+                if method not in content:
+                    continue
+
+                # Если метод вызывается - показываем
+                if f'self.{method}' in content or f'.{method}' in content:
+                    print(f"  • Найден вызов в: {py_file}")
+                    found_any = True
+
+            except Exception:
+                pass
+
+        if not found_any:
+            print(f"  ✅ Вызовы не найдены")
+
+
+if __name__ == "__main__":
+    # Список методов для проверки
+    methods_to_check = [
+        '_get_commission_to_pnl_ratio',
+        '_get_trade_frequency_penalty',
+        '_get_expected_commission',
+        '_get_breakeven_price_ratio'
+    ]
+
+    # Запуск поиска
+    results = search_method_usage(methods_to_check, root_dir=".")
+
+    # Вывод результатов
+    is_safe = print_results(results)
+
+    # Сохранение отчета
+    save_results(results)
+
+    # Дополнительный поиск
+    search_specific_usage()
+
+    # Код возврата
+    import sys
+
+    sys.exit(0 if is_safe else 1)

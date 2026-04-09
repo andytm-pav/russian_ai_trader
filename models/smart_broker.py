@@ -6,6 +6,7 @@ import json
 import torch
 import time
 import threading
+import queue
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
@@ -743,63 +744,66 @@ class SmartPortfolioBroker:
     def _select_buy_strategy(self, ticker: str, price: float,
                              confidence: float, base_state: torch.Tensor,
                              assigned_horizon: str = 'week') -> Tuple[str, float, float]:
-        # ✅ Проверяем тип base_state
-        print(f"   base_state.dtype: {base_state.dtype}")
-        if base_state.dtype != torch.float32:
-            print(f"   ⚠️ КОНВЕРТИРУЕМ base_state в float32")
-            base_state = base_state.to(dtype=torch.float32)
+        """Выбор стратегии с таймаутом для Windows"""
 
-        """
-        Выбор стратегии для покупки - МОДЕЛЬ САМА ПРИНИМАЕТ РЕШЕНИЯ
-        base_state: базовое состояние размерности 150 (из ticker_states)
-        """
+        def _impl():
+            print(f"   base_state.dtype: {base_state.dtype}")
+            if base_state.dtype != torch.float32:
+                print(f"   ⚠️ КОНВЕРТИРУЕМ base_state в float32")
+                base_state_local = base_state.to(dtype=torch.float32)
+            else:
+                base_state_local = base_state
 
-        # 1. Получаем объективные данные (не правила!)
-        sentiment_score = self._get_ticker_sentiment(ticker)
+            sentiment_score = self._get_ticker_sentiment(ticker)
 
-        # 2. Контекст рынка - только данные, без категорий
-        market_context = {
-            'market_sentiment': self.model.market_sentiment,
-            'volatility': self.model.volatility_index,
-            'confidence': confidence,
-            'time_of_day': datetime.now().hour / 24.0,
-            'ticker_sentiment': sentiment_score,
-            'assigned_horizon': assigned_horizon,
-            # НЕТ sentiment_category - модель сама разберется!
-        }
+            market_context = {
+                'market_sentiment': self.model.market_sentiment,
+                'volatility': self.model.volatility_index,
+                'confidence': confidence,
+                'time_of_day': datetime.now().hour / 24.0,
+                'ticker_sentiment': sentiment_score,
+                'assigned_horizon': assigned_horizon,
+            }
 
-        # 3. Модель САМА выбирает стратегию и действие
-        # choose_action_with_strategy внутри вызовет _create_strategy_state,
-        # который превратит base_state (150) в full_state (156)
-        action, final_strategy, strategy_confidence = self.model.choose_action_with_strategy(
-            state=base_state,  # передаем 150
-            ticker=ticker,
-            price=price,
-            market_context=market_context
-        )
+            action, final_strategy, strategy_confidence = self.model.choose_action_with_strategy(
+                state=base_state_local,
+                ticker=ticker,
+                price=price,
+                market_context=market_context
+            )
+            return action, final_strategy, strategy_confidence, sentiment_score
 
-        # 4. Получаем параметры выбранной стратегии из конфига
-        # (это не ручное управление, а базовые настройки, которые модель будет менять через адаптацию)
+        result_queue = queue.Queue()
+        thread = threading.Thread(target=lambda: result_queue.put(_impl()), daemon=True)
+        thread.start()
+        thread.join(timeout=self.settings.get('strategy_selection_timeout', 10))
+
+        if thread.is_alive():
+            logger.error(f"⏰ ТАЙМАУТ выбора стратегии для {ticker} (>10с), использую balanced")
+            final_strategy = 'balanced'
+            strategy_confidence = 0.5
+            sentiment_score = 0.0
+        else:
+            try:
+                action, final_strategy, strategy_confidence, sentiment_score = result_queue.get_nowait()
+            except:
+                logger.error(f"❌ Ошибка получения результата для {ticker}")
+                final_strategy = 'balanced'
+                strategy_confidence = 0.5
+                sentiment_score = 0.0
+
         strategy_config = self.model.strategies.get(final_strategy, self.model.strategies['balanced'])
-
-        # 5. Базовые значения стоп-лосса и тейк-профита
         base_stop_loss = strategy_config.get('stop_loss_percent', 2.5)
         base_take_profit = strategy_config.get('take_profit_percent', 5.0)
 
-        # 6. Адаптация под волатильность (объективный рыночный фактор)
         volatility_factor = 1.0
         if hasattr(self.model, 'volatility_index'):
-            # Чем выше волатильность, тем шире стоп-лосс
             volatility_factor = 1.0 + self.model.volatility_index
 
-        # 7. Адаптация под уверенность модели (чем увереннее, тем агрессивнее)
-        confidence_factor = 0.5 + strategy_confidence  # от 0.5 до 1.5
-
-        # 8. Итоговые параметры (без ручных множителей из конфига!)
+        confidence_factor = 0.5 + strategy_confidence
         adjusted_stop_loss = base_stop_loss * volatility_factor / confidence_factor
         adjusted_take_profit = base_take_profit * volatility_factor * confidence_factor
 
-        # Ограничиваем разумные пределы
         adjusted_stop_loss = max(0.5, min(10.0, adjusted_stop_loss))
         adjusted_take_profit = max(1.0, min(20.0, adjusted_take_profit))
 
@@ -1244,16 +1248,23 @@ class SmartPortfolioBroker:
         self._generate_daily_report()
 
     def run_cycle(self):
-        """Основной торговый цикл"""
+        """Основной торговый цикл с защитой от зависания"""
+        thread = threading.Thread(target=self._run_cycle_impl, daemon=True)
+        thread.start()
+        thread.join(timeout=self.settings.get('cycle_timeout', 90))
 
-        # 🔥 ДИАГНОСТИКА КАЖДЫЙ ЦИКЛ
+        if thread.is_alive():
+            logger.error(f"⏰ ТАЙМАУТ ЦИКЛА #{self.cycle_count + 1} (>90с), принудительно пропускаю")
+            self.cycle_count += 1
+
+    def _run_cycle_impl(self):
+        """Реализация цикла (вся логика из старого run_cycle)"""
         print(f"\n{'=' * 60}")
         print(f"ЦИКЛ #{self.cycle_count}")
         print(f"pending_experiences: {len(self.pending_experiences)}")
         print(f"позиций: {len(self.portfolio.positions)}")
         print(f"{'=' * 60}")
 
-        # Проверка комиссий
         current_hour = datetime.now().hour
         if (self.tbank_check_start <= current_hour < self.tbank_check_end and
                 self.cycle_count % self.tbank_check_interval == 0):
@@ -1282,13 +1293,11 @@ class SmartPortfolioBroker:
         try:
             logger.debug(f"=== Торговый цикл #{self.cycle_count} ===")
 
-            # 1. Получение данных
             securities = self.moex.get_all_securities()
             if not securities:
                 logger.warning("Не удалось получить список бумаг")
                 return
 
-            # Берем топ-N по объему
             top_n = 120
             tickers = sorted(securities.items(),
                              key=lambda x: x[1].get('volume', 0),
@@ -1296,7 +1305,6 @@ class SmartPortfolioBroker:
             tickers = [t[0] for t in tickers]
             self.current_tickers = tickers
 
-            # 2. Получение текущих цен
             prices = {}
             for ticker in tickers:
                 price = self.moex.get_price(ticker)
@@ -1307,29 +1315,23 @@ class SmartPortfolioBroker:
                 logger.warning(f"Слишком мало цен: {len(prices)}")
                 return
 
-            # 3. Генерация сигналов от всех ядер
             all_signals = []
 
-            # ✅ Новостные сигналы (исправлено!)
             if self.settings.get("enable_news_core", True):
                 news_signals = self._generate_news_signals(prices)
                 all_signals.extend(news_signals)
                 logger.debug(f"Сгенерировано новостных сигналов: {len(news_signals)}")
 
-            # Технические сигналы
             if self.settings.get("enable_technical_core", True):
                 tech_signals = self.technical_core.analyze_all_tickers(prices)
                 all_signals.extend(tech_signals)
                 logger.debug(f"Сгенерировано технических сигналов: {len(tech_signals)}")
 
-            # 4. Агрегация и фильтрация сигналов
             filtered_signals = self._aggregate_signals(all_signals)
             self.signals_cache = filtered_signals[:10]
 
-            # 5. Проверка стоп-лоссов и тейк-профитов
             self.check_stops_and_tp(prices)
 
-            # 🔥Добавляем HOLD-опыты для открытых позиций
             hold_config = self.rl_config.get('hold_reward', {})
             if hold_config.get('enabled', False):
                 hold_interval = hold_config.get('interval_cycles', 5)
@@ -1340,49 +1342,42 @@ class SmartPortfolioBroker:
                         if ticker in self.ticker_states:
                             current_price = self.moex.get_price(ticker)
                             if current_price:
-                                current_state = self.ticker_states[ticker]  # 151
-                                next_state = self._create_next_state(ticker, current_price)  # 151
+                                current_state = self.ticker_states[ticker]
+                                next_state = self._create_next_state(ticker, current_price)
 
-                                # 🔥 СОЗДАЕМ ПОЛНЫЕ СОСТОЯНИЯ
                                 strategy = pos.get('strategy', 'balanced')
                                 strategy_params = self.model.strategies[strategy]
 
-                                full_current = self.model._create_strategy_state(current_state, strategy_params)  # 157
-                                full_next = self.model._create_strategy_state(next_state, strategy_params)  # 157
+                                full_current = self.model._create_strategy_state(current_state, strategy_params)
+                                full_next = self.model._create_strategy_state(next_state, strategy_params)
 
                                 hold_time = (time.time() - pos.get('buy_time', time.time())) / 3600
                                 hold_reward = self._calculate_reward(0, hold_time, strategy)
 
                                 self.model.remember_experience(
-                                    state=full_current,  # ✅ 157
-                                    action=1,  # HOLD
+                                    state=full_current,
+                                    action=1,
                                     reward=hold_reward,
-                                    next_state=full_next,  # ✅ 157
+                                    next_state=full_next,
                                     done=False,
                                     pnl_rub=0
                                 )
 
-            # 6. Исполнение торговых решений
             if filtered_signals and self.risk_manager.check_daily_limits():
                 self._execute_trading_decisions(filtered_signals, prices, securities)
 
-            # 7. Ребалансировка портфеля
             if self.cycle_count % 5 == 0:
                 self._rebalance_portfolio(prices, securities)
 
-            # 8. Периодическое обучение модели
             if self.cycle_count % 10 == 0:
                 self._periodic_learning()
 
-            # 9. Адаптация стратегий
             if self.cycle_count % self.strategy_adaptation_cycles == 0:
                 self._adapt_strategies_for_profit()
 
-            # 10. Сохранение состояния
             if self.cycle_count % 20 == 0:
                 self._save_portfolio_state()
 
-            # Лог цикла
             cycle_time = time.time() - cycle_start
             total_value = self.portfolio.get_total_value(prices)
 
@@ -1954,7 +1949,6 @@ class SmartPortfolioBroker:
 
         try:
             prices = self._get_current_prices()
-
             total_exposure = 0
             positions_detail = []
 
@@ -1962,7 +1956,6 @@ class SmartPortfolioBroker:
                 current_price = prices.get(ticker, pos['avg_price'])
                 position_value = pos['qty'] * current_price
                 total_exposure += position_value
-
                 positions_detail.append({
                     'ticker': ticker,
                     'value': position_value,
@@ -1991,14 +1984,20 @@ class SmartPortfolioBroker:
             if liquidity_ratio < min_ratio:
                 logger.warning(f"⚠ КРИТИЧЕСКИ НИЗКАЯ ЛИКВИДНОСТЬ!")
                 self._send_liquidity_alert(report)
+                # ✅ НЕ ОСТАНАВЛИВАЕМ ТОРГОВЛЮ! ТОЛЬКО ПРЕДУПРЕЖДАЕМ
             else:
                 logger.info(f"✅ Ликвидность достаточная")
 
             self._save_liquidity_report(report)
+
+            # ✅ ПРИНУДИТЕЛЬНО ВКЛЮЧАЕМ ТОРГОВЛЮ
+            self.trading_enabled = True
+
             return report
 
         except Exception as e:
             logger.error(f"❌ Ошибка проверки ликвидности: {e}")
+            self.trading_enabled = True  # При ошибке тоже включаем
             return {'error': str(e)}
 
     def execute_z0_deadline(self):
@@ -2084,11 +2083,29 @@ class SmartPortfolioBroker:
             logger.info(f"📊 Портфель на 17:00: {portfolio_value:,.0f}₽")
             logger.info(f"💰 Кэш: {self.portfolio.cash:,.0f}₽")
 
+            # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: принудительно включаем торговлю
+            self.trading_enabled = True
+            logger.info("✅ Торговля принудительно включена после клиринга 17:00")
+
+            # ✅ Принудительный сброс буфера логов
+            for handler in logger.logger.handlers:
+                try:
+                    handler.flush()
+                except:
+                    pass
+
             return state
 
         except Exception as e:
             logger.error(f"❌ Ошибка клиринга 17:00: {e}")
-            return {'error': str(e)}
+            import traceback
+            logger.error(traceback.format_exc())
+
+            # ✅ ДАЖЕ ПРИ ОШИБКЕ ВКЛЮЧАЕМ ТОРГОВЛЮ
+            self.trading_enabled = True
+            logger.info("✅ Торговля принудительно включена после ошибки клиринга")
+
+            return {'error': str(e), 'action': 'forced_enabled'}
 
     def process_clearing_19(self):
         """19:00 - Расчет комиссии и постановка в очередь"""
@@ -2099,23 +2116,17 @@ class SmartPortfolioBroker:
         try:
             daily_trades = getattr(self.portfolio, 'daily_trades', [])
             total_turnover = sum(t.get('value', 0) for t in daily_trades)
-            # Используем commission_spent_today из портфеля
             total_reserved = getattr(self.portfolio, 'commission_spent_today', 0.0)
 
             if total_reserved == 0:
                 logger.info("💰 Комиссия не начислена (нет сделок)")
+                # ✅ ВКЛЮЧАЕМ ТОРГОВЛЮ ДАЖЕ ЕСЛИ НЕТ КОМИССИЙ
+                self.trading_enabled = True
                 return {'commission': 0, 'turnover': 0}
 
             today = datetime.now()
-
-            weekday_map = self.tbank_config.get('weekday_settlement_map', {
-                "4": 3,
-                "5": 2,
-                "6": 1
-            })
-
+            weekday_map = self.tbank_config.get('weekday_settlement_map', {"4": 3, "5": 2, "6": 1})
             days_to_add = self.tbank_config.get('default_settlement_days', 1)
-
             weekday_str = str(today.weekday())
             if weekday_str in weekday_map:
                 days_to_add = weekday_map[weekday_str]
@@ -2146,6 +2157,10 @@ class SmartPortfolioBroker:
 
             self._generate_daily_report()
 
+            # ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: принудительно включаем торговлю
+            self.trading_enabled = True
+            logger.info("✅ Торговля принудительно включена после клиринга 19:00")
+
             return {
                 'commission': total_reserved,
                 'turnover': total_turnover,
@@ -2156,7 +2171,12 @@ class SmartPortfolioBroker:
 
         except Exception as e:
             logger.error(f"❌ Ошибка клиринга 19:00: {e}")
-            return {'error': str(e)}
+            import traceback
+            logger.error(traceback.format_exc())
+
+            # ✅ ДАЖЕ ПРИ ОШИБКЕ ВКЛЮЧАЕМ ТОРГОВЛЮ
+            self.trading_enabled = True
+            return {'error': str(e), 'action': 'forced_enabled'}
 
     def process_pending_commissions(self):
         """Проверка и списание pending комиссий"""
@@ -2164,13 +2184,10 @@ class SmartPortfolioBroker:
             return
 
         today = datetime.now().date()
-        current_hour = datetime.now().hour
-
-        if current_hour >= self.tbank_check_end:
-            return
-
         processed_count = 0
         total_commission = 0
+
+        logger.debug(f"🔍 Проверка pending комиссий: {len(self.portfolio.pending_commissions)} записей")
 
         for comm in list(self.portfolio.pending_commissions):
             if comm.get('processed', False):
@@ -2179,10 +2196,12 @@ class SmartPortfolioBroker:
             settlement_date = datetime.strptime(comm['settlement_date'], '%Y-%m-%d').date()
 
             if settlement_date <= today:
+                logger.info(
+                    f"💸 Списание комиссии {comm['amount']:,.2f}₽ за {comm['date']} (дата списания: {comm['settlement_date']})")
+
                 if self.portfolio.reserved_cash >= comm['amount']:
                     self.portfolio.cash -= comm['amount']
                     self.portfolio.reserved_cash -= comm['amount']
-                    # Обновляем commission_spent_today? Нет, это уже учтено в момент сделки
                     comm['processed'] = True
                     comm['processed_date'] = today.strftime('%Y-%m-%d')
                     comm['processed_time'] = datetime.now().strftime('%H:%M')
@@ -2191,18 +2210,28 @@ class SmartPortfolioBroker:
                     total_commission += comm['amount']
 
                     logger.info(f"💸 СПИСАНО: комиссия {comm['amount']:,.2f}₽ за {comm['date']}")
+                    logger.info(f"💰 Кэш после списания: {self.portfolio.cash:,.2f}₽")
+                    logger.info(f"💰 Резерв после списания: {self.portfolio.reserved_cash:,.2f}₽")
                 else:
                     logger.error(f"❌ КРИТИЧЕСКАЯ ОШИБКА: недостаточно резерва для комиссии {comm['amount']:,.2f}₽!")
                     logger.error(f"💰 Резерв: {self.portfolio.reserved_cash:,.2f}₽")
+
+                    # Принудительное списание
                     self.portfolio.cash -= (comm['amount'] - self.portfolio.reserved_cash)
                     self.portfolio.reserved_cash = 0
                     comm['processed'] = True
                     comm['forced'] = True
+                    comm['forced_date'] = today.strftime('%Y-%m-%d')
+
+                    processed_count += 1
+                    total_commission += comm['amount']
+                    logger.warning(f"⚠️ ПРИНУДИТЕЛЬНО списана комиссия {comm['amount']:,.2f}₽")
 
         if processed_count > 0:
             logger.info(f"✅ Обработано {processed_count} комиссий на сумму {total_commission:,.2f}₽")
             logger.info(f"💰 Остаток резерва: {self.portfolio.reserved_cash:,.2f}₽")
 
+        # Очищаем обработанные комиссии
         self.portfolio.pending_commissions = [
             c for c in self.portfolio.pending_commissions
             if not c.get('processed', False)
