@@ -228,6 +228,11 @@ class AdvancedTraderModel:
         self.strategy_config = self._load_strategy_config()
         self.memory_config = self._load_memory_config()
 
+        # Принудительная установка exploration из конфига
+        exploration_config = self.rl_config.get('exploration', {})
+        self.exploration_rate = exploration_config.get('initial_exploration_rate', 0.10)
+        logger.info(f"[TraderModel] Exploration rate установлен: {self.exploration_rate}")
+
         # Загрузка весов модели и нормализации из конфига
         self.model_weights = self.rl_config.get('model_weights', {})
         self.normalization = self.rl_config.get('normalization', {})
@@ -988,6 +993,8 @@ class AdvancedTraderModel:
             self.save_memory()
 
     def learn_from_experience(self, batch_size: int = 32):
+
+        self.decay_exploration()
         """Обучение на опыте"""
         if len(self.memory) < batch_size * 2:
             return None
@@ -1381,6 +1388,14 @@ class AdvancedTraderModel:
             except Exception as e:
                 print(f"[TraderModel] Ошибка загрузки состояния: {e}")
 
+        # Сброс деградировавших risk_multiplier
+        reset_risk = self.rl_config.get('strategy_adaptation', {}).get('reset_degraded_risk', True)
+        if reset_risk:
+            for strategy_name, params in self.strategies.items():
+                if params.get('risk_multiplier', 1.0) < 0.6:
+                    params['risk_multiplier'] = 1.0
+                    logger.info(f"[TraderModel] Сброшен risk_multiplier для {strategy_name}: 0.5 → 1.0")
+
     def save_memory(self):
         """Сохранение памяти"""
         if not self.memory_config['enable_autosave'] or len(self.memory) == 0:
@@ -1449,6 +1464,22 @@ class AdvancedTraderModel:
 
         except Exception as e:
             print(f"[TraderModel] Ошибка загрузки памяти: {e}")
+
+    def decay_exploration(self):
+        """Уменьшение exploration rate со временем"""
+        exploration_config = self.rl_config.get('exploration', {})
+        decay_steps = exploration_config.get('exploration_decay_steps', 500)
+        final_rate = exploration_config.get('final_exploration_rate', 0.03)
+        initial_rate = exploration_config.get('initial_exploration_rate', 0.10)
+
+        if hasattr(self, 'learn_step_counter'):
+            self.learn_step_counter += 1
+        else:
+            self.learn_step_counter = 1
+
+        progress = min(1.0, self.learn_step_counter / decay_steps)
+        self.exploration_rate = initial_rate - (initial_rate - final_rate) * progress
+        self.exploration_rate = max(final_rate, self.exploration_rate)
 
 
 # Глобальный экземпляр

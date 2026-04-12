@@ -47,12 +47,7 @@ class SmartPortfolioBroker:
         self.news_fetcher = OptimizedNewsFetcher("config/rss_sources.json")
         self.news_fetcher.get_last_news(limit=100)  # Прогрев кэша
 
-
-        # self.technical_core = TechnicalTraderCore()
         self.risk_manager = RiskManager()
-        # self.scheduler = TradingScheduler()
-
-
         self.auction_mode = False
         self.portfolio = PortfolioManager()
         self.model = trader_model_instance
@@ -74,9 +69,16 @@ class SmartPortfolioBroker:
         logger = get_logger('SMART_BROKER')
         logger.info(f"[SmartBroker] NewsFetcher инициализирован, статистика: {self.news_fetcher.stats}")
 
-        # ✅ ИНИЦИАЛИЗАЦИЯ НОВЫХ КОНФИГОВ
+        # ========== ЗАГРУЗКА КОНФИГОВ (ДОЛЖНА БЫТЬ ПЕРВОЙ) ==========
         self.profit_config = settings.get("profit_optimization", {})
         self.rl_config = self._load_rl_config()
+        # =============================================================
+
+        # ✅ ЗАГРУЖАЕМ КОНФИГИ СЕНТИМЕНТА
+        self.sentiment_config = self.rl_config.get("sentiment_integration", {})
+        self.market_sentiment_weight = self.sentiment_config.get("market_sentiment_weight", 0.3)
+        self.ticker_sentiment_weight = self.sentiment_config.get("ticker_sentiment_weight", 0.4)
+        self.reward_sentiment_bonus = self.sentiment_config.get("reward_sentiment_bonus", 0.5)
 
         # Загрузка конфигурации действий
         self.action_mapping = self.rl_config.get('action_mapping', {
@@ -87,12 +89,6 @@ class SmartPortfolioBroker:
             "BUY_MIN": 0.02, "BUY_SMALL": 0.05, "BUY_NORMAL": 0.10,
             "SELL_SMALL": 0.25, "SELL_NORMAL": 0.50, "SELL_ALL": 1.0
         })
-
-        # ✅ ЗАГРУЖАЕМ КОНФИГИ СЕНТИМЕНТА
-        self.sentiment_config = self.rl_config.get("sentiment_integration", {})
-        self.market_sentiment_weight = self.sentiment_config.get("market_sentiment_weight", 0.3)
-        self.ticker_sentiment_weight = self.sentiment_config.get("ticker_sentiment_weight", 0.4)
-        self.reward_sentiment_bonus = self.sentiment_config.get("reward_sentiment_bonus", 0.5)
 
         # ✅ ИНИЦИАЛИЗАЦИЯ TRAINER (исправление ошибки)
         self.trainer = None
@@ -114,6 +110,11 @@ class SmartPortfolioBroker:
         self.trading_enabled = True
         self.signals_cache = []
         self.current_tickers = []
+        self.ticker_states = {}
+        self.pending_experiences = []
+        self.strategy_tracker = defaultdict(list)
+        self.strategy_usage_counter = defaultdict(int)
+        self.last_trade_time = defaultdict(float)
 
         # Запуск компонентов
         self._initialize_components()
@@ -123,6 +124,7 @@ class SmartPortfolioBroker:
         print(f"[SmartBroker] Макс. позиций: {settings['max_positions']}")
         print(f"[SmartBroker] Конфиг прибыли загружен: {len(self.profit_config) > 0}")
         print(f"[SmartBroker] RL конфиг загружен: {len(self.rl_config) > 0}")
+        print(f"[SmartBroker] NewsFetcher: {self.news_fetcher.stats}")
 
         # ✅ Добавляем статистику новостного фетчера
         print(f"[SmartBroker] NewsFetcher: {self.news_fetcher.stats}")
@@ -439,18 +441,22 @@ class SmartPortfolioBroker:
     def _record_rl_experience(self, ticker: str, state: torch.Tensor,
                               action: int, strategy: str, price: float,
                               quantity: int, sentiment_data: Dict = None):
+        """Запись опыта в память"""
 
-        print(f"\n📝 _record_rl_experience for {ticker}")
-        print(f"   state.shape: {state.shape}, dtype: {state.dtype}")
-        print(f"   action: {action}, strategy: {strategy}")
+        # Проверка валидности action
+        action_dim = self.rl_config.get('action_dim', 7)
+        if action >= action_dim:
+            logger.error(f"❌ Некорректный action={action} (max={action_dim - 1}), заменяю на HOLD=3")
+            action = 3
 
-        # 🔥 Создаем ПОЛНОЕ состояние со стратегией
-        strategy_params = self.model.strategies[strategy]
+        logger.info(f"📝 Запись опыта: {ticker} action={action} strategy={strategy}")
+
+        strategy_params = self.model.strategies.get(strategy, self.model.strategies.get('balanced', {}))
         full_state = self.model._create_strategy_state(state, strategy_params)
 
         experience = {
             'ticker': ticker,
-            'start_state': full_state.cpu(),  # ✅ 157
+            'start_state': full_state.cpu(),
             'action': action,
             'strategy': strategy,
             'entry_price': price,
@@ -461,10 +467,8 @@ class SmartPortfolioBroker:
             'is_priority': self._is_priority_experience(sentiment_data)
         }
         self.pending_experiences.append(experience)
-        print(f"   ✅ Добавлено в pending_experiences: {len(self.pending_experiences)}")
 
-        if hasattr(self, 'trainer') and experience['is_priority']:
-            self.trainer.add_priority_experience(experience)
+        logger.debug(f"✅ pending_experiences: {len(self.pending_experiences)}")
 
     def _is_priority_experience(self, sentiment_data: Optional[Dict]) -> bool:
         """Определение приоритетности опыта через конфиги"""
@@ -493,59 +497,54 @@ class SmartPortfolioBroker:
         return is_priority
 
     def _complete_rl_experience(self, ticker: str, exit_price: float, actual_pnl: float = None, pos_info: dict = None):
-        """Завершение RL опыта с корректным расчётом PnL"""
-        logger.debug(f"[DEBUG] Завершение RL опыта для {ticker} @ {exit_price}")
+        """Завершение опыта и запись в память модели"""
 
-        found_any = False
-        for exp in self.pending_experiences:
-            if exp['ticker'] == ticker and not exp['completed']:
-                found_any = True
+        logger.info(f"🏁 Завершение опыта: {ticker} PnL={actual_pnl}")
 
         for exp in self.pending_experiences:
-            if exp['ticker'] == ticker and not exp['completed']:
-                # Используем actual_pnl если он передан (уже с комиссией из PortfolioManager)
-                if actual_pnl is not None:
-                    pnl = actual_pnl
-                else:
-                    pnl = exp.get('calculated_pnl')
-                    if pnl is None:
-                        commission_rate = getattr(self.portfolio, 'commission_rate', 0.003)
-                        price_diff = exit_price - exp['entry_price']
-                        gross_pnl = price_diff * exp['quantity']
-                        commission = abs(gross_pnl) * commission_rate
-                        pnl = gross_pnl - commission
-                        exp['calculated_pnl'] = pnl
+            if exp['ticker'] == ticker and not exp.get('completed', False):
 
-                hold_time = (time.time() - exp['entry_time']) / 3600
+                pnl = actual_pnl if actual_pnl is not None else 0.0
 
-                # Создаём следующее состояние
                 next_base_state = self._create_next_state(ticker, exit_price)
-                strategy_params = self.model.strategies[exp['strategy']]
+                strategy_params = self.model.strategies.get(exp['strategy'], self.model.strategies.get('balanced', {}))
 
                 full_start_state = self.model._create_strategy_state(
                     exp['start_state'].to(self.model.device), strategy_params
                 )
                 full_next_state = self.model._create_strategy_state(next_base_state, strategy_params)
 
-                # Расчёт награды
+                hold_time = (time.time() - exp['entry_time']) / 3600
                 reward = self._calculate_reward(pnl, hold_time, exp['strategy'])
 
-                # Запись опыта в модель
+                logger.info(f"📊 Reward для {ticker}: {reward:.4f} (PnL={pnl:.2f}₽, hold={hold_time:.1f}ч)")
+
                 self.model.remember_experience(
                     state=full_start_state,
                     action=exp['action'],
                     reward=reward,
                     next_state=full_next_state,
                     done=True,
-                    news_features=None,
                     pnl_rub=pnl
                 )
 
                 exp['completed'] = True
-                logger.debug(f"RL опыт завершен: {ticker}, reward={reward:.3f}, pnl={pnl:.2f}")
 
-        # Удаляем завершённые опыты
-        self.pending_experiences = [exp for exp in self.pending_experiences if not exp.get('completed', False)]
+                # Обновление статистики тикера
+                if hasattr(self.model, 'ticker_stats'):
+                    stats = self.model.ticker_stats[ticker]
+                    stats['total_trades'] += 1
+                    stats['total_pnl'] += pnl
+                    if pnl > 0:
+                        stats['profitable_trades'] += 1
+                    stats['success_rate'] = stats['profitable_trades'] / max(stats['total_trades'], 1)
+                    stats['avg_hold_time'] = (stats['avg_hold_time'] * (stats['total_trades'] - 1) + hold_time) / stats[
+                        'total_trades']
+                    logger.info(
+                        f"📈 Статистика {ticker}: trades={stats['total_trades']}, win_rate={stats['success_rate']:.1%}")
+
+        # Очистка завершенных
+        self.pending_experiences = [e for e in self.pending_experiences if not e.get('completed', False)]
 
     def _calculate_reward(self, pnl: float, hold_time: float, strategy: str) -> float:
         """Расчёт награды для RL - ВСЕ ПАРАМЕТРЫ ИЗ КОНФИГА"""
