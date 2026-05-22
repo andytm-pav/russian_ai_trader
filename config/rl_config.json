@@ -44,10 +44,8 @@
     "min_trades_for_fast_adaptation": 5,
     "aggressive_increase_factor": 1.3,
     "aggressive_decrease_factor": 0.7,
-    "reset_degraded_risk": true
-
-
-  },
+    "reset_degraded_risk": false
+},
 
   "learning": {
     "min_experiences_for_learning": 25,
@@ -67,13 +65,13 @@
   },
 
   "exploration": {
-    "initial_exploration_rate": 0.10,
-    "final_exploration_rate": 0.03,
-    "exploration_decay_steps": 500,
-    "action_exploration_rate": 0.05,
-    "min_exploration_rate": 0.02,
-    "max_exploration_rate": 0.5
-  },
+    "initial_exploration_rate": 0.03,
+    "final_exploration_rate": 0.01,
+    "exploration_decay_steps": 200,
+    "action_exploration_rate": 0.01,
+    "min_exploration_rate": 0.01,
+    "max_exploration_rate": 0.3
+},
 
   "sentiment_integration": {
     "market_sentiment_weight": 0.3,
@@ -242,8 +240,8 @@
 
   "reward_scaling": 0.001,
   "price_change_threshold": 0.01,
-  "reward_clip_min": -0.5,
-  "reward_clip_max": 0.5,
+  "reward_clip_min": -5.0,
+  "reward_clip_max": 5.0,
   "hold_time_deviation_penalty": 0.3,
   "max_hold_time_deviation": 0.5,
   "quick_trade_penalty": 0.5,
@@ -279,12 +277,12 @@
 
   "hold_reward": {
     "enabled": true,
-    "max_bonus": 0.2,
-    "overhold_penalty": 0.05,
+    "max_bonus": 0.5,
+    "overhold_penalty": 0.02,
     "overhold_threshold": 1.5,
-    "interval_cycles": 5,
-    "max_positions_per_cycle": 3
-  },
+    "interval_cycles": 3,
+    "max_positions_per_cycle": 10
+},
 
   "commission_learning": {
     "enable_commission_penalty": true,
@@ -311,25 +309,25 @@
   },
 
   "reward_config": {
-  "pnl_scale_factor": 100.0,
-  "profit_bonus_enabled": true,
-  "profit_fixed_bonus": 0.5,
-  "profit_proportional_bonus_scale": 200.0,
-  "loss_penalty_scale": 50.0,
-  "speed_bonus_enabled": true,
-  "speed_bonus_max_percent": 50.0,
-  "time_penalty_enabled": true,
-  "time_penalty_max_percent": 20.0,
-  "loss_hold_threshold": 6.0,
-  "hold_penalty_threshold": 24.0,
-  "hold_penalty_rate": 0.1,
-  "commission_penalty_enabled": true,
-  "commission_penalty_scale": 50.0,
-  "concentration_penalty_enabled": true,
-  "max_positions_before_penalty": 5,
-  "concentration_penalty_per_position": 0.1,
-  "reward_clip_max": 20.0,
-  "reward_clip_min": -10.0
+    "pnl_scale_factor": 100.0,
+    "profit_bonus_enabled": true,
+    "profit_fixed_bonus": 0.5,
+    "profit_proportional_bonus_scale": 200.0,
+    "loss_penalty_scale": 50.0,
+    "speed_bonus_enabled": true,
+    "speed_bonus_max_percent": 50.0,
+    "time_penalty_enabled": true,
+    "time_penalty_max_percent": 20.0,
+    "loss_hold_threshold": 6.0,
+    "hold_penalty_threshold": 24.0,
+    "hold_penalty_rate": 0.1,
+    "commission_penalty_enabled": true,
+    "commission_penalty_scale": 200.0,
+    "concentration_penalty_enabled": true,
+    "max_positions_before_penalty": 3,
+    "concentration_penalty_per_position": 0.5,
+    "reward_clip_max": 5.0,
+    "reward_clip_min": -5.0
 },
 
   "logging": {
@@ -337,10 +335,10 @@
   },
 
   "signal_filter": {
-  "enabled": true,
-  "min_trades_for_filter": 3,
-  "min_success_rate": 0.5,
-  "new_ticker_confidence_mult": 0.7
+    "enabled": true,
+    "min_trades_for_filter": 3,
+    "min_success_rate": 0.5,
+    "new_ticker_confidence_mult": 0.6
 },
 
   "memory_clean": {

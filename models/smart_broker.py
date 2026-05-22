@@ -422,7 +422,38 @@ class SmartPortfolioBroker:
                 success, pnl = self.portfolio.sell(ticker, qty, price)
 
                 if success:
+                    # 1. Сначала завершаем старый BUY-опыт (как и раньше)
                     self._complete_rl_experience(ticker, price, actual_pnl=pnl, pos_info=pos_info)
+
+                    # 2. НОВОЕ: записываем SELL-опыт в память
+                    ticker_sentiment = self._get_ticker_sentiment(ticker)
+                    sentiment_data = {
+                        'sentiment': ticker_sentiment,
+                        'news_count': signal.get('news_count', 0)
+                    }
+
+                    # Создаём состояние для SELL
+                    next_state = self._create_next_state(ticker, price)
+                    strategy_params = self.model.strategies.get(
+                        pos_info.get('strategy', 'balanced'),
+                        self.model.strategies.get('balanced', {})
+                    )
+                    full_current = self.model._create_strategy_state(current_state, strategy_params)
+                    full_next = self.model._create_strategy_state(next_state, strategy_params)
+
+                    hold_time = (time.time() - pos_info.get('buy_time', time.time())) / 3600
+                    reward = self._calculate_reward(pnl, hold_time, pos_info.get('strategy', 'balanced'))
+
+                    # Записываем SELL как завершённый опыт (done=True)
+                    self.model.remember_experience(
+                        state=full_current,
+                        action=action_idx,
+                        reward=reward,
+                        next_state=full_next,
+                        done=True,
+                        pnl_rub=pnl
+                    )
+
                     executed_count += 1
                     logger.info(
                         f"💰 SELL {ticker}: {qty} @ {price:.2f} ({sell_ratio * 100:.0f}% позиции, PnL: {pnl:+.2f}₽)")
@@ -1270,12 +1301,25 @@ class SmartPortfolioBroker:
             self.signals_cache = filtered_signals[:10]
             self.check_stops_and_tp(prices)
 
+            # ===== HOLD REWARD: открытые позиции =====
             hold_config = self.rl_config.get('hold_reward', {})
             if hold_config.get('enabled', False):
                 hold_interval = hold_config.get('interval_cycles', 5)
                 if self.cycle_count % hold_interval == 0:
                     max_positions = hold_config.get('max_positions_per_cycle', 3)
 
+                    # Получаем индекс действия HOLD из конфига (не хардкод!)
+                    action_mapping = self.rl_config.get('action_mapping', {})
+                    hold_action_idx = None
+                    for key, value in action_mapping.items():
+                        if value == 'HOLD':
+                            hold_action_idx = int(key)
+                            break
+                    if hold_action_idx is None:
+                        # Fallback: обратная совместимость со старыми конфигами
+                        hold_action_idx = 3
+
+                    # Блок 1: HOLD для открытых позиций
                     for ticker, pos in list(self.portfolio.positions.items())[:max_positions]:
                         if ticker in self.ticker_states:
                             current_price = self.moex.get_price(ticker)
@@ -1294,12 +1338,53 @@ class SmartPortfolioBroker:
 
                                 self.model.remember_experience(
                                     state=full_current,
-                                    action=1,
+                                    action=hold_action_idx,
                                     reward=hold_reward,
                                     next_state=full_next,
                                     done=False,
                                     pnl_rub=0
                                 )
+
+                    # Блок 2 (НОВЫЙ): HOLD для тикеров БЕЗ позиций
+                    # Поощряем модель за то, что она НЕ входит в рынок
+                    hold_bonus = hold_config.get('max_bonus', 0.5)
+                    no_position_tickers = [
+                        t for t in self.current_tickers
+                        if t not in self.portfolio.positions
+                           and t in self.ticker_states
+                           and t in prices
+                    ]
+
+                    import random
+                    sample_size = min(len(no_position_tickers), max_positions)
+                    if sample_size > 0:
+                        sampled_tickers = random.sample(no_position_tickers, sample_size)
+                        for ticker in sampled_tickers:
+                            try:
+                                current_price = prices[ticker]
+                                current_state = self.ticker_states[ticker]
+                                next_state = self._create_next_state(ticker, current_price)
+
+                                # Используем стратегию по умолчанию
+                                fallback_strategy = self.rl_config.get('fallback_strategy', 'balanced')
+                                strategy_params = self.model.strategies.get(
+                                    fallback_strategy,
+                                    self.model.strategies.get('balanced', {})
+                                )
+
+                                full_current = self.model._create_strategy_state(current_state, strategy_params)
+                                full_next = self.model._create_strategy_state(next_state, strategy_params)
+
+                                self.model.remember_experience(
+                                    state=full_current,
+                                    action=hold_action_idx,
+                                    reward=hold_bonus,
+                                    next_state=full_next,
+                                    done=False,
+                                    pnl_rub=0
+                                )
+                            except Exception as e:
+                                logger.debug(f"Не удалось записать HOLD-опыт для {ticker}: {e}")
 
             if filtered_signals and self.risk_manager.check_daily_limits():
                 self._execute_trading_decisions(filtered_signals, prices, securities)

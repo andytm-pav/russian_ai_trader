@@ -12,7 +12,7 @@
       "min_win_rate": 0.4,
       "prediction_weight": 0.1,
       "conditions": {
-        "min_confidence": 0.75,
+        "min_confidence": 0.85,
         "market_sentiment_threshold": 0.3,
         "min_news_count": 2,
         "max_volatility": 0.05
@@ -30,7 +30,7 @@
       "min_win_rate": 0.45,
       "prediction_weight": 0.1,
       "conditions": {
-        "min_confidence": 0.65,
+        "min_confidence": 0.75,
         "rsi_threshold_low": 30,
         "rsi_threshold_high": 70,
         "volume_ratio_min": 1.5
@@ -48,25 +48,25 @@
       "min_win_rate": 0.5,
       "prediction_weight": 0.1,
       "conditions": {
-        "min_confidence": 0.7,
+        "min_confidence": 0.80,
         "volatility_threshold": 0.02,
         "momentum_threshold": 0.5
       }
     },
     "momentum": {
-      "description": "Моментум скальпинг",
+      "description": "Моментум-трейдинг (среднесрочный)",
       "news_weight": 0.3,
       "tech_weight": 0.7,
       "risk_multiplier": 1.0,
-      "target_hold_time_hours": 0.5,
-      "stop_loss_percent": 1.0,
-      "take_profit_percent": 3.0,
-      "max_positions": 5,
-      "min_win_rate": 0.35,
+      "target_hold_time_hours": 4,
+      "stop_loss_percent": 3.0,
+      "take_profit_percent": 8.0,
+      "max_positions": 3,
+      "min_win_rate": 0.45,
       "prediction_weight": 0.1,
       "conditions": {
-        "min_confidence": 0.6,
-        "momentum_threshold": 1.0,
+        "min_confidence": 0.75,
+        "momentum_threshold": 1.5,
         "volume_ratio_min": 2.0,
         "max_spread_percent": 0.1
       }
@@ -83,7 +83,7 @@
       "min_win_rate": 0.45,
       "prediction_weight": 0.1,
       "conditions": {
-        "min_confidence": 0.65,
+        "min_confidence": 0.75,
         "trend_strength_min": 0.6,
         "max_volatility": 0.03,
         "min_volume_ratio": 1.2
@@ -101,7 +101,7 @@
       "min_win_rate": 0.4,
       "prediction_weight": 0.1,
       "conditions": {
-        "min_confidence": 0.7,
+        "min_confidence": 0.80,
         "rsi_threshold_low": 25,
         "rsi_threshold_high": 75,
         "bb_position_min": 0.8,
@@ -120,7 +120,7 @@
       "min_win_rate": 0.4,
       "prediction_weight": 0.1,
       "conditions": {
-        "min_confidence": 0.7,
+        "min_confidence": 0.80,
         "volume_ratio_min": 2.5,
         "volatility_threshold": 0.04,
         "atr_multiplier": 1.5
@@ -131,16 +131,19 @@
       "news_weight": 0.3,
       "tech_weight": 0.7,
       "risk_multiplier": 1.0,
-      "target_hold_time_hours": 2,
-      "stop_loss_percent": 2.0,
-      "take_profit_percent": 4.0,
+      "target_hold_time_hours": 4,
+      "stop_loss_percent": 3.0,
+      "take_profit_percent": 6.0,
       "max_positions": 3,
       "min_win_rate": 0.45,
-      "prediction_weight": 0.5
+      "prediction_weight": 0.5,
+      "conditions": {
+        "min_confidence": 0.75
+      }
     }
   },
   "strategy_selection": {
-    "exploration_rate": 0.3,
+    "exploration_rate": 0.03,
     "confidence_boost_factor": 0.4,
     "memory_size": 2000,
     "min_trades_for_evaluation": 10,
@@ -158,7 +161,7 @@
   "default_prediction_weight": 0.1,
   "fallback_strategy": "balanced",
   "default_strategy_parameters": {
-    "min_position_size_rub": 500,
+    "min_position_size_rub": 1000,
     "max_position_size_rub": 50000,
     "cooldown_period_hours": 2
   }
