@@ -12,3 +12,6 @@ __pycache__/
 data/daily_report_*.json
 logs/*.log.*
 logs/tech_core.log
+/data/*
+/logs/
+/data/

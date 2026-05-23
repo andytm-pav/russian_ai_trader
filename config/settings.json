@@ -130,7 +130,7 @@
   "take_profit_percent": 12,
   "commission_percent": 0.05,
   "slippage_percent": 0.1,
-  "model_confidence_threshold": 0.75,
+  "model_confidence_threshold": 0.55,
   "rss_update_interval_seconds": 60,
   "price_update_interval_seconds": 30,
   "portfolio_rebalance_hours": [10, 14, 16],

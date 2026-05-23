@@ -1071,6 +1071,78 @@
       "failure_count": 0,
       "success_rate": 0.5,
       "total_trades": 0
+    },
+    "MGTS": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "PMSB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MGTSP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "MGKL": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "LSNG": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "BTBR": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "TGKB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "RDRB": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "ZAYM": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
     }
   },
   "ticker_stats": {
@@ -1083,10 +1155,10 @@
       "last_trade": null
     },
     "VTBR": {
-      "total_trades": 5,
+      "total_trades": 6,
       "profitable_trades": 0,
       "total_pnl": -5.662500000000087,
-      "avg_hold_time": 0.2961672117312749,
+      "avg_hold_time": 2.29812007320148,
       "success_rate": 0.0,
       "last_trade": null
     },
@@ -1403,11 +1475,11 @@
       "last_trade": null
     },
     "MRKC": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "avg_hold_time": 12.304723636044397,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "MFGS": {
@@ -1427,11 +1499,11 @@
       "last_trade": null
     },
     "SBER": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "avg_hold_time": 12.308159106175104,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "YDEX": {
@@ -1635,11 +1707,11 @@
       "last_trade": null
     },
     "IVAT": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "avg_hold_time": 12.170783686770333,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "FIXR": {
@@ -2145,9 +2217,81 @@
       "avg_hold_time": 0.0,
       "success_rate": 0.5,
       "last_trade": null
+    },
+    "MGTS": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "PMSB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MGTSP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "MGKL": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "LSNG": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "BTBR": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "TGKB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "RDRB": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "ZAYM": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
     }
   },
-  "market_sentiment": 0.008527497765712775,
+  "market_sentiment": 0.012123532960816624,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
@@ -2347,5 +2491,5 @@
       "prediction_weight": 0.5
     }
   },
-  "save_time": "2026-04-10T23:24:45.475660"
+  "save_time": "2026-05-23T11:55:50.579165"
 }

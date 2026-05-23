@@ -195,7 +195,7 @@ class TechnicalTraderCore:
             # Кэшируем результаты
             self.indicators_cache[ticker] = indicators
 
-            logger.debug(f"Рассчитано {len(indicators)} индикаторов для {ticker}")
+            # logger.debug(f"Рассчитано {len(indicators)} индикаторов для {ticker}")
 
         except Exception as e:
             logger.error(f"Ошибка расчета индикаторов для {ticker}: {str(e)}")
@@ -316,6 +316,8 @@ class TechnicalTraderCore:
     def analyze_all_tickers(self, prices: Dict[str, float]) -> List[Dict]:
         """Анализ всех тикеров и генерация сигналов"""
         signals = []
+        indicators_count = 0
+        tickers_count = 0
 
         for ticker, price in prices.items():
             # Обновляем данные
@@ -325,13 +327,19 @@ class TechnicalTraderCore:
             indicators = self.calculate_indicators(ticker)
 
             if indicators:
+                indicators_count += 1
                 # Генерируем сигнал
                 signal = self.generate_technical_signals(ticker, indicators)
                 if signal:
                     signals.append(signal)
-
                     logger.info(f"Технический сигнал: {ticker} {signal['action']} "
                                 f"(conf={signal['confidence']:.2f}, ind={signal['indicators']})")
+
+            tickers_count += 1
+
+        # Агрегированный лог вместо построчного
+        if tickers_count > 0:
+            logger.debug(f"Рассчитаны индикаторы для {indicators_count}/{tickers_count} тикеров")
 
         return signals
 

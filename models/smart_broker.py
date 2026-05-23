@@ -95,6 +95,8 @@ class SmartPortfolioBroker:
         if settings.get("enable_background_training", True):
             from models.trainer import model_trainer_instance
             self.trainer = model_trainer_instance
+            if self.trainer is not None:
+                self.trainer.start_background_training()
 
         # ✅ ЗАГРУЗКА КОНСТАНТ ДЛЯ ПРИБЫЛИ
         self.extreme_pnl_threshold = self.profit_config.get("extreme_pnl_threshold", 0.08)
