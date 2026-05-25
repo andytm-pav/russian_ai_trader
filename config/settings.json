@@ -125,6 +125,14 @@
   "enable_technical_core": true,
   "enable_news_core": true,
   "min_cash_per_trade": 2000,
+  "daily_commission_limit": 100.0,
+  "cooldown_seconds": 7200,
+  "trades_lookback_seconds": 3600,
+  "max_positions_per_horizon": {
+    "day_session": 5,
+    "three_days": 3,
+    "week": 2
+  },
   "target_positions": 4,
   "stop_loss_percent": 6,
   "take_profit_percent": 12,

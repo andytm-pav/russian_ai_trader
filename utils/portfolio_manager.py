@@ -31,6 +31,7 @@ class PortfolioManager:
         self.preserve_buy_time = True
 
         # ========== ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ (БУДУТ ПЕРЕЗАПИСАНЫ ИЗ КОНФИГА) ==========
+        self.settings = self._load_settings()
         self.commission_rate = 0.003  # 0.3% - тариф Т-Банка "Инвестор"
         self.min_commission = 0.01  # минимальная комиссия 0.01₽
         self.rounding = 2  # округление до 2 знаков
@@ -56,6 +57,14 @@ class PortfolioManager:
                     f"Капитал: {self.cash:,.0f}₽")
 
     # ⚠️ ИСПРАВЛЕНО: НОВЫЙ МЕТОД для загрузки комиссионных настроек
+
+    def _load_settings(self) -> Dict:
+        """Загрузка settings.json"""
+        try:
+            with open("config/settings.json", "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
 
     def _load_commission_config(self):
         """Загрузка настроек комиссий из конфигурационного файла"""
@@ -258,9 +267,59 @@ class PortfolioManager:
                 logger.error(f"Количество меньше размера лота {lot_size}: {quantity}")
                 return False
 
+            # ========== ПРОВЕРКА ЛИМИТА ПОЗИЦИЙ ==========
+            if ticker not in self.positions and len(self.positions) >= self.max_positions:
+                logger.warning(f"Достигнут лимит позиций: {len(self.positions)}/{self.max_positions}")
+                return False
+
+            # ========== ПРОВЕРКА ЛИМИТОВ ГОРИЗОНТА ==========
+            horizon_positions = sum(
+                1 for p in self.positions.values()
+                if p.get('time_horizon') == time_horizon
+            )
+            max_per_horizon = self.settings.get('max_positions_per_horizon', {}).get(
+                time_horizon,
+                self.settings.get('max_positions_per_horizon', {}).get('week', 10)
+            )
+
+            if ticker not in self.positions and horizon_positions >= max_per_horizon:
+                logger.warning(f"Лимит позиций горизонта {time_horizon}: "
+                               f"{horizon_positions}/{max_per_horizon}")
+                return False
+
+            # ========== ПРОВЕРКА ЛИМИТА СДЕЛОК В ЧАС ==========
+            now = time.time()
+            lookback = self.settings.get('trades_lookback_seconds', 3600)
+            trades_last_hour = 0
+            for t in self.trade_history:
+                ts = t.get('timestamp')
+                if ts:
+                    if isinstance(ts, str):
+                        try:
+                            from datetime import datetime as dt
+                            ts_float = dt.fromisoformat(ts.replace('Z', '+00:00')).timestamp()
+                        except:
+                            continue
+                    else:
+                        ts_float = float(ts)
+                    if now - ts_float < lookback:
+                        trades_last_hour += 1
+
+            if trades_last_hour >= self.max_trades_per_hour:
+                logger.warning(f"Лимит сделок в час: {trades_last_hour}/{self.max_trades_per_hour}")
+                return False
+
             # ========== РАСЧЁТ СТОИМОСТИ И КОМИССИИ ==========
             cost = quantity * price
             commission_buy = self._calculate_commission(cost)
+
+            # ========== ПРОВЕРКА ЛИМИТА ДНЕВНЫХ КОМИССИЙ ==========
+            if self.commission_spent_today + commission_buy > self.daily_commission_limit:
+                logger.warning(f"Лимит дневных комиссий: "
+                               f"{self.commission_spent_today:.2f} + {commission_buy:.2f} > "
+                               f"{self.daily_commission_limit:.2f}")
+                return False
+
             total_required = cost + commission_buy
 
             # ========== ПРОВЕРКА ДОСТУПНОСТИ СРЕДСТВ ==========
@@ -282,7 +341,6 @@ class PortfolioManager:
                 pos['avg_price'] = total_cost / total_qty
                 pos['buy_time'] = time.time()
 
-                # Суммируем комиссию покупок (для пропорционального расчёта при продаже)
                 old_commission = pos.get('commission_buy', 0.0)
                 pos['commission_buy'] = old_commission + commission_buy
 
@@ -304,7 +362,7 @@ class PortfolioManager:
                     'avg_price': price,
                     'buy_time': time.time(),
                     'total_cost': cost,
-                    'commission_buy': commission_buy,  # ← сохраняем комиссию покупки
+                    'commission_buy': commission_buy,
                     'time_horizon': time_horizon
                 }
 

@@ -2,6 +2,7 @@
   "strategies": {
     "news_aggressive": {
       "description": "Агрессивная торговля на новостях",
+      "horizon": "day_session",
       "news_weight": 0.8,
       "tech_weight": 0.2,
       "risk_multiplier": 1.0,
@@ -20,6 +21,7 @@
     },
     "tech_conservative": {
       "description": "Консервативная техническая торговля",
+      "horizon": "three_days",
       "news_weight": 0.2,
       "tech_weight": 0.8,
       "risk_multiplier": 1.0,
@@ -38,6 +40,7 @@
     },
     "balanced": {
       "description": "Сбалансированный подход",
+      "horizon": "three_days",
       "news_weight": 0.5,
       "tech_weight": 0.5,
       "risk_multiplier": 1.0,
@@ -55,6 +58,7 @@
     },
     "momentum": {
       "description": "Моментум-трейдинг (среднесрочный)",
+      "horizon": "day_session",
       "news_weight": 0.3,
       "tech_weight": 0.7,
       "risk_multiplier": 1.0,
@@ -73,6 +77,7 @@
     },
     "swing": {
       "description": "Свинг-трейдинг (недельные движения)",
+      "horizon": "week",
       "news_weight": 0.2,
       "tech_weight": 0.8,
       "risk_multiplier": 1.0,
@@ -91,6 +96,7 @@
     },
     "mean_reversion": {
       "description": "Возврат к среднему (против тренда)",
+      "horizon": "three_days",
       "news_weight": 0.4,
       "tech_weight": 0.6,
       "risk_multiplier": 1.0,
@@ -110,6 +116,7 @@
     },
     "breakout": {
       "description": "Торговля на пробой уровней",
+      "horizon": "week",
       "news_weight": 0.3,
       "tech_weight": 0.7,
       "risk_multiplier": 1.0,
@@ -128,6 +135,7 @@
     },
     "price_prediction": {
       "description": "Торговля на основе предсказаний модели",
+      "horizon": "day_session",
       "news_weight": 0.3,
       "tech_weight": 0.7,
       "risk_multiplier": 1.0,

@@ -250,45 +250,78 @@ class SmartPortfolioBroker:
             return 0.0
 
     def _generate_news_signals(self, prices: Dict[str, float]) -> List[Dict]:
-        """Генерация сигналов на основе новостей"""
+        """Генерация сигналов на основе новостей с маппингом тикер→название"""
         signals = []
 
         try:
-            # Получаем новости с сентиментом
             news_items = self.news_fetcher.get_last_news(limit=100)
 
             if not news_items:
                 return signals
 
-            # Анализируем сентимент для всех новостей
             news_with_sentiment = self.news_fetcher.analyze_sentiment_batch(news_items)
 
-            # Группируем по тикерам
+            securities = self.moex.get_all_securities()
+
+            # Строим маппинг: тикер → список ключевых слов
+            ticker_keywords = {}
+            for ticker in prices.keys():
+                keywords = set()
+                keywords.add(ticker.lower())
+
+                sec_info = securities.get(ticker, {})
+                name = sec_info.get('name', '')
+                full_name = sec_info.get('full_name', '')
+
+                if name:
+                    for word in name.lower().split():
+                        clean_word = word.strip('"\'.,;:()[]{}')
+                        if len(clean_word) > 2:
+                            keywords.add(clean_word)
+
+                if full_name and full_name != name:
+                    for word in full_name.lower().split():
+                        clean_word = word.strip('"\'.,;:()[]{}')
+                        if len(clean_word) > 2:
+                            keywords.add(clean_word)
+
+                ticker_config = self.rl_config.get('ticker_names', {})
+                extra_names = ticker_config.get(ticker, [])
+                for extra in extra_names:
+                    keywords.add(extra.lower())
+
+                ticker_keywords[ticker] = keywords
+
+            # Группируем сентимент по тикерам
             ticker_sentiments = defaultdict(list)
 
             for news in news_with_sentiment:
                 sentiment = news.get('sentiment', 0.0)
+                title = news.get('title', '').lower()
+                summary = news.get('summary', '').lower()
+                text = title + ' ' + summary
 
-                # Проверяем упоминания тикеров
-                title = news.get('title', '')
-                for ticker in prices.keys():
-                    if ticker in title.upper():
-                        ticker_sentiments[ticker].append(sentiment)
-                        break
+                for ticker, keywords in ticker_keywords.items():
+                    for keyword in keywords:
+                        if keyword in text:
+                            ticker_sentiments[ticker].append(sentiment)
+                            break
 
             # Генерируем сигналы
+            sentiment_config = self.rl_config.get('sentiment_integration', {})
+            sentiment_threshold = sentiment_config.get('ticker_sentiment_weight', 0.3)
+
             for ticker, price in prices.items():
                 sentiments = ticker_sentiments.get(ticker, [])
 
                 if sentiments:
                     avg_sentiment = sum(sentiments) / len(sentiments)
 
-                    # Порог срабатывания
-                    if abs(avg_sentiment) > 0.3:
+                    if abs(avg_sentiment) > sentiment_threshold:
                         signals.append({
                             'ticker': ticker,
                             'action': 'BUY' if avg_sentiment > 0 else 'SELL',
-                            'confidence': abs(avg_sentiment),
+                            'confidence': min(abs(avg_sentiment), 1.0),
                             'price': price,
                             'reason': 'news_analysis',
                             'sentiment': avg_sentiment,
@@ -317,6 +350,8 @@ class SmartPortfolioBroker:
         logger.debug(f"[DEBUG] Исполнение {len(signals)} сигналов")
 
         executed_count = 0
+
+        cooldown_seconds = self.settings.get('cooldown_seconds', 7200)
 
         for signal in all_signals_with_horizon[:5]:
             ticker = signal['ticker']
@@ -351,20 +386,34 @@ class SmartPortfolioBroker:
 
             logger.debug(f"[DEBUG] Сигнал: {ticker} {action_str} (action_idx={action_idx}) conf={confidence:.2f}")
 
+            # ===== ПРОВЕРКА КУЛДАУНА =====
+            now = time.time()
+            last_trade = self.last_trade_time.get(ticker, 0)
+            if now - last_trade < cooldown_seconds:
+                logger.debug(f"Кулдаун для {ticker}: прошло {(now - last_trade):.0f}с < {cooldown_seconds}с")
+                continue
+
             # BUY действия
             if action_str.startswith('BUY'):
-                target_position_ratio = self.position_sizes.get(action_str, 0.05)
+                atr = security_info.get('atr', None)
+                if atr is None:
+                    indicators = self.technical_core.calculate_indicators(ticker)
+                    atr = indicators.get('atr', None)
+                sector = security_info.get('sector', None)
 
-                portfolio_value = self.portfolio.get_total_value(prices)
-                target_value = portfolio_value * target_position_ratio
-                quantity = int(target_value / price) if price > 0 else 0
-
-                if lot_size > 1:
-                    quantity = (quantity // lot_size) * lot_size
-                    if quantity == 0:
-                        quantity = lot_size
+                quantity, actual_risk = self.risk_manager.calculate_position_size(
+                    ticker=ticker,
+                    price=price,
+                    stop_loss=stop_loss,
+                    atr=atr,
+                    confidence=confidence,
+                    adv=security_info.get('volume'),
+                    sector=sector,
+                    lot_size=lot_size
+                )
 
                 if quantity <= 0:
+                    logger.warning(f"Risk Manager отклонил сделку {ticker}: quantity={quantity}")
                     continue
 
                 available_cash = self.portfolio.cash - self.portfolio.reserved_cash
@@ -376,7 +425,7 @@ class SmartPortfolioBroker:
 
                 daily_volume_rub = security_info.get('volume') or 0
                 liquidity_multiplier = self.settings.get('liquidity_check_multiplier', 10.0)
-                if daily_volume_rub < total_cost * liquidity_multiplier:
+                if daily_volume_rub > 0 and daily_volume_rub < total_cost * liquidity_multiplier:
                     logger.warning(f"⚠️ Низкая ликвидность {ticker}")
                     continue
 
@@ -384,6 +433,8 @@ class SmartPortfolioBroker:
                                       lot_size=lot_size, min_step=min_step,
                                       stop_loss=stop_loss, take_profit=take_profit,
                                       time_horizon=horizon):
+                    self.last_trade_time[ticker] = now
+
                     ticker_sentiment = self._get_ticker_sentiment(ticker)
                     sentiment_data = {
                         'sentiment': ticker_sentiment,
@@ -398,7 +449,9 @@ class SmartPortfolioBroker:
 
                     executed_count += 1
                     logger.info(
-                        f"✅ BUY {ticker}: {quantity} @ {price:.2f} ({target_position_ratio * 100:.1f}% портфеля)")
+                        f"✅ BUY {ticker}: {quantity} @ {price:.2f} "
+                        f"(risk={actual_risk:.0f}₽, strategy={strategy})"
+                    )
 
             # SELL действия
             elif action_str.startswith('SELL') and ticker in self.portfolio.positions:
@@ -424,17 +477,11 @@ class SmartPortfolioBroker:
                 success, pnl = self.portfolio.sell(ticker, qty, price)
 
                 if success:
-                    # 1. Сначала завершаем старый BUY-опыт (как и раньше)
+                    self.last_trade_time[ticker] = now
+
                     self._complete_rl_experience(ticker, price, actual_pnl=pnl, pos_info=pos_info)
 
-                    # 2. НОВОЕ: записываем SELL-опыт в память
                     ticker_sentiment = self._get_ticker_sentiment(ticker)
-                    sentiment_data = {
-                        'sentiment': ticker_sentiment,
-                        'news_count': signal.get('news_count', 0)
-                    }
-
-                    # Создаём состояние для SELL
                     next_state = self._create_next_state(ticker, price)
                     strategy_params = self.model.strategies.get(
                         pos_info.get('strategy', 'balanced'),
@@ -446,7 +493,6 @@ class SmartPortfolioBroker:
                     hold_time = (time.time() - pos_info.get('buy_time', time.time())) / 3600
                     reward = self._calculate_reward(pnl, hold_time, pos_info.get('strategy', 'balanced'))
 
-                    # Записываем SELL как завершённый опыт (done=True)
                     self.model.remember_experience(
                         state=full_current,
                         action=action_idx,
@@ -458,7 +504,9 @@ class SmartPortfolioBroker:
 
                     executed_count += 1
                     logger.info(
-                        f"💰 SELL {ticker}: {qty} @ {price:.2f} ({sell_ratio * 100:.0f}% позиции, PnL: {pnl:+.2f}₽)")
+                        f"💰 SELL {ticker}: {qty} @ {price:.2f} "
+                        f"({sell_ratio * 100:.0f}% позиции, PnL: {pnl:+.2f}₽)"
+                    )
 
                     if hasattr(self.model, 'record_strategy_outcome'):
                         self.model.record_strategy_outcome(
@@ -664,7 +712,9 @@ class SmartPortfolioBroker:
         market_sentiment = self._get_market_sentiment()
         macro_data = self.moex.get_macro_data()
 
-        # Расширенные рыночные данные
+        # Коэффициенты нормализации из конфига модели
+        norm = self.model.normalization
+
         enhanced_market_data = {
             'volume': indicators.get('volume', 0),
             'spread': security_info.get('spread', 0.01),
@@ -686,14 +736,23 @@ class SmartPortfolioBroker:
             'rtsi_change': macro_data.get('rtsi_change', 0),
             'rvi': macro_data.get('rvi', 20.0),
             'rvi_change': macro_data.get('rvi_change', 0),
-            # МАКРО-ПРИЗНАКИ
             'moexog': macro_data.get('moexog', 0),
             'moexfn': macro_data.get('moexfn', 0),
             'brent': macro_data.get('brent', 0),
             'brent_change': macro_data.get('brent_change', 0),
             'market_liquidity_ratio': macro_data.get('market_liquidity_ratio', 0.0),
             'market_activity_score': macro_data.get('market_activity_score', 0.0),
-
+            # MARKET_FEATURES — нормализация из конфига
+            'spread_pct': (security_info.get('spread', 0) / price) if price > 0 else 0.0,
+            'market_mood': macro_data.get('market_mood', 0.0),
+            'shares_turnover': macro_data.get('shares_turnover', 0) / norm.get('shares_turnover_divisor', 1e12),
+            'rvi_normalized': macro_data.get('rvi', 20.0) / norm.get('rvi_divisor', 100.0),
+            'imoex_normalized': macro_data.get('imoex', 0) / norm.get('imoex_divisor', 4000.0),
+            'market_cap_total': macro_data.get('market_cap', 0) / norm.get('market_cap_divisor_total', 1e14),
+            'liquidity_ratio': macro_data.get('market_liquidity_ratio', 0.0),
+            'rtsi_normalized': macro_data.get('rtsi', 0) / norm.get('rtsi_divisor', 2000.0),
+            'usd_rub': macro_data.get('usd_rub', 0) / norm.get('usd_rub_divisor', 100.0),
+            'moexog_normalized': macro_data.get('moexog', 0) / norm.get('moexog_divisor', 10000.0),
         }
 
         state = self.model.build_state_vector(
@@ -1764,12 +1823,13 @@ class SmartPortfolioBroker:
             market_sentiment = self._get_market_sentiment()
             macro_data = self.moex.get_macro_data()
 
-            # Загрузка констант из настроек
             settings = self.settings
             default_spread = settings.get('default_spread', 0.01)
             default_rsi = settings.get('default_rsi', 50)
             default_volatility = settings.get('default_volatility', 0.1)
             default_bb_position = settings.get('default_bb_position', 0.5)
+
+            norm = self.model.normalization
 
             enhanced_market_data = {
                 'volume': indicators.get('volume', 0) if indicators else 0,
@@ -1800,6 +1860,19 @@ class SmartPortfolioBroker:
                 'moexfn': macro_data.get('moexfn', 0),
                 'brent': macro_data.get('brent', 0),
                 'brent_change': macro_data.get('brent_change', 0),
+                'market_liquidity_ratio': macro_data.get('market_liquidity_ratio', 0.0),
+                'market_activity_score': macro_data.get('market_activity_score', 0.0),
+                # MARKET_FEATURES — нормализация из конфига
+                'spread_pct': (security_info.get('spread', 0) / current_price) if current_price > 0 else 0.0,
+                'market_mood': macro_data.get('market_mood', 0.0),
+                'shares_turnover': macro_data.get('shares_turnover', 0) / norm.get('shares_turnover_divisor', 1e12),
+                'rvi_normalized': macro_data.get('rvi', 20.0) / norm.get('rvi_divisor', 100.0),
+                'imoex_normalized': macro_data.get('imoex', 0) / norm.get('imoex_divisor', 4000.0),
+                'market_cap_total': macro_data.get('market_cap', 0) / norm.get('market_cap_divisor_total', 1e14),
+                'liquidity_ratio': macro_data.get('market_liquidity_ratio', 0.0),
+                'rtsi_normalized': macro_data.get('rtsi', 0) / norm.get('rtsi_divisor', 2000.0),
+                'usd_rub': macro_data.get('usd_rub', 0) / norm.get('usd_rub_divisor', 100.0),
+                'moexog_normalized': macro_data.get('moexog', 0) / norm.get('moexog_divisor', 10000.0),
             }
 
             state = self.model.build_state_vector(

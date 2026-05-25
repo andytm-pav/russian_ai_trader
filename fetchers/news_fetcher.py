@@ -475,30 +475,48 @@ class OptimizedNewsFetcher:
             return time.time()
         return dt.timestamp()
 
-    def search_news(self, query: str = '', ticker: str = '', limit: int = 20) -> List[Dict]:
-        """Быстрый поиск новостей"""
+    def search_news(self, query: str = '', ticker: str = '', limit: int = 20,
+                    keywords: List[str] = None) -> List[Dict]:
+        """Быстрый поиск новостей с поддержкой ключевых слов
+
+        Args:
+            query: поисковый запрос
+            ticker: тикер (латиницей)
+            limit: максимальное количество результатов
+            keywords: список ключевых слов для поиска (русские названия)
+        """
         all_news = self.get_last_news(limit=200)
 
-        if not query and not ticker:
+        if not query and not ticker and not keywords:
             return all_news[:limit]
 
-        # Нормализация запроса
         query = query.lower() if query else ''
-        ticker = ticker.upper() if ticker else ''
+        ticker_upper = ticker.upper() if ticker else ''
+        keywords_lower = [kw.lower() for kw in keywords] if keywords else []
 
-        # Фильтрация
         filtered = []
 
         for news in all_news:
-            title = news['title'].lower()
-            summary = news.get('summary', '').lower()
+            title = news.get('title', '')
+            summary = news.get('summary', '')
+            title_lower = title.lower()
+            summary_lower = summary.lower()
 
-            if ticker:
-                if ticker not in title.upper() and ticker not in summary.upper():
+            if ticker_upper:
+                if ticker_upper not in title.upper() and ticker_upper not in summary.upper():
+                    continue
+
+            if keywords_lower:
+                found = False
+                for kw in keywords_lower:
+                    if kw in title_lower or kw in summary_lower:
+                        found = True
+                        break
+                if not found:
                     continue
 
             if query:
-                if query not in title and query not in summary:
+                if query not in title_lower and query not in summary_lower:
                     continue
 
             filtered.append(news)

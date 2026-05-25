@@ -90,7 +90,7 @@
     "news_features_size": 132,
     "strategy_params_size": 6,
     "market_features_count": 48,
-    "reserved_slots": 6
+    "reserved_slots": 0
   },
 
   "state_dimensions": {
@@ -293,19 +293,19 @@
   },
 
   "feature_config": {
-    "reserved_slots": 6,
-    "market_features": [
-      "order_flow_imbalance",
-      "dark_pool_volume",
-      "option_implied_vol",
-      "futures_premium",
-      "short_interest",
-      "institutional_flow",
-      "retail_sentiment",
-      "geopolitical_risk",
-      "market_liquidity",
-      "vix"
-    ]
+      "reserved_slots": 6,
+      "market_features": [
+           "spread_pct",
+           "market_mood",
+           "shares_turnover",
+           "rvi_normalized",
+           "imoex_normalized",
+           "market_cap_total",
+           "liquidity_ratio",
+           "rtsi_normalized",
+           "usd_rub",
+           "moexog_normalized"
+      ]
   },
 
   "reward_config": {
@@ -369,6 +369,40 @@
     "sentiment_divisor": 10,
     "noise_scale": 0.1
   },
+
+  "ticker_names": {
+    "SBER": ["сбер"],
+    "VTBR": ["втб"],
+    "GAZP": ["газпром"],
+    "LKOH": ["лукойл", "лукоил"],
+    "NVTK": ["новатэк"],
+    "ROSN": ["роснефть"],
+    "GMKN": ["норникель", "норильский", "гмк"],
+    "PLZL": ["полюс"],
+    "MTSS": ["мтс"],
+    "YNDX": ["яндекс", "yandex"],
+    "TATN": ["татнефть"],
+    "SNGS": ["сургутнефтегаз", "сургут"],
+    "CHMF": ["северсталь"],
+    "MAGN": ["магнитогорск", "ммк"],
+    "RUAL": ["русал"],
+    "MGNT": ["магнит"],
+    "OZON": ["озон"],
+    "AFKS": ["афк", "система"],
+    "MOEX": ["биржа", "мосбиржа", "московская биржа"]
+  },
+
+  "shares_turnover_divisor": 1000000000000.0,
+  "rvi_divisor": 100.0,
+  "imoex_divisor": 4000.0,
+  "market_cap_divisor_total": 100000000000000.0,
+  "rtsi_divisor": 2000.0,
+  "usd_rub_divisor": 100.0,
+  "moexog_divisor": 10000.0,
+
+  "max_hold_time_hours_norm": 72.0,
+  "same_action_streak_max": 10.0,
+
 
   "prioritized_buffer": {
     "alpha": 0.6,

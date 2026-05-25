@@ -535,9 +535,7 @@ class AdvancedTraderModel:
         """
         Построение вектора состояния (210 признаков)
         """
-        # Используем self.normalization, а не norm
         norm = self.normalization
-        # kwargs = {'portfolio': portfolio} if portfolio is not None else {}
 
         # Новости
         if news_features.numel() > 0 and news_features.shape[1] == self.news_encoded_dim:
@@ -576,7 +574,7 @@ class AdvancedTraderModel:
 
         # === 3. Новости (134) ===
         features.extend(news_vec.tolist())
-        features.extend([0.0] * 2)  # резерв (2 слота)
+        features.extend([0.0] * 2)
 
         # === 4. Фундаментальные (7) ===
         sector_onehot = [0] * self.state_building.get('sector_onehot_size', 5)
@@ -654,13 +652,7 @@ class AdvancedTraderModel:
                         if current_value > self.peak_value:
                             self.peak_value = current_value
         else:
-            # Fallback: нет портфеля - используем значения по умолчанию
             logger.debug("Портфель не передан в build_state_vector, использую значения по умолчанию")
-            positions_norm = 0.0
-            exposure_norm = 0.0
-            cash_ratio = 1.0
-            drawdown = 0.0
-            daily_pnl_norm = 0.0
 
         drawdown_mult = self.state_building.get('drawdown_multiplier', 2.0)
         features.extend([positions_norm, exposure_norm, cash_ratio, min(drawdown * drawdown_mult, 1.0), daily_pnl_norm])
@@ -731,9 +723,6 @@ class AdvancedTraderModel:
         breakeven_price_ratio = 1.0
 
         if portfolio is not None:
-            # import time
-            # datetime уже импортирован в начале файла
-
             initial_capital = getattr(self, 'initial_capital', 10000.0)
             commission_norm = getattr(self, 'commission_normalization', 1000.0)
             max_trades_per_hour = getattr(self, 'max_trades_per_hour', 10)
@@ -751,7 +740,7 @@ class AdvancedTraderModel:
             commission_to_pnl = min(total_commission / max(1, abs(total_pnl)), 2.0) if total_pnl > 0 else 0.0
 
             trade_history = getattr(portfolio, 'trade_history', [])
-            now = time.time()
+            now_ts = time.time()
             trades_last_hour = 0
             for t in trade_history:
                 ts = t.get('timestamp')
@@ -763,7 +752,7 @@ class AdvancedTraderModel:
                             continue
                     else:
                         ts_float = float(ts)
-                    if ts_float > now - 3600:
+                    if ts_float > now_ts - 3600:
                         trades_last_hour += 1
 
             trade_frequency_penalty = min(trades_last_hour / max_trades_per_hour, 1.0)
@@ -791,22 +780,59 @@ class AdvancedTraderModel:
 
         features.extend(commission_features)
 
-        # === 12. Резервные слоты ===
+        # === 12. ГИСТЕРЕЗИС (3 признака) ===
+        time_since_last_trade = 0.0
+        time_since_entry = 0.0
+        same_action_streak = 0.0
+
+        if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'positions'):
+            if ticker in self.portfolio.positions:
+                pos = self.portfolio.positions[ticker]
+                if 'buy_time' in pos:
+                    hours_held = (time.time() - pos['buy_time']) / 3600.0
+                    target = pos.get('target_hold_hours', 6.0)
+                    time_since_entry = min(hours_held / max(target, 0.5), 2.0)
+
+        max_hold_norm = norm.get('max_hold_time_hours_norm', 72.0)
+        streak_max = norm.get('same_action_streak_max', 10.0)
+
+        features.extend([
+            min(time_since_last_trade / max_hold_norm, 1.0),
+            time_since_entry,
+            min(same_action_streak / streak_max, 1.0),
+        ])
+
+        # === 13. ГОРИЗОНТ ПОЗИЦИИ (3 one-hot признака) ===
+        horizon_day = 0.0
+        horizon_three_days = 0.0
+        horizon_week = 0.0
+
+        if hasattr(self, 'portfolio') and hasattr(self.portfolio, 'positions'):
+            if ticker in self.portfolio.positions:
+                pos = self.portfolio.positions[ticker]
+                horizon = pos.get('time_horizon', 'week')
+                if horizon == 'day_session':
+                    horizon_day = 1.0
+                elif horizon == 'three_days':
+                    horizon_three_days = 1.0
+                elif horizon == 'week':
+                    horizon_week = 1.0
+
+        features.extend([horizon_day, horizon_three_days, horizon_week])
+
+        # === 14. Резервные слоты ===
         feature_config = self.rl_config.get('feature_config', {})
-        reserved_slots = feature_config.get('reserved_slots', 6)
+        reserved_slots = feature_config.get('reserved_slots', 0)
         features.extend([0.0] * reserved_slots)
 
-        # === 13. Дополнительные рыночные признаки ===
+        # === 15. Market features из конфига ===
         market_feature_names = feature_config.get('market_features', [])
         for name in market_feature_names:
             features.append(market_data.get(name, 0.0))
 
-
-        # === 14. Рыночная ликвидность и активность (2) ===
+        # === 16. Рыночная ликвидность и активность (2) ===
         features.append(market_data.get('market_liquidity_ratio', 0.0))
         features.append(market_data.get('market_activity_score', 0.0))
-
-
 
         # Проверка размерности
         expected_dim = self._get_expected_dimension()

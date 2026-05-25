@@ -767,6 +767,7 @@ class MoexFetcher:
         macro_data = {
             'imoex': indices.get('IMOEX', 0.0),
             'imoex_change': indices.get('IMOEX_change', 0.0),
+            'market_mood': indices.get('market_mood', 0.0),
             'rtsi': indices.get('RTSI', 0.0),
             'rtsi_change': indices.get('RTSI_change', 0.0),
             'rvi': indices.get('RVI', self.default_rvi),
