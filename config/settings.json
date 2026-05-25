@@ -15,6 +15,14 @@
     "top_tickers": 120
   },
 
+  "reset_model_on_start": true,
+
+  "trailing_stop_enabled": true,
+  "trailing_stop_activation_percent": 3.0,
+  "trailing_stop_distance_percent": 2.0,
+  "partial_take_enabled": true,
+  "partial_take_percent": 3.0,
+  "partial_take_ratio": 0.5,
 
   "trading_hours": {
     "main_session": "06:50-18:50",
@@ -136,7 +144,7 @@
   "target_positions": 4,
   "stop_loss_percent": 6,
   "take_profit_percent": 12,
-  "commission_percent": 0.05,
+  "commission_percent": 0.3,
   "slippage_percent": 0.1,
   "model_confidence_threshold": 0.55,
   "rss_update_interval_seconds": 60,

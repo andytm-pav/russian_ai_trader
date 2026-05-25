@@ -16,3 +16,4 @@ logs/tech_core.log
 /logs/
 /data/
 /models/saved_trader/memory_buffer.pkl.backup*
+/models/saved_trader/*backup*

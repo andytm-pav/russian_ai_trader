@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 """
-СБРОС СИСТЕМЫ К НАЧАЛЬНОМУ СОСТОЯНИЮ
-Очищает portfolio_state.json, price_history.json, сбрасывает дневную статистику
+СБРОС СИСТЕМЫ К НАЧАЛЬНОМУ СОСТОЯНИЮ (v2)
+Очищает: portfolio_state.json, price_history.json, model_weights.pth, memory_buffer.pkl
 """
 
 import json
 import os
 import sys
+import shutil
 from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, '.')
 
 
-def reset_system(confirm: bool = True):
+def reset_system():
     """Сброс системы к дефолтным значениям"""
 
     print("\n" + "=" * 70)
-    print("🔄 СБРОС СИСТЕМЫ К НАЧАЛЬНОМУ СОСТОЯНИЮ")
+    print("🔄 СБРОС СИСТЕМЫ К НАЧАЛЬНОМУ СОСТОЯНИЮ (v2)")
     print("=" * 70)
     print(f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -31,39 +32,32 @@ def reset_system(confirm: bool = True):
         print(f"⚠️ Не удалось загрузить settings.json: {e}")
         print(f"   Использую initial_capital = 10000.0₽")
 
-    results = {}
     files_cleaned = []
     files_created = []
     files_error = []
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # ===== 1. СБРОС PORTFOLIO_STATE.JSON =====
     portfolio_file = Path('data/portfolio_state.json')
     print(f"\n📁 Портфель: {portfolio_file}")
 
     if portfolio_file.exists():
-        # Создаём бэкап
-        backup_file = portfolio_file.with_suffix(f'.json.backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
+        backup_file = portfolio_file.with_suffix(f'.json.backup_{timestamp}')
         try:
-            import shutil
             shutil.copy2(portfolio_file, backup_file)
-            print(f"   ✅ Бэкап сохранён: {backup_file}")
+            print(f"   ✅ Бэкап: {backup_file}")
         except Exception as e:
             print(f"   ⚠️ Не удалось создать бэкап: {e}")
 
-        # Читаем старые данные для информации
         try:
             with open(portfolio_file, 'r', encoding='utf-8') as f:
                 old_state = json.load(f)
             old_cash = old_state.get('cash', 0)
             old_positions = len(old_state.get('positions', {}))
-            old_total = old_state.get('total_value', 0)
-            old_reserved = old_state.get('reserved_cash', 0)
-            print(f"   Старое состояние: cash={old_cash:,.0f}₽, positions={old_positions}, "
-                  f"total_value={old_total:,.0f}₽, reserved={old_reserved:,.0f}₽")
+            print(f"   Старое: cash={old_cash:,.0f}₽, positions={old_positions}")
         except:
             pass
 
-    # Создаём новое состояние
     new_state = {
         'total_value': initial_capital,
         'cash': initial_capital,
@@ -94,10 +88,10 @@ def reset_system(confirm: bool = True):
     try:
         with open(portfolio_file, 'w', encoding='utf-8') as f:
             json.dump(new_state, f, indent=2, default=str)
-        print(f"   ✅ Сброшен: cash={initial_capital:,.0f}₽, positions=0, reserved=0")
+        print(f"   ✅ Сброшен: cash={initial_capital:,.0f}₽, positions=0")
         files_cleaned.append(str(portfolio_file))
     except Exception as e:
-        print(f"   ❌ Ошибка записи: {e}")
+        print(f"   ❌ Ошибка: {e}")
         files_error.append(str(portfolio_file))
 
     # ===== 2. ОЧИСТКА PRICE_HISTORY.JSON =====
@@ -105,49 +99,77 @@ def reset_system(confirm: bool = True):
     print(f"\n📁 История цен: {price_history_file}")
 
     if price_history_file.exists():
-        # Создаём бэкап
-        backup_file = price_history_file.with_suffix(f'.json.backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
+        backup_file = price_history_file.with_suffix(f'.json.backup_{timestamp}')
         try:
-            import shutil
             shutil.copy2(price_history_file, backup_file)
-            print(f"   ✅ Бэкап сохранён: {backup_file}")
+            print(f"   ✅ Бэкап: {backup_file}")
         except Exception as e:
             print(f"   ⚠️ Не удалось создать бэкап: {e}")
 
-    # Создаём пустой файл
     try:
         with open(price_history_file, 'w', encoding='utf-8') as f:
             json.dump({}, f)
-        print(f"   ✅ Очищен (пустой словарь)")
+        print(f"   ✅ Очищен")
         files_cleaned.append(str(price_history_file))
     except Exception as e:
-        print(f"   ❌ Ошибка записи: {e}")
+        print(f"   ❌ Ошибка: {e}")
         files_error.append(str(price_history_file))
 
-    # ===== 3. ОЧИСТКА ПАМЯТИ МОДЕЛИ (ОПЦИОНАЛЬНО) =====
+    # ===== 3. УДАЛЕНИЕ ВЕСОВ МОДЕЛИ =====
+    weights_file = Path('models/saved_trader/model_weights.pth')
+    print(f"\n📁 Веса модели: {weights_file}")
+
+    if weights_file.exists():
+        backup_file = weights_file.with_suffix(f'.pth.backup_{timestamp}')
+        try:
+            shutil.copy2(weights_file, backup_file)
+            print(f"   ✅ Бэкап: {backup_file}")
+            weights_file.unlink()
+            print(f"   ✅ Веса удалены (модель начнёт с нуля)")
+            files_cleaned.append(str(weights_file))
+        except Exception as e:
+            print(f"   ❌ Ошибка: {e}")
+            files_error.append(str(weights_file))
+    else:
+        print(f"   ⚠️ Файл не найден")
+
+    # ===== 4. УДАЛЕНИЕ ПАМЯТИ МОДЕЛИ =====
     memory_file = Path('models/saved_trader/memory_buffer.pkl')
     print(f"\n📁 Память модели: {memory_file}")
 
     if memory_file.exists():
-        backup_file = memory_file.with_suffix(f'.pkl.backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}')
+        backup_file = memory_file.with_suffix(f'.pkl.backup_{timestamp}')
         try:
-            import shutil
             shutil.copy2(memory_file, backup_file)
-            print(f"   ✅ Бэкап сохранён: {backup_file}")
-        except Exception as e:
-            print(f"   ⚠️ Не удалось создать бэкап: {e}")
-
-        try:
+            print(f"   ✅ Бэкап: {backup_file}")
             memory_file.unlink()
-            print(f"   ✅ Удалён (модель начнёт с чистой памяти)")
+            print(f"   ✅ Память удалена")
             files_cleaned.append(str(memory_file))
         except Exception as e:
-            print(f"   ❌ Ошибка удаления: {e}")
+            print(f"   ❌ Ошибка: {e}")
             files_error.append(str(memory_file))
     else:
-        print(f"   ⚠️ Файл не найден (уже очищен или не создавался)")
+        print(f"   ⚠️ Файл не найден")
 
-    # ===== 4. СБРОС ДНЕВНЫХ ОТЧЁТОВ =====
+    # ===== 5. УДАЛЕНИЕ MODEL_STATE.JSON (опционально) =====
+    state_file = Path('models/saved_trader/model_state.json')
+    print(f"\n📁 Состояние модели: {state_file}")
+
+    if state_file.exists():
+        backup_file = state_file.with_suffix(f'.json.backup_{timestamp}')
+        try:
+            shutil.copy2(state_file, backup_file)
+            print(f"   ✅ Бэкап: {backup_file}")
+            state_file.unlink()
+            print(f"   ✅ Состояние удалено (статистика стратегий сброшена)")
+            files_cleaned.append(str(state_file))
+        except Exception as e:
+            print(f"   ❌ Ошибка: {e}")
+            files_error.append(str(state_file))
+    else:
+        print(f"   ⚠️ Файл не найден")
+
+    # ===== 6. ОЧИСТКА БЭКОФИСА =====
     backoffice_dir = Path('data/backoffice')
     print(f"\n📁 Бэкофис: {backoffice_dir}")
 
@@ -160,14 +182,14 @@ def reset_system(confirm: bool = True):
             except:
                 pass
         if count > 0:
-            print(f"   ✅ Удалено {count} файлов отчётов")
+            print(f"   ✅ Удалено {count} файлов")
             files_cleaned.append(f"{backoffice_dir} ({count} файлов)")
         else:
-            print(f"   ⚠️ Нет файлов для очистки")
+            print(f"   ⚠️ Нет файлов")
     else:
         print(f"   ⚠️ Директория не найдена")
 
-    # ===== 5. СБРОС ДНЕВНЫХ ОТЧЁТОВ В КОРНЕ DATA =====
+    # ===== 7. ОЧИСТКА ДНЕВНЫХ ОТЧЁТОВ =====
     data_dir = Path('data')
     print(f"\n📁 Дневные отчёты: {data_dir}")
 
@@ -179,12 +201,12 @@ def reset_system(confirm: bool = True):
         except:
             pass
     if count > 0:
-        print(f"   ✅ Удалено {count} дневных отчётов")
+        print(f"   ✅ Удалено {count} файлов")
         files_cleaned.append(f"daily_report_*.json ({count} файлов)")
     else:
-        print(f"   ⚠️ Нет файлов для очистки")
+        print(f"   ⚠️ Нет файлов")
 
-    # ===== 6. СБРОС TRAINING EXPORT =====
+    # ===== 8. ОЧИСТКА TRAINING EXPORT =====
     training_export = Path('data/training_export.json')
     if training_export.exists():
         try:
@@ -194,13 +216,26 @@ def reset_system(confirm: bool = True):
         except:
             pass
 
+    # ===== 9. ОЧИСТКА LABELED NEWS =====
+    labeled_news = Path('data/labeled_news.json')
+    if labeled_news.exists():
+        try:
+            backup_file = labeled_news.with_suffix(f'.json.backup_{timestamp}')
+            shutil.copy2(labeled_news, backup_file)
+            with open(labeled_news, 'w', encoding='utf-8') as f:
+                json.dump([], f)
+            print(f"\n📁 Labeled news: очищен")
+            files_cleaned.append(str(labeled_news))
+        except:
+            pass
+
     # ===== ИТОГ =====
     print("\n" + "=" * 70)
     print("📋 ИТОГ СБРОСА")
     print("=" * 70)
 
     print(f"\n   Начальный капитал: {initial_capital:,.0f}₽")
-    print(f"\n   Очищено файлов: {len(files_cleaned)}")
+    print(f"\n   Очищено/удалено: {len(files_cleaned)}")
     for f in files_cleaned:
         print(f"   ✅ {f}")
 
@@ -209,10 +244,12 @@ def reset_system(confirm: bool = True):
         for f in files_error:
             print(f"   ❌ {f}")
 
-    print(f"\n   Бэкапы сохранены с суффиксом .backup_YYYYMMDD_HHMMSS")
+    print(f"\n   Бэкапы сохранены с суффиксом .backup_{timestamp}")
 
     if not files_error:
-        print(f"\n   ✅ СИСТЕМА СБРОШЕНА К НАЧАЛЬНОМУ СОСТОЯНИЮ!")
+        print(f"\n   ✅ СИСТЕМА ПОЛНОСТЬЮ СБРОШЕНА!")
+        print(f"   Портфель: {initial_capital:,.0f}₽, 0 позиций")
+        print(f"   Модель: веса удалены, память очищена")
         print(f"   Можно запускать: python main.py")
     else:
         print(f"\n   ⚠️ СБРОС ВЫПОЛНЕН С ОШИБКАМИ. Проверьте права доступа.")
@@ -225,12 +262,13 @@ def reset_system(confirm: bool = True):
 
 
 if __name__ == "__main__":
-    # Запрос подтверждения
     print("\n⚠️ ВНИМАНИЕ!")
-    print("Этот скрипт сбросит систему к начальному состоянию:")
+    print("Этот скрипт ПОЛНОСТЬЮ сбросит систему:")
     print("  — Портфель: 10 000₽, 0 позиций")
-    print("  — История цен: очищена")
-    print("  — Память модели: удалена")
+    print("  — Историю цен: очищена")
+    print("  — Веса модели: УДАЛЕНЫ (обучение с нуля)")
+    print("  — Память модели: УДАЛЕНА")
+    print("  — Статистика стратегий: СБРОШЕНА")
     print("  — Дневные отчёты: удалены")
     print("  — Бэкапы будут созданы автоматически")
 

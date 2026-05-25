@@ -386,6 +386,41 @@ class SmartPortfolioBroker:
 
             logger.debug(f"[DEBUG] Сигнал: {ticker} {action_str} (action_idx={action_idx}) conf={confidence:.2f}")
 
+            # ===== HOLD действия (индексы 0, 1, 2) =====
+            if action_str.startswith('HOLD'):
+                # HOLD не требует исполнения — просто записываем опыт
+                ticker_sentiment = self._get_ticker_sentiment(ticker)
+                sentiment_data = {
+                    'sentiment': ticker_sentiment,
+                    'news_count': signal.get('news_count', 0)
+                }
+
+                if ticker in self.portfolio.positions:
+                    pos = self.portfolio.positions[ticker]
+                    if ticker in self.ticker_states:
+                        hold_time = (time.time() - pos.get('buy_time', time.time())) / 3600
+                        hold_reward = self._calculate_reward(0, hold_time, pos.get('strategy', 'balanced'))
+
+                        current_state_hold = self.ticker_states[ticker]
+                        next_state_hold = self._create_next_state(ticker, price)
+                        strategy_params = self.model.strategies.get(
+                            pos.get('strategy', 'balanced'),
+                            self.model.strategies.get('balanced', {})
+                        )
+                        full_current = self.model._create_strategy_state(current_state_hold, strategy_params)
+                        full_next = self.model._create_strategy_state(next_state_hold, strategy_params)
+
+                        self.model.remember_experience(
+                            state=full_current,
+                            action=action_idx,
+                            reward=hold_reward,
+                            next_state=full_next,
+                            done=False,
+                            pnl_rub=0
+                        )
+
+                continue
+
             # ===== ПРОВЕРКА КУЛДАУНА =====
             now = time.time()
             last_trade = self.last_trade_time.get(ticker, 0)
@@ -1362,23 +1397,22 @@ class SmartPortfolioBroker:
             self.signals_cache = filtered_signals[:10]
             self.check_stops_and_tp(prices)
 
-            # ===== HOLD REWARD: открытые позиции =====
+            # ===== HOLD REWARD =====
             hold_config = self.rl_config.get('hold_reward', {})
             if hold_config.get('enabled', False):
                 hold_interval = hold_config.get('interval_cycles', 5)
                 if self.cycle_count % hold_interval == 0:
                     max_positions = hold_config.get('max_positions_per_cycle', 3)
 
-                    # Получаем индекс действия HOLD из конфига (не хардкод!)
+                    # Получаем индексы всех HOLD-действий из конфига
                     action_mapping = self.rl_config.get('action_mapping', {})
-                    hold_action_idx = None
+                    hold_action_indices = []
                     for key, value in action_mapping.items():
-                        if value == 'HOLD':
-                            hold_action_idx = int(key)
-                            break
-                    if hold_action_idx is None:
+                        if value.startswith('HOLD'):
+                            hold_action_indices.append(int(key))
+                    if not hold_action_indices:
                         # Fallback: обратная совместимость со старыми конфигами
-                        hold_action_idx = 3
+                        hold_action_indices = [3]
 
                     # Блок 1: HOLD для открытых позиций
                     for ticker, pos in list(self.portfolio.positions.items())[:max_positions]:
@@ -1397,17 +1431,19 @@ class SmartPortfolioBroker:
                                 hold_time = (time.time() - pos.get('buy_time', time.time())) / 3600
                                 hold_reward = self._calculate_reward(0, hold_time, strategy)
 
+                                import random as _random
+                                chosen_hold_action = _random.choice(hold_action_indices)
+
                                 self.model.remember_experience(
                                     state=full_current,
-                                    action=hold_action_idx,
+                                    action=chosen_hold_action,
                                     reward=hold_reward,
                                     next_state=full_next,
                                     done=False,
                                     pnl_rub=0
                                 )
 
-                    # Блок 2 (НОВЫЙ): HOLD для тикеров БЕЗ позиций
-                    # Поощряем модель за то, что она НЕ входит в рынок
+                    # Блок 2: HOLD для тикеров БЕЗ позиций
                     hold_bonus = hold_config.get('max_bonus', 0.5)
                     no_position_tickers = [
                         t for t in self.current_tickers
@@ -1426,7 +1462,6 @@ class SmartPortfolioBroker:
                                 current_state = self.ticker_states[ticker]
                                 next_state = self._create_next_state(ticker, current_price)
 
-                                # Используем стратегию по умолчанию
                                 fallback_strategy = self.rl_config.get('fallback_strategy', 'balanced')
                                 strategy_params = self.model.strategies.get(
                                     fallback_strategy,
@@ -1436,9 +1471,12 @@ class SmartPortfolioBroker:
                                 full_current = self.model._create_strategy_state(current_state, strategy_params)
                                 full_next = self.model._create_strategy_state(next_state, strategy_params)
 
+                                import random as _random2
+                                chosen_hold_action = _random2.choice(hold_action_indices)
+
                                 self.model.remember_experience(
                                     state=full_current,
-                                    action=hold_action_idx,
+                                    action=chosen_hold_action,
                                     reward=hold_bonus,
                                     next_state=full_next,
                                     done=False,
@@ -1643,8 +1681,16 @@ class SmartPortfolioBroker:
             logger.error(f"Ошибка записи сделки для обучения: {e}")
 
     def check_stops_and_tp(self, prices: Dict[str, float]):
-        """Проверка стоп-лоссов и тейк-профитов с учетом лотности"""
+        """Проверка стоп-лоссов и тейк-профитов с трейлинг-стопом"""
         cfg = self.settings
+
+        # Параметры трейлинг-стопа из конфига
+        trailing_stop_enabled = cfg.get('trailing_stop_enabled', True)
+        trailing_stop_activation = cfg.get('trailing_stop_activation_percent', 3.0)
+        trailing_stop_distance = cfg.get('trailing_stop_distance_percent', 2.0)
+        partial_take_enabled = cfg.get('partial_take_enabled', True)
+        partial_take_percent = cfg.get('partial_take_percent', 3.0)
+        partial_take_ratio = cfg.get('partial_take_ratio', 0.5)
 
         for ticker, pos in list(self.portfolio.positions.items()):
             if ticker not in prices:
@@ -1665,8 +1711,22 @@ class SmartPortfolioBroker:
             if min_step > 0:
                 price = round(price / min_step) * min_step
 
-            # Стоп-лосс
-            if change_pct <= -cfg.get('stop_loss_percent', 3.0):
+            # ===== ТРЕЙЛИНГ-СТОП =====
+            if trailing_stop_enabled and change_pct >= trailing_stop_activation:
+                # Активируем трейлинг-стоп: подтягиваем стоп-лосс
+                current_stop = pos.get('stop_loss', entry_price * (1 - cfg.get('stop_loss_percent', 6.0) / 100))
+                trailing_stop_price = price * (1 - trailing_stop_distance / 100)
+
+                if trailing_stop_price > current_stop:
+                    old_stop = pos.get('stop_loss', current_stop)
+                    pos['stop_loss'] = trailing_stop_price
+                    pos['trailing_activated'] = True
+                    logger.debug(f"Трейлинг-стоп {ticker}: {old_stop:.2f} → {trailing_stop_price:.2f} "
+                                 f"(цена: {price:.2f}, +{change_pct:.1f}%)")
+
+            # Проверка обновлённого стоп-лосса
+            effective_stop = pos.get('stop_loss', entry_price * (1 - cfg.get('stop_loss_percent', 6.0) / 100))
+            if price <= effective_stop:
                 qty = pos['qty']
 
                 if lot_size > 1 and qty % lot_size != 0:
@@ -1686,11 +1746,47 @@ class SmartPortfolioBroker:
                     )
 
                     logger.warning(f"СТОП-ЛОСС: {ticker} {qty} @ {price:.2f} "
-                                   f"({change_pct:+.1f}%, PnL: {pnl:+.0f}₽)")
+                                   f"({change_pct:+.1f}%, PnL: {pnl:+.0f}₽)"
+                                   f"{' [трейлинг]' if pos.get('trailing_activated') else ''}")
+                continue
 
-            # Тейк-профит
-            elif change_pct >= cfg.get('take_profit_percent', 6.0):
-                qty = pos['qty'] // 2
+            # ===== ЧАСТИЧНАЯ ФИКСАЦИЯ ПРИБЫЛИ =====
+            if partial_take_enabled and change_pct >= partial_take_percent:
+                # Проверяем, не фиксировали ли уже частично
+                already_partial = pos.get('partial_take_done', False)
+                if not already_partial:
+                    qty = int(pos['qty'] * partial_take_ratio)
+
+                    if lot_size > 1:
+                        qty = (qty // lot_size) * lot_size
+                        if qty == 0:
+                            qty = lot_size
+
+                    if qty > 0 and qty < pos['qty']:
+                        if self.portfolio.sell(ticker, qty, price):
+                            pnl = (price - entry_price) * qty
+
+                            self.risk_manager.update_trade_result(
+                                ticker=ticker,
+                                action='PARTIAL_TAKE',
+                                quantity=qty,
+                                price=price,
+                                pnl=pnl
+                            )
+
+                            pos['partial_take_done'] = True
+                            # Подтягиваем стоп в безубыток для оставшейся части
+                            pos['stop_loss'] = entry_price * 1.005  # +0.5% от входа
+
+                            logger.info(f"ЧАСТИЧНАЯ ФИКСАЦИЯ: {ticker} {qty} @ {price:.2f} "
+                                        f"({change_pct:+.1f}%, PnL: {pnl:+.0f}₽, "
+                                        f"стоп → {pos['stop_loss']:.2f})")
+                continue
+
+            # ===== ТЕЙК-ПРОФИТ (полный) =====
+            take_profit_price = pos.get('take_profit', entry_price * (1 + cfg.get('take_profit_percent', 12.0) / 100))
+            if price >= take_profit_price:
+                qty = pos['qty']
 
                 if lot_size > 1:
                     qty = (qty // lot_size) * lot_size

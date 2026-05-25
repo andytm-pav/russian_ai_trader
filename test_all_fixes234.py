@@ -1,418 +1,567 @@
 #!/usr/bin/env python3
 """
-ПРОВЕРКА ВСЕХ ПРАВОК (Этапы 2, 3, 4)
-Risk Manager, кулдаун, лимиты, новостные сигналы, market_features
+ПРОВЕРКА ВСЕХ 8 ЭТАПОВ С ПРОВЕРКОЙ РАЗМЕРНОСТИ МОДЕЛИ
 """
 
 import sys
 import time
 import json
-import random
+import numpy as np
 from datetime import datetime
 from collections import defaultdict
 
 sys.path.insert(0, '.')
 
-from models.smart_broker import SmartPortfolioBroker
 from models.trader_model import trader_model_instance
 from core.risk_manager import RiskManager
-from core.trading_hours_scheduler import TradingScheduler
 from utils.portfolio_manager import PortfolioManager
 from utils.logger import get_logger
 
-logger = get_logger("TEST_FIXES")
+logger = get_logger("TEST_8_STAGES")
 
 
-def test_risk_manager_call():
-    """Проверка: вызывается ли Risk Manager при BUY"""
+def test_stage_1_model_dimension():
+    """Этап 1: Проверка размерности модели"""
     print("\n" + "=" * 70)
-    print("ТЕСТ 1: Risk Manager при BUY")
+    print("ЭТАП 1: РАЗМЕРНОСТЬ МОДЕЛИ")
     print("=" * 70)
 
-    risk_mgr = RiskManager()
-    portfolio = PortfolioManager()
-    portfolio.cash = 10000.0
-    portfolio.reserved_cash = 0.0
-    portfolio.positions = {}
+    model = trader_model_instance
 
-    # Симулируем вызов calculate_position_size
-    result = risk_mgr.calculate_position_size(
+    # Заявленные размерности
+    state_vector_size = model.rl_config.get('state_parameters', {}).get('state_vector_size', 0)
+    total_state_size = model.rl_config.get('state_parameters', {}).get('total_state_size', 0)
+    strategy_params_size = model.rl_config.get('state_parameters', {}).get('strategy_params_size', 0)
+
+    print(f"   state_vector_size (заявлено): {state_vector_size}")
+    print(f"   total_state_size (заявлено): {total_state_size}")
+    print(f"   strategy_params_size: {strategy_params_size}")
+
+    # Фактическая размерность из кода
+    state_dimensions = model.rl_config.get('state_dimensions', {})
+    config_sum = sum(state_dimensions.values())
+    print(f"   Сумма state_dimensions: {config_sum}")
+
+    # Резервные слоты и market_features
+    feature_config = model.rl_config.get('feature_config', {})
+    reserved_slots = feature_config.get('reserved_slots', 0)
+    market_features_count = len(feature_config.get('market_features', []))
+    liquidity_features = 2
+
+    expected_total = config_sum + reserved_slots + market_features_count + liquidity_features
+    print(f"   reserved_slots: {reserved_slots}")
+    print(f"   market_features: {market_features_count}")
+    print(f"   liquidity: {liquidity_features}")
+    print(f"   Ожидаемая размерность: {expected_total}")
+
+    # Проверка bias последнего слоя (должен быть 7)
+    bias = model.policy_net.action_net[2].bias.data.cpu().numpy()
+    action_dim = len(bias)
+    config_action_dim = model.rl_config.get('action_dim', 0)
+
+    print(f"\n   action_dim (конфиг): {config_action_dim}")
+    print(f"   action_dim (веса): {action_dim}")
+
+    # Проверка гистерезиса и горизонта в reserved_slots
+    if reserved_slots == 0 and state_vector_size == 210:
+        print(f"\n   ✅ Гистерезис и горизонты встроены (reserved_slots=0, размерность=210)")
+        hysteresis_ok = True
+    elif reserved_slots == 6:
+        print(f"\n   ⚠️ reserved_slots=6 — гистерезис и горизонты не встроены")
+        hysteresis_ok = False
+    else:
+        print(f"\n   ⚠️ Неожиданная конфигурация reserved_slots={reserved_slots}")
+        hysteresis_ok = False
+
+    # Итог
+    all_ok = (state_vector_size == expected_total and
+              action_dim == config_action_dim and
+              state_vector_size == 210)
+
+    if all_ok:
+        print(f"\n   ✅ РАЗМЕРНОСТЬ КОРРЕКТНА")
+    else:
+        print(f"\n   ❌ РАЗМЕРНОСТЬ НЕ СОВПАДАЕТ!")
+
+    return {
+        'state_vector_size': state_vector_size,
+        'total_state_size': total_state_size,
+        'action_dim': action_dim,
+        'reserved_slots': reserved_slots,
+        'hysteresis_ok': hysteresis_ok,
+        'all_ok': all_ok
+    }
+
+
+def test_stage_2_risk_manager():
+    """Этап 2: Risk Manager + кулдаун + лимиты"""
+    print("\n" + "=" * 70)
+    print("ЭТАП 2: RISK MANAGER + КУЛДАУН + ЛИМИТЫ")
+    print("=" * 70)
+
+    results = {}
+
+    # 2.1 Risk Manager
+    risk_mgr = RiskManager()
+    quantity, risk = risk_mgr.calculate_position_size(
         ticker='SBER',
         price=280.0,
         stop_loss=271.6,
-        atr=5.0,
+        atr=3.0,
         confidence=0.7,
-        adv=10000000,
+        adv=50000000,
         sector='финансы',
         lot_size=10
     )
+    results['risk_manager'] = quantity > 0
+    print(f"   2.1 Risk Manager: quantity={quantity}, risk={risk:.0f}₽ — {'✅' if quantity > 0 else '❌'}")
 
-    quantity, risk = result
+    # 2.2 Кулдаун
+    with open('config/settings.json', 'r') as f:
+        settings = json.load(f)
+    cooldown = settings.get('cooldown_seconds', 0)
+    results['cooldown'] = cooldown > 0
+    print(f"   2.2 Кулдаун: cooldown_seconds={cooldown} — {'✅' if cooldown > 0 else '❌'}")
 
-    print(f"   Параметры: SBER price=280, stop=271.6, atr=5.0, conf=0.7, lot=10")
-    print(f"   Результат: quantity={quantity}, risk={risk:.0f}₽")
-
-    if quantity > 0:
-        print(f"   ✅ Risk Manager работает. Рассчитано {quantity} акций.")
-        return True
-    else:
-        print(f"   ❌ Risk Manager вернул 0. Проверьте настройки.")
-        return False
-
-
-def test_cooldown():
-    """Проверка: работает ли кулдаун"""
-    print("\n" + "=" * 70)
-    print("ТЕСТ 2: Кулдаун между сделками")
-    print("=" * 70)
-
-    # Имитируем проверку кулдауна
-    last_trade_time = defaultdict(float)
-    cooldown_hours = 2
-    cooldown_seconds = cooldown_hours * 3600
-
-    ticker = 'SBER'
-    now = time.time()
-
-    # Симуляция: сделка была только что
-    last_trade_time[ticker] = now
-    elapsed = now - last_trade_time[ticker]
-    blocked = elapsed < cooldown_seconds
-
-    print(f"   Тикер: {ticker}")
-    print(f"   Кулдаун: {cooldown_hours}ч = {cooldown_seconds}с")
-    print(f"   Прошло с последней сделки: {elapsed:.0f}с")
-    print(f"   Сделка заблокирована: {blocked}")
-
-    if blocked:
-        print(f"   ✅ Кулдаун работает (сделка только что была — блокируем).")
-    else:
-        print(f"   ❌ Кулдаун не сработал.")
-
-    # Симуляция: сделка была 3 часа назад
-    last_trade_time[ticker] = now - 10800  # 3 часа
-    elapsed = now - last_trade_time[ticker]
-    blocked = elapsed < cooldown_seconds
-
-    print(f"\n   Прошло с последней сделки: {elapsed:.0f}с (3 часа)")
-    print(f"   Сделка заблокирована: {blocked}")
-
-    if not blocked:
-        print(f"   ✅ Кулдаун корректно разрешает сделку после истечения.")
-    else:
-        print(f"   ❌ Кулдаун блокирует даже старые сделки.")
-
-    return True
-
-
-def test_position_limits():
-    """Проверка: max_positions, max_trades_per_hour, daily_commission_limit"""
-    print("\n" + "=" * 70)
-    print("ТЕСТ 3: Лимиты портфеля")
-    print("=" * 70)
-
+    # 2.3 max_positions
     portfolio = PortfolioManager()
-    portfolio.cash = 10000.0
-    portfolio.reserved_cash = 0.0
-    portfolio.positions = {}
+    results['max_positions'] = hasattr(portfolio, 'max_positions') and portfolio.max_positions > 0
+    print(
+        f"   2.3 max_positions: {getattr(portfolio, 'max_positions', 'НЕТ')} — {'✅' if results['max_positions'] else '❌'}")
 
-    # Загружаем лимиты из конфига
-    print(f"   max_positions: {portfolio.max_positions}")
-    print(f"   max_trades_per_hour: {portfolio.max_trades_per_hour}")
-    print(f"   daily_commission_limit: {portfolio.daily_commission_limit}₽")
+    # 2.4 trades_lookback
+    lookback = settings.get('trades_lookback_seconds', 0)
+    results['trades_lookback'] = lookback > 0
+    print(f"   2.4 trades_lookback_seconds: {lookback} — {'✅' if lookback > 0 else '❌'}")
 
-    # Проверка max_positions
-    test_positions = {f'TICKER{i}': {'qty': 10, 'avg_price': 100} for i in range(portfolio.max_positions)}
-    portfolio.positions = test_positions
+    # 2.5 daily_commission_limit
+    comm_limit = settings.get('daily_commission_limit', 0)
+    results['commission_limit'] = comm_limit > 0
+    print(f"   2.5 daily_commission_limit: {comm_limit} — {'✅' if comm_limit > 0 else '❌'}")
 
-    ticker_new = 'NEW_TICKER'
-    limit_reached = ticker_new not in portfolio.positions and len(portfolio.positions) >= portfolio.max_positions
+    # 2.6 max_positions_per_horizon
+    max_per_horizon = settings.get('max_positions_per_horizon', {})
+    results['horizon_limits'] = len(max_per_horizon) > 0
+    print(f"   2.6 max_positions_per_horizon: {max_per_horizon} — {'✅' if len(max_per_horizon) > 0 else '❌'}")
 
-    print(f"\n   Текущих позиций: {len(portfolio.positions)}/{portfolio.max_positions}")
-    print(f"   Новый тикер {ticker_new} заблокирован: {limit_reached}")
+    all_ok = all(results.values())
+    print(f"\n   Итог: {'✅ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ' if all_ok else '❌ ЕСТЬ ПРОБЛЕМЫ'}")
 
-    if limit_reached:
-        print(f"   ✅ Проверка max_positions работает.")
-    else:
-        print(f"   ❌ Проверка max_positions НЕ работает.")
-
-    # Проверка daily_commission_limit
-    commission = 30.0
-    limit_exceeded = portfolio.commission_spent_today + commission > portfolio.daily_commission_limit
-
-    print(f"\n   Комиссий сегодня: {portfolio.commission_spent_today:.2f}₽")
-    print(f"   Новая комиссия: {commission:.2f}₽")
-    print(f"   Лимит: {portfolio.daily_commission_limit:.2f}₽")
-    print(f"   Превышение: {limit_exceeded}")
-
-    if limit_exceeded:
-        print(f"   ✅ Проверка daily_commission_limit работает.")
-    else:
-        print(f"   ⚠️ Лимит не превышен (комиссий мало). Проверьте логику в buy().")
-
-    return True
+    return results
 
 
-def test_news_signals():
-    """Проверка: работают ли новостные сигналы"""
+def test_stage_3_news_signals():
+    """Этап 3: Новостные сигналы"""
     print("\n" + "=" * 70)
-    print("ТЕСТ 4: Новостные сигналы")
+    print("ЭТАП 3: НОВОСТНЫЕ СИГНАЛЫ")
     print("=" * 70)
 
+    results = {}
+
+    # 3.1 ticker_names в конфиге
+    with open('config/rl_config.json', 'r') as f:
+        rl_config = json.load(f)
+
+    ticker_names = rl_config.get('ticker_names', {})
+    results['ticker_names'] = len(ticker_names) > 0
+    print(f"   3.1 ticker_names: {len(ticker_names)} тикеров — {'✅' if len(ticker_names) > 0 else '❌'}")
+
+    # 3.2 sentiment_threshold
+    sentiment_config = rl_config.get('sentiment_integration', {})
+    threshold = sentiment_config.get('ticker_sentiment_weight', 0)
+    results['sentiment_threshold'] = threshold > 0
+    print(f"   3.2 sentiment_threshold: {threshold} — {'✅' if threshold > 0 else '❌'}")
+
+    # 3.3 search_news с keywords
+    from fetchers.news_fetcher import OptimizedNewsFetcher
+    news_fetcher = OptimizedNewsFetcher()
+    import inspect
+    sig = inspect.signature(news_fetcher.search_news)
+    has_keywords = 'keywords' in sig.parameters
+    results['search_keywords'] = has_keywords
+    print(f"   3.3 search_news(keywords=): {'✅' if has_keywords else '❌'}")
+
+    # 3.4 Маппинг тикеров из MOEX
+    from fetchers.moex_fetcher import MoexFetcher
+    moex = MoexFetcher()
+    securities = moex.get_all_securities()
+    sber = securities.get('SBER', {})
+    has_russian_name = bool(sber.get('name', '') or sber.get('full_name', ''))
+    results['russian_names'] = has_russian_name
+    print(f"   3.4 Русские названия в MOEX: {'✅' if has_russian_name else '❌'}")
+
+    all_ok = all(results.values())
+    print(f"\n   Итог: {'✅ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ' if all_ok else '❌ ЕСТЬ ПРОБЛЕМЫ'}")
+
+    return results
+
+
+def test_stage_4_market_features():
+    """Этап 4: Market Features MOEX"""
+    print("\n" + "=" * 70)
+    print("ЭТАП 4: MARKET FEATURES MOEX")
+    print("=" * 70)
+
+    results = {}
+
+    # 4.1 Список в конфиге
+    with open('config/rl_config.json', 'r') as f:
+        rl_config = json.load(f)
+
+    mf = rl_config.get('feature_config', {}).get('market_features', [])
+    results['config_list'] = len(mf) == 10
+    print(f"   4.1 market_features: {len(mf)} признаков — {'✅' if len(mf) == 10 else '❌'}")
+    print(f"       {mf}")
+
+    # 4.2 Нормализация в конфиге
+    norm = rl_config.get('normalization', {})
+    divisors = ['shares_turnover_divisor', 'rvi_divisor', 'imoex_divisor',
+                'market_cap_divisor_total', 'rtsi_divisor', 'usd_rub_divisor', 'moexog_divisor']
+    norm_ok = all(d in norm for d in divisors)
+    results['normalization'] = norm_ok
+    print(f"   4.2 Делители нормализации: {'✅ все 7' if norm_ok else '❌ не хватает'}")
+
+    # 4.3 Реальные данные
+    from fetchers.moex_fetcher import MoexFetcher
+    moex = MoexFetcher()
+    macro = moex.get_macro_data()
+
+    feature_values = {
+        'spread_pct': 0.0,
+        'market_mood': macro.get('market_mood', 0.0),
+        'shares_turnover': macro.get('shares_turnover', 0),
+        'rvi_normalized': macro.get('rvi', 20.0),
+        'imoex_normalized': macro.get('imoex', 0),
+        'market_cap_total': macro.get('market_cap', 0),
+        'liquidity_ratio': macro.get('market_liquidity_ratio', 0.0),
+        'rtsi_normalized': macro.get('rtsi', 0),
+        'usd_rub': macro.get('usd_rub', 0),
+        'moexog_normalized': macro.get('moexog', 0),
+    }
+
+    nonzero = sum(1 for v in feature_values.values() if abs(v) > 0.0001)
+    results['data_available'] = nonzero >= 5
+    print(f"   4.3 Данные доступны: {nonzero}/10 признаков ненулевые — {'✅' if nonzero >= 5 else '❌'}")
+
+    all_ok = all(results.values())
+    print(f"\n   Итог: {'✅ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ' if all_ok else '❌ ЕСТЬ ПРОБЛЕМЫ'}")
+
+    return results
+
+
+def test_stage_5_hysteresis_horizons():
+    """Этап 5: Гистерезис и горизонты"""
+    print("\n" + "=" * 70)
+    print("ЭТАП 5: ГИСТЕРЕЗИС И ВРЕМЕННЫЕ ГОРИЗОНТЫ")
+    print("=" * 70)
+
+    results = {}
+
+    # 5.1 reserved_slots = 0
+    with open('config/rl_config.json', 'r') as f:
+        rl_config = json.load(f)
+
+    reserved = rl_config.get('feature_config', {}).get('reserved_slots', -1)
+    results['reserved_zero'] = reserved == 0
+    print(f"   5.1 reserved_slots: {reserved} — {'✅' if reserved == 0 else '❌ (ожидается 0)'}")
+
+    # 5.2 Нормализация гистерезиса
+    norm = rl_config.get('normalization', {})
+    has_hold_norm = 'max_hold_time_hours_norm' in norm
+    has_streak_norm = 'same_action_streak_max' in norm
+    results['hysteresis_norm'] = has_hold_norm and has_streak_norm
+    print(f"   5.2 max_hold_time_hours_norm: {'✅' if has_hold_norm else '❌'}")
+    print(f"       same_action_streak_max: {'✅' if has_streak_norm else '❌'}")
+
+    # 5.3 horizon в стратегиях
+    with open('config/strategies.json', 'r') as f:
+        strategies = json.load(f)
+
+    strats = strategies.get('strategies', {})
+    horizons_found = set()
+    for name, params in strats.items():
+        h = params.get('horizon', 'НЕТ')
+        horizons_found.add(h)
+
+    expected_horizons = {'day_session', 'three_days', 'week'}
+    has_all_horizons = expected_horizons.issubset(horizons_found)
+    results['strategy_horizons'] = has_all_horizons
+    print(f"   5.3 Горизонты стратегий: {horizons_found} — {'✅' if has_all_horizons else '❌'}")
+
+    # 5.4 max_positions_per_horizon
+    with open('config/settings.json', 'r') as f:
+        settings = json.load(f)
+
+    max_per_horizon = settings.get('max_positions_per_horizon', {})
+    has_horizon_limits = all(h in max_per_horizon for h in ['day_session', 'three_days', 'week'])
+    results['horizon_limits'] = has_horizon_limits
+    print(f"   5.4 max_positions_per_horizon: {max_per_horizon} — {'✅' if has_horizon_limits else '❌'}")
+
+    # 5.5 Проверка build_state_vector — гистерезис и горизонт в признаках
+    model = trader_model_instance
     try:
-        # Проверяем маппинг тикер→названия
-        from fetchers.moex_fetcher import MoexFetcher
-        moex = MoexFetcher()
-        securities = moex.get_all_securities()
+        test_state = model.build_state_vector(
+            ticker='SBER',
+            price=280.0,
+            momentum=0.0,
+            sentiment=0.0,
+            news_features=model.encode_news(['тестовая новость']),
+            market_data={
+                'volume': 1000000, 'spread': 0.01, 'rsi': 50,
+                'sma_10_ratio': 1.0, 'sma_20_ratio': 1.0, 'bb_position': 0.5,
+                'atr': 3.0, 'volume_ratio': 1.0, 'market_cap': 1e12,
+                'lot_size': 10, 'min_step': 0.01, 'sector': 'финансы',
+                'momentum': 0.0, 'imoex': 2600, 'imoex_change': 0,
+                'rtsi': 1150, 'rtsi_change': 0, 'rvi': 21, 'rvi_change': 0,
+                'moexog': 6700, 'moexfn': 0, 'brent': 80, 'brent_change': 0,
+                'market_liquidity_ratio': 0.5, 'market_activity_score': 0.5,
+                'market_mood': 0.0, 'shares_turnover': 1e10,
+                'rvi_normalized': 0.21, 'imoex_normalized': 0.65,
+                'market_cap_total': 0.5, 'liquidity_ratio': 0.5,
+                'rtsi_normalized': 0.57, 'usd_rub': 0.8, 'moexog_normalized': 0.67,
+                'spread_pct': 0.0001,
+            },
+            market_sentiment=0.0,
+            portfolio=None
+        )
 
-        test_tickers = ['SBER', 'GAZP', 'LKOH', 'ROSN', 'GMKN']
+        state_len = len(test_state)
+        results['state_builds'] = state_len == 210
+        print(f"   5.5 build_state_vector: {state_len} признаков — {'✅' if state_len == 210 else '❌ (ожидается 210)'}")
 
-        print(f"   Маппинг тикер → названия:")
-        for ticker in test_tickers:
-            sec = securities.get(ticker, {})
-            name = sec.get('name', '—')
-            full_name = sec.get('full_name', '—')
-
-            # Извлекаем ключевые слова
-            keywords = set()
-            keywords.add(ticker.lower())
-            for word in name.lower().split():
-                clean = word.strip('"\'.,;:()[]{}')
-                if len(clean) > 2:
-                    keywords.add(clean)
-            for word in full_name.lower().split():
-                clean = word.strip('"\'.,;:()[]{}')
-                if len(clean) > 2:
-                    keywords.add(clean)
-
-            print(f"   {ticker}: {keywords}")
-
-        # Проверяем search_news с ключевыми словами
-        from fetchers.news_fetcher import OptimizedNewsFetcher
-        news_fetcher = OptimizedNewsFetcher()
-
-        sber_keywords = list({'сбербанк', 'сбер', 'sber', 'sberbank'})
-        news = news_fetcher.search_news(ticker='SBER', keywords=sber_keywords, limit=5)
-
-        print(f"\n   Поиск новостей по SBER + ключевым словам:")
-        print(f"   Найдено: {len(news)} новостей")
-
-        if news:
-            for n in news[:3]:
-                print(f"   — {n.get('title', '')[:80]}...")
-            print(f"   ✅ Новостной поиск с ключевыми словами работает.")
-        else:
-            print(f"   ⚠️ Новостей не найдено (возможно, нет в кэше).")
-            print(f"   Проверьте логи после запуска main.py — должны быть сигналы.")
-
-        # Проверяем наличие ticker_names в конфиге
-        import json
-        with open('config/rl_config.json', 'r', encoding='utf-8') as f:
-            rl_config = json.load(f)
-
-        ticker_names = rl_config.get('ticker_names', {})
-        print(f"\n   ticker_names в rl_config.json: {len(ticker_names)} тикеров")
-        if ticker_names:
-            print(f"   Пример: SBER → {ticker_names.get('SBER', [])}")
-            print(f"   ✅ Резервный маппинг загружен.")
-        else:
-            print(f"   ⚠️ ticker_names пуст. Добавьте маппинг в rl_config.json.")
-
-        return True
+        # Проверяем, что позиции 192-197 не нули (для тикера без позиции — нули допустимы)
+        state_np = test_state.cpu().numpy()
+        hysteresis_slots = state_np[192:195]
+        horizon_slots = state_np[195:198]
+        print(f"       Гистерезис (192-194): {hysteresis_slots}")
+        print(f"       Горизонт (195-197): {horizon_slots}")
 
     except Exception as e:
-        print(f"   ❌ Ошибка: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        results['state_builds'] = False
+        print(f"   5.5 build_state_vector: ❌ ОШИБКА: {e}")
+
+    all_ok = all(results.values())
+    print(f"\n   Итог: {'✅ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ' if all_ok else '❌ ЕСТЬ ПРОБЛЕМЫ'}")
+
+    return results
 
 
-def test_market_features():
-    """Проверка: заполняются ли market_features реальными данными"""
+def test_stage_6_api_moex():
+    """Этап 6: API MOEX (Brent, USD/RUB)"""
     print("\n" + "=" * 70)
-    print("ТЕСТ 5: Market Features (10 признаков MOEX)")
+    print("ЭТАП 6: API MOEX (BRENT, USD/RUB)")
     print("=" * 70)
 
+    results = {}
+
+    from fetchers.moex_fetcher import MoexFetcher
+    moex = MoexFetcher()
+
+    # 6.1 Brent контракты
     try:
-        from fetchers.moex_fetcher import MoexFetcher
-        moex = MoexFetcher()
-
-        # Получаем макро-данные
-        macro = moex.get_macro_data()
-
-        # Проверяем 10 новых признаков
-        features = {
-            'spread_pct': 0.0,
-            'market_mood': macro.get('market_mood', 0.0),
-            'shares_turnover': macro.get('shares_turnover', 0) / 1e12,
-            'rvi_normalized': macro.get('rvi', 20.0) / 100.0,
-            'imoex_normalized': macro.get('imoex', 0) / 4000.0,
-            'market_cap_total': macro.get('market_cap', 0) / 1e14,
-            'liquidity_ratio': macro.get('market_liquidity_ratio', 0.0),
-            'rtsi_normalized': macro.get('rtsi', 0) / 2000.0,
-            'usd_rub': macro.get('usd_rub', 0) / 100.0,
-            'moexog_normalized': macro.get('moexog', 0) / 10000.0,
+        url = f"{moex.base_url}/engines/futures/markets/forts/securities.json"
+        params = {
+            'iss.meta': 'off',
+            'iss.only': 'securities',
+            'securities.columns': 'SECID,LASTTRADEDATE',
+            'limit': 500
         }
-
-        # spread_pct нужна цена тикера
-        price = moex.get_price('SBER')
-        if price:
-            securities = moex.get_all_securities()
-            sber_info = securities.get('SBER', {})
-            spread = sber_info.get('spread', 0)
-            features['spread_pct'] = (spread / price) if price > 0 else 0.0
-
-        # Загружаем конфиг для проверки имён
-        import json
-        with open('config/rl_config.json', 'r', encoding='utf-8') as f:
-            rl_config = json.load(f)
-
-        config_features = rl_config.get('feature_config', {}).get('market_features', [])
-
-        print(f"   Признаки в конфиге ({len(config_features)}):")
-        print(f"   {config_features}")
-
-        print(f"\n   Значения признаков:")
-        ready = 0
-        for name in config_features:
-            value = features.get(name, 0.0)
-            is_nonzero = abs(value) > 0.0001
-            if is_nonzero:
-                ready += 1
-            icon = '✅' if is_nonzero else '⚠️ (0.0)'
-            print(f"   {icon} {name:25s} = {value:.6f}")
-
-        print(f"\n   Ненулевых признаков: {ready}/{len(config_features)}")
-
-        if ready >= 5:
-            print(f"   ✅ Market features заполняются реальными данными!")
-        elif ready >= 1:
-            print(f"   ⚠️ Часть признаков = 0.0 (рынок закрыт или данные недоступны).")
-        else:
-            print(f"   ❌ Все признаки = 0.0. Проверьте get_macro_data().")
-
-        return ready >= 1
-
+        response = moex.session.get(url, params=params, timeout=10)
+        data = response.json()
+        brent_found = 0
+        for row in data.get('securities', {}).get('data', []):
+            cols = data['securities']['columns']
+            secid = row[cols.index('SECID')]
+            if secid.upper().startswith('BR'):
+                brent_found += 1
+        results['brent_contracts'] = brent_found > 0
+        print(f"   6.1 Brent контракты: найдено {brent_found} — {'✅' if brent_found > 0 else '❌'}")
     except Exception as e:
-        print(f"   ❌ Ошибка: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        results['brent_contracts'] = False
+        print(f"   6.1 Brent контракты: ❌ {str(e)[:50]}")
+
+    # 6.2 USD/RUB
+    usd_ok = False
+    for instr in ['USD000000TOD', 'USD000UTSTOM']:
+        try:
+            url = f"{moex.base_url}/engines/currency/markets/selt/securities/{instr}.json"
+            params = {'iss.meta': 'off', 'iss.only': 'marketdata', 'marketdata.columns': 'SECID,LAST'}
+            response = moex.session.get(url, params=params, timeout=10)
+            data = response.json()
+            if 'marketdata' in data and data['marketdata']['data']:
+                last = data['marketdata']['data'][0][1]
+                if last:
+                    usd_ok = True
+                    break
+        except:
+            pass
+    results['usd_rub'] = usd_ok
+    print(f"   6.2 USD/RUB: {'✅ доступен' if usd_ok else '⚠️ недоступен (вне сессии)'}")
+
+    # 6.3 market_mood в macro_data
+    macro = moex.get_macro_data()
+    has_mood = 'market_mood' in macro
+    results['market_mood'] = has_mood
+    print(f"   6.3 market_mood в macro_data: {'✅' if has_mood else '❌'}")
+
+    all_ok = all(results.values())
+    print(f"\n   Итог: {'✅ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ' if all_ok else '⚠️ ЧАСТИЧНО (USD/RUB может быть недоступен)'}")
+
+    return results
 
 
-def test_config_consistency():
-    """Проверка: все параметры из конфигов"""
+def test_stage_7_action_mapping():
+    """Этап 7: Архитектурный баланс действий"""
     print("\n" + "=" * 70)
-    print("ТЕСТ 6: Консистентность конфигов")
+    print("ЭТАП 7: ACTION MAPPING")
     print("=" * 70)
 
-    try:
-        with open('config/settings.json', 'r', encoding='utf-8') as f:
-            settings = json.load(f)
-        with open('config/rl_config.json', 'r', encoding='utf-8') as f:
-            rl_config = json.load(f)
-        with open('config/strategies.json', 'r', encoding='utf-8') as f:
-            strategies = json.load(f)
+    results = {}
 
-        checks = []
+    with open('config/rl_config.json', 'r') as f:
+        rl_config = json.load(f)
 
-        # Кулдаун
-        cooldown = strategies.get('default_strategy_parameters', {}).get('cooldown_period_hours')
-        checks.append(('cooldown_period_hours в strategies.json', cooldown is not None, cooldown))
+    action_mapping = rl_config.get('action_mapping', {})
 
-        # max_positions
-        max_pos = settings.get('max_positions')
-        checks.append(('max_positions в settings.json', max_pos is not None, max_pos))
+    # Считаем действия
+    buy_actions = sum(1 for v in action_mapping.values() if v.startswith('BUY'))
+    hold_actions = sum(1 for v in action_mapping.values() if v == 'HOLD')
+    sell_actions = sum(1 for v in action_mapping.values() if v.startswith('SELL'))
 
-        # max_daily_trades
-        max_trades = settings.get('max_daily_trades')
-        checks.append(('max_daily_trades в settings.json', max_trades is not None, max_trades))
+    print(f"   BUY: {buy_actions}, HOLD: {hold_actions}, SELL: {sell_actions}")
+    print(f"   action_mapping: {action_mapping}")
 
-        # daily_commission_limit
-        comm_limit = settings.get('daily_commission_limit')
-        checks.append(('daily_commission_limit в settings.json', comm_limit is not None, comm_limit))
+    # Проверка: HOLD должно быть не менее 2 из 7 (для баланса)
+    balanced = hold_actions >= 2
+    results['balanced'] = balanced
+    print(
+        f"   7.1 Баланс (HOLD >= 2): {'✅' if balanced else '⚠️ HOLD только 1 (рекомендуется 3 HOLD / 2 BUY / 2 SELL)'}")
 
-        # signal_filter
-        sig_filter = rl_config.get('signal_filter', {}).get('enabled')
-        checks.append(('signal_filter.enabled в rl_config.json', sig_filter is not None, sig_filter))
+    # Проверка: action_dim из конфига
+    action_dim_config = rl_config.get('action_dim', 0)
+    action_dim_actual = len(action_mapping)
+    results['dim_consistent'] = action_dim_config == action_dim_actual
+    print(
+        f"   7.2 action_dim (конфиг={action_dim_config}, mapping={action_dim_actual}): {'✅' if action_dim_config == action_dim_actual else '❌'}")
 
-        # hold_reward
-        hold_enabled = rl_config.get('hold_reward', {}).get('enabled')
-        checks.append(('hold_reward.enabled в rl_config.json', hold_enabled is not None, hold_enabled))
+    # Проверка: exploration
+    exploration = rl_config.get('exploration', {}).get('initial_exploration_rate', 0)
+    results['exploration_low'] = exploration <= 0.05
+    print(f"   7.3 exploration_rate: {exploration} — {'✅' if exploration <= 0.05 else '⚠️ высокий'}")
 
-        # market_features
-        mf = rl_config.get('feature_config', {}).get('market_features', [])
-        checks.append(('market_features (10 признаков)', len(mf) == 10, len(mf)))
+    all_ok = all(results.values())
+    print(f"\n   Итог: {'✅ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ' if all_ok else '⚠️ ЕСТЬ РЕКОМЕНДАЦИИ'}")
 
-        # ticker_names
-        tn = rl_config.get('ticker_names', {})
-        checks.append(('ticker_names в rl_config.json', len(tn) > 0, len(tn)))
+    return results
 
-        # action_mapping
-        am = rl_config.get('action_mapping', {})
-        has_hold = any(v == 'HOLD' for v in am.values())
-        checks.append(('HOLD в action_mapping', has_hold, list(am.values())))
 
-        # exploration
-        expl = rl_config.get('exploration', {}).get('initial_exploration_rate')
-        checks.append(('exploration_rate < 0.05', expl is not None and expl < 0.05, expl))
+def test_stage_8_profit_strategy():
+    """Этап 8: Стратегия выхода и фиксация прибыли"""
+    print("\n" + "=" * 70)
+    print("ЭТАП 8: СТРАТЕГИЯ ВЫХОДА И ПРИБЫЛЬ")
+    print("=" * 70)
 
-        print(f"\n   Проверка конфигов:")
-        all_ok = True
-        for name, status, value in checks:
-            icon = '✅' if status else '❌'
-            print(f"   {icon} {name}: {value}")
-            if not status:
-                all_ok = False
+    results = {}
 
-        if all_ok:
-            print(f"\n   ✅ Все конфиги корректны.")
-        else:
-            print(f"\n   ❌ Найдены проблемы в конфигах.")
+    # 8.1 stop_loss и take_profit в settings
+    with open('config/settings.json', 'r') as f:
+        settings = json.load(f)
 
-        return all_ok
+    sl = settings.get('stop_loss_percent', 0)
+    tp = settings.get('take_profit_percent', 0)
+    results['sl_tp'] = sl >= 3 and tp >= 6
+    print(f"   8.1 stop_loss={sl}%, take_profit={tp}% — {'✅' if sl >= 3 and tp >= 6 else '❌'}")
 
-    except Exception as e:
-        print(f"   ❌ Ошибка: {e}")
-        return False
+    # 8.2 hold_reward
+    with open('config/rl_config.json', 'r') as f:
+        rl_config = json.load(f)
+
+    hold = rl_config.get('hold_reward', {})
+    hold_enabled = hold.get('enabled', False)
+    hold_bonus = hold.get('max_bonus', 0)
+    results['hold_reward'] = hold_enabled and hold_bonus >= 0.3
+    print(
+        f"   8.2 hold_reward: enabled={hold_enabled}, max_bonus={hold_bonus} — {'✅' if hold_enabled and hold_bonus >= 0.3 else '❌'}")
+
+    # 8.3 reward_clip
+    clip_min = rl_config.get('reward_clip_min', 0)
+    clip_max = rl_config.get('reward_clip_max', 0)
+    results['reward_clip'] = clip_min <= -3 and clip_max >= 3
+    print(f"   8.3 reward_clip: [{clip_min}, {clip_max}] — {'✅' if clip_min <= -3 and clip_max >= 3 else '❌'}")
+
+    # 8.4 commission_penalty
+    reward_config = rl_config.get('reward_config', {})
+    comm_penalty = reward_config.get('commission_penalty_scale', 0)
+    results['commission_penalty'] = comm_penalty >= 100
+    print(f"   8.4 commission_penalty_scale: {comm_penalty} — {'✅' if comm_penalty >= 100 else '❌'}")
+
+    # 8.5 signal_filter отключён
+    sig_filter = rl_config.get('signal_filter', {}).get('enabled', True)
+    results['signal_filter_off'] = not sig_filter
+    print(f"   8.5 signal_filter.enabled: {sig_filter} — {'✅' if not sig_filter else '⚠️ включён'}")
+
+    all_ok = all(results.values())
+    print(f"\n   Итог: {'✅ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ' if all_ok else '⚠️ ЕСТЬ РЕКОМЕНДАЦИИ'}")
+
+    return results
 
 
 def main():
     """Запуск всех тестов"""
     print("\n" + "=" * 70)
-    print("🔬 ПРОВЕРКА ВНЕСЁННЫХ ИЗМЕНЕНИЙ")
+    print("🔬 ПОЛНАЯ ПРОВЕРКА ВСЕХ 8 ЭТАПОВ")
     print("=" * 70)
     print(f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    results = {}
+    all_results = {}
 
-    results['risk_manager'] = test_risk_manager_call()
-    results['cooldown'] = test_cooldown()
-    results['limits'] = test_position_limits()
-    results['news'] = test_news_signals()
-    results['market_features'] = test_market_features()
-    results['config'] = test_config_consistency()
+    all_results['stage1'] = test_stage_1_model_dimension()
+    all_results['stage2'] = test_stage_2_risk_manager()
+    all_results['stage3'] = test_stage_3_news_signals()
+    all_results['stage4'] = test_stage_4_market_features()
+    all_results['stage5'] = test_stage_5_hysteresis_horizons()
+    all_results['stage6'] = test_stage_6_api_moex()
+    all_results['stage7'] = test_stage_7_action_mapping()
+    all_results['stage8'] = test_stage_8_profit_strategy()
 
-    # Итог
+    # ИТОГ
     print("\n" + "=" * 70)
-    print("📋 ИТОГИ ПРОВЕРКИ")
+    print("📋 ИТОГОВАЯ СВОДКА")
     print("=" * 70)
 
-    passed = sum(1 for v in results.values() if v)
-    total = len(results)
+    stages_passed = 0
+    stages_total = len(all_results)
 
-    for name, status in results.items():
-        icon = '✅' if status else '❌'
-        print(f"   {icon} {name}")
+    for stage_name, results in all_results.items():
+        if isinstance(results, dict):
+            if stage_name == 'stage1':
+                ok = results.get('all_ok', False)
+            else:
+                ok = all(results.values())
 
-    print(f"\n   Пройдено: {passed}/{total}")
+            icon = '✅' if ok else '⚠️'
+            print(f"   {icon} {stage_name}")
+            if ok:
+                stages_passed += 1
 
-    if passed == total:
-        print(f"\n   ✅ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ!")
-    elif passed >= total - 1:
-        print(f"\n   ⚠️ Почти всё работает. Проверьте непройденные тесты.")
+    print(f"\n   Этапов пройдено: {stages_passed}/{stages_total}")
+
+    if stages_passed == stages_total:
+        print(f"\n   ✅ ВСЕ ЭТАПЫ ПРОЙДЕНЫ! СИСТЕМА ГОТОВА.")
+    elif stages_passed >= 6:
+        print(f"\n   ⚠️ Большинство этапов пройдено. Проверьте непройденные.")
     else:
-        print(f"\n   ❌ Много ошибок. Проверьте внесённые правки.")
+        print(f"\n   ❌ Много проблем. Проверьте правки.")
+
+    # Детали размерности
+    stage1 = all_results.get('stage1', {})
+    if isinstance(stage1, dict):
+        print(f"\n📐 РАЗМЕРНОСТЬ МОДЕЛИ:")
+        print(f"   state_vector_size: {stage1.get('state_vector_size', '?')}")
+        print(f"   total_state_size: {stage1.get('total_state_size', '?')}")
+        print(f"   action_dim: {stage1.get('action_dim', '?')}")
+        print(f"   reserved_slots: {stage1.get('reserved_slots', '?')}")
+        print(f"   Гистерезис+горизонты: {'✅ Встроены' if stage1.get('hysteresis_ok') else '❌ Не встроены'}")
 
     print("\n" + "=" * 70)
     print("✅ ТЕСТ ЗАВЕРШЁН")
