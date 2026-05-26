@@ -183,7 +183,11 @@ dashboard_layout = dbc.Container([
                         html.Span("+0 ₽", id="daily-pnl", className="fw-bold"),
                         html.Span(" | Всего: ", className="text-muted ms-2"),
                         html.Span("+0 ₽", id="total-pnl", className="fw-bold")
-                    ])
+                    ]),
+                    html.Div([
+                        html.Span("💎 Накоплено: ", className="text-muted"),
+                        html.Span("0 ₽", id="fixated-profit", className="fw-bold text-info")
+                    ], className="mt-2")
                 ])
             ])
         ], width=4)
@@ -730,6 +734,7 @@ def update_page_content(dash_clicks, port_clicks, charts_clicks, settings_clicks
      Output("pnl-percent", "children"),
      Output("daily-pnl", "children"),
      Output("total-pnl", "children"),
+     Output("fixated-profit", "children"),
      Output("positions-table", "children"),
      Output("signals-list", "children")],
     [Input("interval-component", "n_intervals"),
@@ -739,7 +744,7 @@ def update_dashboard(n_intervals, refresh_clicks):
     """Обновление данных на дашборде"""
     if broker_instance is None:
         return ["ОФФЛАЙН", "Рынок закрыт", "0 ₽", "0 ₽", "0 ₽", "0%", "0 ₽",
-                "0 ₽", "Нет данных", "Нет данных"]
+                "0 ₽", "0 ₽", "Нет данных", "Нет данных"]
 
     try:
         # Получение данных от брокера
@@ -784,7 +789,9 @@ def update_dashboard(n_intervals, refresh_clicks):
         if n_intervals and n_intervals % 5 == 0:
             save_portfolio_history()
 
-
+        # Накопленная прибыль
+        reserved_cash = summary.get('reserved_cash', 0)
+        fixated_text = f"{reserved_cash:+,.0f} ₽"
 
         return [
             system_status,
@@ -795,14 +802,16 @@ def update_dashboard(n_intervals, refresh_clicks):
             html.Span(pnl_percent_text, className=pnl_percent_class),
             html.Span(daily_pnl_text, className="text-success" if daily_pnl >= 0 else "text-danger"),
             html.Span(total_pnl_text, className="text-success" if pnl_abs >= 0 else "text-danger"),
+            html.Span(fixated_text, className="text-info fw-bold"),
             positions_table,
             signals_list
         ]
 
+
     except Exception as e:
         logger.error(f"Ошибка обновления дашборда: {e}")
         return ["ОШИБКА", "Ошибка", "0 ₽", "0 ₽", "0 ₽", "0%", "0 ₽",
-                "0 ₽", "Ошибка загрузки", "Ошибка загрузки"]
+                "0 ₽", "0 ₽", "Ошибка загрузки", "Ошибка загрузки"]
 
 
 def create_positions_table(positions: List[Dict]) -> html.Table:
@@ -854,11 +863,10 @@ def create_signals_list(signals: List[Dict]) -> html.Table:
     ]))
 
     rows = []
-    for sig in signals[:10]:  # Ограничиваем 10 сигналами
+    for sig in signals[:10]:
         action = sig.get('action', 'HOLD')
-        confidence = sig.get('confidence', 0)
+        confidence = min(sig.get('confidence', 0), 1.0)
 
-        # Цвет в зависимости от действия
         if action == 'BUY':
             action_class = "text-success"
         elif action == 'SELL':
@@ -866,7 +874,6 @@ def create_signals_list(signals: List[Dict]) -> html.Table:
         else:
             action_class = "text-warning"
 
-        # Цвет уверенности
         if confidence > 0.8:
             conf_class = "text-success"
         elif confidence > 0.6:
@@ -874,7 +881,6 @@ def create_signals_list(signals: List[Dict]) -> html.Table:
         else:
             conf_class = "text-muted"
 
-        # Время
         timestamp = sig.get('timestamp', '')
         if timestamp:
             try:

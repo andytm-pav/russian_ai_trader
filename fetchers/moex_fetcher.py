@@ -8,6 +8,7 @@ import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 import pandas as pd
+import xml.etree.ElementTree as ET
 
 from utils.logger import get_logger
 
@@ -778,7 +779,7 @@ class MoexFetcher:
             'moextl': indices.get('MOEXTL', 0.0),
             'brent': self.get_brent_price() or 0.0,
             'brent_change': self.get_brent_change(),
-            'usd_rub': self.get_usd_rub() or 0.0,
+            'cbr_rate': self._get_cbr_key_rate() or 0.0,
             'usd_rub_change': self.get_usd_rub_change(),
             # НОВЫЕ 4 ПОЛЯ
             'shares_turnover': self.get_shares_turnover(),
@@ -920,18 +921,19 @@ class MoexFetcher:
             return 0.0
 
     def get_usd_rub(self) -> Optional[float]:
-        """Получение курса USD/RUB"""
+        """Получение курса USD/RUB (приоритет: MOEX → ЦБ РФ)"""
         cache_key = "usd_rub"
         cached = self._get_from_cache(cache_key)
         if cached is not None:
             return cached
 
+        # 1. Пробуем MOEX SELT
         try:
             url = f"{self.base_url}/engines/currency/markets/selt/securities/USD000UTSTOM.json"
             params = {
                 'iss.meta': 'off',
                 'iss.only': 'marketdata',
-                'marketdata.columns': 'SECID,LAST,OPEN,CLOSE,CHANGE,CHANGEPRC'
+                'marketdata.columns': 'SECID,LAST'
             }
 
             data = self._make_request(url, params, timeout=10)
@@ -945,15 +947,21 @@ class MoexFetcher:
                         value = self._safe_float(row[idx])
                         if value > 0:
                             self._save_to_cache(cache_key, value)
-                            logger.debug(f"USD/RUB: {value:.2f}")
+                            logger.debug(f"USD/RUB (MOEX): {value:.2f}")
                             return value
 
-            logger.debug("USD/RUB не доступен (вне торговой сессии)")
-            return None
-
         except Exception as e:
-            logger.error(f"Ошибка получения USD/RUB: {e}")
-            return None
+            logger.debug(f"USD/RUB MOEX недоступен: {e}")
+
+        # 2. Fallback: ЦБ РФ
+        cbr_value = self._get_cbr_usd_rub()
+        if cbr_value is not None and cbr_value > 0:
+            self._save_to_cache(cache_key, cbr_value)
+            logger.debug(f"USD/RUB (ЦБ РФ): {cbr_value:.2f}")
+            return cbr_value
+
+        logger.debug("USD/RUB не доступен (ни MOEX, ни ЦБ)")
+        return None
 
     def get_shares_turnover(self) -> float:
         """Получение оборота рынка акций"""
@@ -1076,6 +1084,68 @@ class MoexFetcher:
         except Exception as e:
             logger.error(f"Ошибка получения изменения USD/RUB: {e}")
             return 0.0
+
+    def _get_cbr_usd_rub(self) -> Optional[float]:
+        """Получение курса USD/RUB с сайта ЦБ РФ"""
+        cache_key = "cbr_usd_rub"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            url = "http://www.cbr.ru/scripts/XML_daily.asp"
+            response = self.session.get(url, timeout=10)
+            response.encoding = 'windows-1251'
+            root = ET.fromstring(response.text)
+
+            for valute in root.findall('Valute'):
+                char_code = valute.find('CharCode').text
+                if char_code == 'USD':
+                    value = valute.find('Value').text
+                    nominal = valute.find('Nominal').text
+                    usd_rub = float(value.replace(',', '.')) / float(nominal)
+                    self._save_to_cache(cache_key, usd_rub)
+                    return usd_rub
+
+            logger.debug("USD не найден в ответе ЦБ РФ")
+            return None
+
+        except Exception as e:
+            logger.error(f"Ошибка получения USD/RUB с ЦБ: {e}")
+            return None
+
+    def _get_cbr_key_rate(self) -> Optional[float]:
+        """Получение ключевой ставки ЦБ РФ"""
+        cache_key = "cbr_key_rate"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            date_from = (datetime.now() - timedelta(days=5)).strftime('%d/%m/%Y')
+            date_to = datetime.now().strftime('%d/%m/%Y')
+
+            url = "http://www.cbr.ru/scripts/XML_depo.asp"
+            params = {'date_req1': date_from, 'date_req2': date_to}
+
+            response = self.session.get(url, params=params, timeout=10)
+            response.encoding = 'windows-1251'
+            root = ET.fromstring(response.text)
+
+            latest = root.find('Record')
+            if latest is not None:
+                overnight = latest.find('Overnight')
+                if overnight is not None:
+                    rate = float(overnight.text.replace(',', '.'))
+                    self._save_to_cache(cache_key, rate)
+                    return rate
+
+            logger.debug("Ключевая ставка не найдена в ответе ЦБ РФ")
+            return None
+
+        except Exception as e:
+            logger.error(f"Ошибка получения ключевой ставки ЦБ: {e}")
+            return None
 
 
     def _calculate_market_mood(self, indices: Dict[str, float]) -> float:

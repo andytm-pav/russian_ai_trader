@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 """
-ГЛУБОКАЯ ДИАГНОСТИКА ТОРГОВОЙ СИСТЕМЫ
-Проверяет:
-1. Реальные сделки через portfolio.buy/sell с проверкой кэша и лимитов
-2. Параметры модели: веса, градиенты, распределение действий
-3. Параметры обучения: exploration, decay, reward
-4. Статистику стратегий и тикеров
-5. Память модели: какие действия преобладают
+ГЛУБОКАЯ ДИАГНОСТИКА ТОРГОВОЙ СИСТЕМЫ (v3)
+Исправлено: корректный подсчёт HOLD/BUY/SELL по action_mapping из конфига
 """
 
 import sys
@@ -38,6 +33,22 @@ class DeepDiagnostics:
         self.model = trader_model_instance
         self.risk_manager = RiskManager()
         self.technical_core = TechnicalTraderCore()
+
+        # Читаем action_mapping из конфига
+        self.action_mapping = self.model.rl_config.get('action_mapping', {})
+
+        # Определяем категории действий
+        self.buy_actions = set()
+        self.hold_actions = set()
+        self.sell_actions = set()
+
+        for idx, name in self.action_mapping.items():
+            if name.startswith('BUY'):
+                self.buy_actions.add(int(idx))
+            elif name.startswith('HOLD'):
+                self.hold_actions.add(int(idx))
+            elif name.startswith('SELL'):
+                self.sell_actions.add(int(idx))
 
         # Создаём СВЕЖИЙ портфель для чистоты эксперимента
         self.portfolio = PortfolioManager()
@@ -78,12 +89,8 @@ class DeepDiagnostics:
         self.commission_total = 0.0
         self.portfolio_values = []
 
-        # Статистика модели
-        self.policy_weights_stats = {}
-        self.gradient_stats = {}
-
         print("\n" + "=" * 80)
-        print("🔬 ГЛУБОКАЯ ДИАГНОСТИКА ТОРГОВОЙ СИСТЕМЫ")
+        print("🔬 ГЛУБОКАЯ ДИАГНОСТИКА ТОРГОВОЙ СИСТЕМЫ (v3)")
         print("=" * 80)
         self._print_system_info()
 
@@ -93,8 +100,14 @@ class DeepDiagnostics:
         print(f"   Память модели: {len(self.model.memory)} опытов")
         print(f"   Exploration rate: {self.model.exploration_rate:.4f}")
         print(f"   Action dim: {self.model.action_dim}")
-        print(f"   Действий BUY: 3, HOLD: 1, SELL: 3")
-        print(f"   Стратегий: {len(self.model.strategies)}")
+        print(
+            f"   Действий BUY: {len(self.buy_actions)}, HOLD: {len(self.hold_actions)}, SELL: {len(self.sell_actions)}")
+
+        # Детализация action_mapping
+        print(f"   action_mapping:")
+        for idx in sorted(self.action_mapping.keys(), key=int):
+            name = self.action_mapping[idx]
+            print(f"     {idx}: {name}")
 
         # Статистика по стратегиям
         print(f"\n   Стратегии:")
@@ -126,7 +139,7 @@ class DeepDiagnostics:
         print(f"   clip: [{rew.get('reward_clip_min', -10)}, {rew.get('reward_clip_max', 20)}]")
 
     def _create_state(self, ticker: str, price: float) -> torch.Tensor:
-        """Создание состояния как в реальной системе"""
+        """Создание состояния как в реальной системе — с накоплением истории"""
         security_info = {
             'lot_size': self.test_tickers[ticker]['lot'],
             'min_step': self.test_tickers[ticker]['step'],
@@ -137,10 +150,21 @@ class DeepDiagnostics:
             'market_cap': 1e11
         }
 
+        # НАКАПЛИВАЕМ ИСТОРИЮ ЦЕН (как в реальной системе)
+        self.technical_core.update_price_data(ticker, price)
         indicators = self.technical_core.calculate_indicators(ticker)
 
-        # News features
-        news_features = torch.zeros(1, self.model.news_encoded_dim).to(self.model.device)
+        # Если индикаторы пусты — используем дефолты
+        if not indicators:
+            indicators = {
+                'rsi': 50, 'atr': price * 0.02, 'sma_10': price, 'sma_20': price,
+                'bb_position': 0.5, 'volume_ratio': 1.0
+            }
+
+        # Кодируем новости с защитой от None
+        news_features = self.model.encode_news(['тестовая новость'])
+        if news_features is None or (hasattr(news_features, 'numel') and news_features.numel() == 0):
+            news_features = torch.zeros(1, self.model.news_encoded_dim).to(self.model.device)
 
         market_data = {
             'volume': security_info['volume'],
@@ -168,6 +192,16 @@ class DeepDiagnostics:
             'brent_change': 0.0,
             'market_liquidity_ratio': 0.5,
             'market_activity_score': 0.5,
+            'market_mood': 0.0,
+            'shares_turnover': 0,
+            'rvi_normalized': 0.2,
+            'imoex_normalized': 0.75,
+            'market_cap_total': 0.5,
+            'liquidity_ratio': 0.5,
+            'cbr_rate_normalized': 0.5,
+            'usd_rub': 0.8,
+            'moexog_normalized': 0.0,
+            'spread_pct': 0.0001,
         }
 
         state = self.model.build_state_vector(
@@ -197,7 +231,6 @@ class DeepDiagnostics:
         lot = self.test_tickers[ticker]['lot']
         step = self.test_tickers[ticker]['step']
 
-        # Корректируем цену под шаг
         if step > 0:
             price = round(price / step) * step
 
@@ -212,12 +245,11 @@ class DeepDiagnostics:
             target_value = portfolio_value * target_ratio
             quantity = int(target_value / price)
 
-            # Лотность
             if lot > 1:
                 quantity = (quantity // lot) * lot
 
             if quantity < lot:
-                quantity = lot  # Минимум 1 лот
+                quantity = lot
 
             cost = quantity * price
             commission = self.portfolio._calculate_commission(cost)
@@ -225,35 +257,29 @@ class DeepDiagnostics:
 
             available = self.portfolio.cash - self.portfolio.reserved_cash
 
-            # Проверка 1: min_cash_per_trade
             min_cash = self.risk_manager.config.get('min_cash_per_trade', 1000)
             if cost < min_cash:
                 result['rejected_reason'] = f'below_min_cash ({cost:.0f} < {min_cash})'
                 return result
 
-            # Проверка 2: доступный кэш
             if total_required > available:
                 result['rejected_reason'] = f'insufficient_cash (need {total_required:.0f}, have {available:.0f})'
                 return result
 
-            # Проверка 3: max_positions (через portfolio)
             if ticker not in self.portfolio.positions:
                 if len(self.portfolio.positions) >= self.portfolio.max_positions:
                     result[
                         'rejected_reason'] = f'max_positions ({len(self.portfolio.positions)}/{self.portfolio.max_positions})'
                     return result
 
-            # Проверка 4: дневной лимит сделок
             if self.risk_manager.daily_trades >= self.risk_manager.config.get('max_daily_trades', 50):
                 result['rejected_reason'] = 'daily_limit_reached'
                 return result
 
-            # Проверка 5: Risk Manager
             if not self.risk_manager.check_daily_limits():
                 result['rejected_reason'] = 'risk_manager_blocked'
                 return result
 
-            # ВЫПОЛНЕНИЕ СДЕЛКИ
             success = self.portfolio.buy(
                 ticker, quantity, price, strategy,
                 lot_size=lot, min_step=step
@@ -290,7 +316,6 @@ class DeepDiagnostics:
             revenue = quantity * price
             commission = self.portfolio._calculate_commission(revenue)
 
-            # ВЫПОЛНЕНИЕ СДЕЛКИ
             success, pnl = self.portfolio.sell(ticker, quantity, price)
 
             if success:
@@ -305,11 +330,22 @@ class DeepDiagnostics:
 
         return result
 
+    def _classify_action(self, action_idx: int) -> str:
+        """Классификация действия по action_mapping из конфига"""
+        action_str = self.action_mapping.get(str(action_idx), f'UNKNOWN_{action_idx}')
+
+        if action_str.startswith('BUY'):
+            return 'BUY'
+        elif action_str.startswith('HOLD'):
+            return 'HOLD'
+        elif action_str.startswith('SELL'):
+            return 'SELL'
+        return 'UNKNOWN'
+
     def analyze_model_weights(self):
         """Анализ весов модели"""
         print(f"\n🧠 АНАЛИЗ ВЕСОВ МОДЕЛИ:")
 
-        # Веса action_net (последний слой — вероятности действий)
         for name, param in self.model.policy_net.named_parameters():
             if 'action_net' in name and param.requires_grad:
                 weights = param.data.cpu().numpy()
@@ -318,16 +354,15 @@ class DeepDiagnostics:
                       f"std={weights.std():.4f}, "
                       f"min={weights.min():.4f}, max={weights.max():.4f}")
 
-                # Для последнего слоя — анализ bias (склонность к действиям)
                 if 'bias' in name and weights.shape[0] == self.model.action_dim:
                     print(f"      BIAS (склонность к каждому действию):")
-                    action_names = ['BUY_MIN', 'BUY_SMALL', 'BUY_NORMAL',
-                                    'HOLD', 'SELL_SMALL', 'SELL_NORMAL', 'SELL_ALL']
-                    for i, (bias_val, action_name) in enumerate(zip(weights, action_names)):
-                        prob_bias = np.exp(bias_val) / np.sum(np.exp(weights))  # softmax одного bias
-                        print(f"        {action_name:15s}: bias={bias_val:+.4f} (~prob={prob_bias:.2%})")
+                    for i, bias_val in enumerate(weights):
+                        action_name = self.action_mapping.get(str(i), f'UNKNOWN_{i}')
+                        prob_bias = np.exp(bias_val) / np.sum(np.exp(weights))
+                        category = self._classify_action(i)
+                        print(
+                            f"        [{category:6s}] {action_name:15s}: bias={bias_val:+.4f} (~prob={prob_bias:.2%})")
 
-        # Статистика градиентов (если есть)
         total_norm = 0
         for p in self.model.policy_net.parameters():
             if p.grad is not None:
@@ -343,51 +378,75 @@ class DeepDiagnostics:
         if len(self.model.memory) == 0:
             return
 
-        # Распределение действий в памяти
+        # Распределение действий в памяти с учётом категорий
         actions_in_memory = Counter()
+        buy_in_memory = 0
+        hold_in_memory = 0
+        sell_in_memory = 0
         rewards_in_memory = []
         dones_in_memory = []
 
         for exp in self.model.memory:
-            actions_in_memory[exp.get('action', -1)] += 1
+            action = exp.get('action', -1)
+            actions_in_memory[action] += 1
+
+            category = self._classify_action(action)
+            if category == 'BUY':
+                buy_in_memory += 1
+            elif category == 'HOLD':
+                hold_in_memory += 1
+            elif category == 'SELL':
+                sell_in_memory += 1
+
             rewards_in_memory.append(float(exp.get('reward', 0)))
             dones_in_memory.append(exp.get('done', False))
 
-        print(f"   Распределение действий в памяти:")
-        action_names = ['BUY_MIN', 'BUY_SMALL', 'BUY_NORMAL',
-                        'HOLD', 'SELL_SMALL', 'SELL_NORMAL', 'SELL_ALL']
-        for action_idx in range(self.model.action_dim):
-            count = actions_in_memory.get(action_idx, 0)
-            pct = count / len(self.model.memory) * 100
-            print(f"     {action_names[action_idx]:15s}: {count:5d} ({pct:5.1f}%)")
+        total = len(self.model.memory)
+        print(f"   Распределение по категориям:")
+        print(f"     BUY:  {buy_in_memory:5d} ({buy_in_memory / total * 100:5.1f}%)")
+        print(f"     HOLD: {hold_in_memory:5d} ({hold_in_memory / total * 100:5.1f}%)")
+        print(f"     SELL: {sell_in_memory:5d} ({sell_in_memory / total * 100:5.1f}%)")
+
+        print(f"\n   Распределение действий в памяти:")
+        for action_idx in sorted(actions_in_memory.keys()):
+            count = actions_in_memory[action_idx]
+            pct = count / total * 100
+            action_name = self.action_mapping.get(str(action_idx), f'UNKNOWN_{action_idx}')
+            category = self._classify_action(action_idx)
+            print(f"     [{category:6s}] {action_name:15s}: {count:5d} ({pct:5.1f}%)")
 
         print(f"\n   Rewards в памяти:")
         print(f"     mean={np.mean(rewards_in_memory):.4f}, "
               f"median={np.median(rewards_in_memory):.4f}, "
               f"std={np.std(rewards_in_memory):.4f}")
         print(f"     min={np.min(rewards_in_memory):.4f}, max={np.max(rewards_in_memory):.4f}")
-        print(f"     positive: {sum(1 for r in rewards_in_memory if r > 0)}/{len(rewards_in_memory)}")
-        print(f"     negative: {sum(1 for r in rewards_in_memory if r < 0)}/{len(rewards_in_memory)}")
+        print(f"     positive: {sum(1 for r in rewards_in_memory if r > 0)}/{total}")
+        print(f"     negative: {sum(1 for r in rewards_in_memory if r < 0)}/{total}")
 
-        print(f"\n   Done ratio: {sum(dones_in_memory) / len(dones_in_memory):.1%}")
+        print(f"\n   Done ratio: {sum(dones_in_memory) / total:.1%}")
 
     def analyze_action_choice(self, num_samples: int = 100):
         """Анализ выбора действий моделью"""
         print(f"\n🎯 АНАЛИЗ ВЫБОРА ДЕЙСТВИЙ ({num_samples} сэмплов):")
 
-        action_names = ['BUY_MIN', 'BUY_SMALL', 'BUY_NORMAL',
-                        'HOLD', 'SELL_SMALL', 'SELL_NORMAL', 'SELL_ALL']
-
         all_actions = []
         all_strategies = []
         all_confidences = []
         all_values = []
+        categories = Counter()
+        errors_count = 0
 
         for i in range(num_samples):
             ticker = random.choice(list(self.test_tickers.keys()))
             price = self.base_prices[ticker] * random.uniform(0.98, 1.02)
 
-            state = self._create_state(ticker, price)
+            try:
+                state = self._create_state(ticker, price)
+            except Exception as e:
+                errors_count += 1
+                if errors_count <= 3:
+                    print(f"   ⚠ Ошибка создания состояния {ticker}: {e}")
+                continue
 
             market_context = {
                 'market_sentiment': self.model.market_sentiment,
@@ -407,54 +466,71 @@ class DeepDiagnostics:
                 all_actions.append(action)
                 all_strategies.append(strategy)
                 all_confidences.append(confidence)
+                categories[self._classify_action(action)] += 1
 
-                # Получаем value для состояния
                 strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
                 full_state = self.model._create_strategy_state(state, strategy_params)
                 value = self.model.get_state_value(full_state)
                 all_values.append(value)
 
             except Exception as e:
-                print(f"   ⚠ Ошибка на сэмпле {i}: {e}")
+                errors_count += 1
+                if errors_count <= 3:
+                    print(f"   ⚠ Ошибка на сэмпле {i}: {e}")
+
+        total = len(all_actions)
+
+        if total == 0:
+            print(f"\n   ❌ Все {num_samples} сэмплов завершились с ошибками.")
+            print(f"   Проверьте загрузку BERT модели и encode_news().")
+            return
+
+        if errors_count > 0:
+            print(f"\n   ⚠ Успешных сэмплов: {total}/{num_samples} (ошибок: {errors_count})")
+
+        print(f"\n   Распределение по категориям:")
+        for cat in ['BUY', 'HOLD', 'SELL']:
+            count = categories.get(cat, 0)
+            pct = count / total * 100 if total > 0 else 0
+            bar = '█' * int(pct / 2)
+            print(f"     {cat:6s}: {count:4d} ({pct:5.1f}%) {bar}")
 
         print(f"\n   Распределение действий:")
         action_counts = Counter(all_actions)
-        for action_idx in range(self.model.action_dim):
-            count = action_counts.get(action_idx, 0)
-            pct = count / len(all_actions) * 100
+        for action_idx in sorted(action_counts.keys()):
+            count = action_counts[action_idx]
+            pct = count / total * 100 if total > 0 else 0
             bar = '█' * int(pct / 2)
-            print(f"     {action_names[action_idx]:15s}: {count:4d} ({pct:5.1f}%) {bar}")
+            action_name = self.action_mapping.get(str(action_idx), f'UNKNOWN_{action_idx}')
+            category = self._classify_action(action_idx)
+            print(f"     [{category:6s}] {action_name:15s}: {count:4d} ({pct:5.1f}%) {bar}")
 
         print(f"\n   Распределение стратегий:")
         strategy_counts = Counter(all_strategies)
         for strategy_name in sorted(self.model.strategies.keys()):
             count = strategy_counts.get(strategy_name, 0)
-            pct = count / len(all_actions) * 100
+            pct = count / total * 100 if total > 0 else 0
             print(f"     {strategy_name:20s}: {count:4d} ({pct:5.1f}%)")
 
-        print(f"\n   Confidence:")
-        print(f"     mean={np.mean(all_confidences):.3f}, "
-              f"median={np.median(all_confidences):.3f}, "
-              f"min={np.min(all_confidences):.3f}")
+        if all_confidences:
+            print(f"\n   Confidence:")
+            print(f"     mean={np.mean(all_confidences):.3f}, "
+                  f"median={np.median(all_confidences):.3f}, "
+                  f"min={np.min(all_confidences):.3f}")
 
-        print(f"\n   State Values:")
-        print(f"     mean={np.mean(all_values):.4f}, "
-              f"min={np.min(all_values):.4f}, max={np.max(all_values):.4f}")
-
-        # Анализ: предпочитает ли модель HOLD при низкой уверенности?
-        hold_actions = [a for a, c in zip(all_actions, all_confidences) if a == 3]
-        non_hold_actions = [a for a, c in zip(all_actions, all_confidences) if a != 3]
-        if hold_actions:
-            print(
-                f"\n   HOLD: {len(hold_actions)} раз, средняя confidence={np.mean([c for a, c in zip(all_actions, all_confidences) if a == 3]):.3f}")
-        if non_hold_actions:
-            non_hold_confs = [c for a, c in zip(all_actions, all_confidences) if a != 3]
-            print(f"   NON-HOLD: {len(non_hold_actions)} раз, средняя confidence={np.mean(non_hold_confs):.3f}")
+        if all_values:
+            print(f"\n   State Values:")
+            print(f"     mean={np.mean(all_values):.4f}, "
+                  f"min={np.min(all_values):.4f}, max={np.max(all_values):.4f}")
 
     def run_trading_simulation(self, cycles: int = 30):
         """Симуляция торговли с реальными проверками"""
         print(f"\n💹 СИМУЛЯЦИЯ ТОРГОВЛИ ({cycles} циклов):")
         print("-" * 80)
+
+        buy_signals = 0
+        hold_signals = 0
+        sell_signals = 0
 
         for cycle in range(cycles):
             # Обновляем цены (±0.5%)
@@ -465,7 +541,7 @@ class DeepDiagnostics:
                 self.technical_core.update_price_data(ticker, new_price)
 
             # Для каждого тикера — выбор действия
-            for ticker in list(self.test_tickers.keys())[:5]:  # первые 5
+            for ticker in list(self.test_tickers.keys())[:5]:
                 price = self.base_prices[ticker]
 
                 try:
@@ -490,11 +566,19 @@ class DeepDiagnostics:
                 except Exception as e:
                     continue
 
-                action_str = self.model.rl_config.get('action_mapping', {}).get(str(action), 'HOLD')
+                action_str = self.action_mapping.get(str(action), 'HOLD')
                 self.actions_distribution[action_str] += 1
                 self.strategies_distribution[strategy] += 1
 
-                if action_str == 'HOLD':
+                category = self._classify_action(action)
+                if category == 'BUY':
+                    buy_signals += 1
+                elif category == 'HOLD':
+                    hold_signals += 1
+                elif category == 'SELL':
+                    sell_signals += 1
+
+                if action_str.startswith('HOLD'):
                     continue
 
                 # Пробуем реальную сделку
@@ -505,7 +589,10 @@ class DeepDiagnostics:
                     self.commission_total += result['commission']
                 else:
                     self.rejected_trades += 1
-                    self.rejection_reasons[result['rejected_reason']] += 1
+                    reason = result.get('rejected_reason', 'Unknown')
+                    if reason is None:
+                        reason = 'None'
+                    self.rejection_reasons[reason] += 1
 
             self.cycles += 1
             portfolio_value = self.portfolio.get_total_value(self.base_prices)
@@ -526,19 +613,29 @@ class DeepDiagnostics:
         print("📋 ИТОГОВЫЙ ДИАГНОСТИЧЕСКИЙ ОТЧЁТ")
         print("=" * 80)
 
+        # Подсчёт категорий в распределении действий
+        buy_total = sum(1 for a, c in self.actions_distribution.items() if a.startswith('BUY'))
+        hold_total = sum(1 for a, c in self.actions_distribution.items() if a.startswith('HOLD'))
+        sell_total = sum(1 for a, c in self.actions_distribution.items() if a.startswith('SELL'))
+        total_signals = sum(self.actions_distribution.values())
+
         print(f"\n💹 ТОРГОВЛЯ:")
         print(f"   Циклов: {self.cycles}")
+        print(f"   Сигналов всего: {total_signals}")
         print(
-            f"   Сигналов (не HOLD): {sum(self.actions_distribution.values()) - self.actions_distribution.get('HOLD', 0)}")
-        print(f"   HOLD сигналов: {self.actions_distribution.get('HOLD', 0)}")
+            f"   BUY сигналов: {buy_total} ({buy_total / total_signals * 100:.1f}%)" if total_signals > 0 else "   BUY сигналов: 0")
+        print(
+            f"   HOLD сигналов: {hold_total} ({hold_total / total_signals * 100:.1f}%)" if total_signals > 0 else "   HOLD сигналов: 0")
+        print(
+            f"   SELL сигналов: {sell_total} ({sell_total / total_signals * 100:.1f}%)" if total_signals > 0 else "   SELL сигналов: 0")
         print(f"   Реальных сделок: {self.real_trades}")
         print(f"   Отклонено сделок: {self.rejected_trades}")
-        print(f"   Процент исполнения: {self.real_trades / (self.real_trades + self.rejected_trades) * 100:.1f}%"
-              if (self.real_trades + self.rejected_trades) > 0 else "   Процент исполнения: N/A")
+        if self.real_trades + self.rejected_trades > 0:
+            print(f"   Процент исполнения: {self.real_trades / (self.real_trades + self.rejected_trades) * 100:.1f}%")
 
         if self.rejection_reasons:
             print(f"\n   Причины отклонения:")
-            for reason, count in self.rejection_reasons.most_common():
+            for reason, count in self.rejection_reasons.most_common(10):
                 print(f"     {reason}: {count}")
 
         print(f"\n   Комиссий всего: {self.commission_total:.2f}₽")
@@ -546,12 +643,9 @@ class DeepDiagnostics:
             print(f"   Комиссий в час (прогноз): {self.commission_total / self.cycles * 360:.2f}₽")
 
         print(f"\n📊 РАСПРЕДЕЛЕНИЕ ДЕЙСТВИЙ:")
-        action_names = ['BUY_MIN', 'BUY_SMALL', 'BUY_NORMAL',
-                        'HOLD', 'SELL_SMALL', 'SELL_NORMAL', 'SELL_ALL']
-        total_actions = sum(self.actions_distribution.values())
-        for action_name in action_names:
-            count = self.actions_distribution.get(action_name, 0)
-            pct = count / total_actions * 100 if total_actions > 0 else 0
+        for action_name in sorted(self.actions_distribution.keys()):
+            count = self.actions_distribution[action_name]
+            pct = count / total_signals * 100 if total_signals > 0 else 0
             bar = '█' * int(pct / 2)
             print(f"   {action_name:15s}: {count:4d} ({pct:5.1f}%) {bar}")
 
@@ -569,20 +663,21 @@ class DeepDiagnostics:
             change = self.portfolio_values[-1] - self.portfolio_values[0]
             print(f"   Изменение: {change:+,.0f}₽ ({change / self.portfolio_values[0] * 100:+.2f}%)")
 
-        print(f"\n⚠ КЛЮЧЕВЫЕ ПРОБЛЕМЫ (по результатам диагностики):")
-        print(
-            f"   1. Модель выбирает HOLD в {self.actions_distribution.get('HOLD', 0) / total_actions * 100:.1f}% случаев")
-        print(
-            f"   2. BUY-действия: {sum(self.actions_distribution.get(a, 0) for a in ['BUY_MIN', 'BUY_SMALL', 'BUY_NORMAL'])} "
-            f"({sum(self.actions_distribution.get(a, 0) for a in ['BUY_MIN', 'BUY_SMALL', 'BUY_NORMAL']) / total_actions * 100:.1f}%)")
-        print(f"   3. Реальных сделок: {self.real_trades} (остальные отбиты проверками)")
-        print(f"   4. Risk Manager вызывается при каждой сделке: {'ДА' if self.real_trades > 0 else 'Н/Д'}")
-        print(
-            f"   5. Основная причина отказов: {self.rejection_reasons.most_common(1)[0][0] if self.rejection_reasons else 'нет отказов'}")
+        print(f"\n⚠ КЛЮЧЕВЫЕ МЕТРИКИ:")
+        if total_signals > 0:
+            hold_pct = hold_total / total_signals * 100
+            print(f"   1. Модель выбирает HOLD в {hold_pct:.1f}% случаев")
+            if hold_pct < 20:
+                print(f"      🔴 HOLD < 20% — модель всё ещё смещена к торговле")
+            elif hold_pct < 40:
+                print(f"      🟡 HOLD 20–40% — модель учится держать")
+            else:
+                print(f"      ✅ HOLD > 40% — хороший баланс")
 
-        if self.actions_distribution.get('HOLD', 0) / total_actions < 0.3:
-            print(f"\n   🔴 КРИТИЧНО: HOLD < 30% — модель архитектурно смещена к торговле!")
-            print(f"      (6 из 7 действий — торговые, модель просто не может выбрать HOLD чаще)")
+        print(f"   2. Реальных сделок: {self.real_trades}")
+        if self.rejected_trades > 0:
+            top_reason = self.rejection_reasons.most_common(1)[0]
+            print(f"   3. Основная причина отказов: {top_reason[0]} ({top_reason[1]} раз)")
 
     def run_full_diagnostics(self, trading_cycles: int = 30, action_samples: int = 100):
         """Полная диагностика"""
@@ -590,19 +685,10 @@ class DeepDiagnostics:
         print("🔬 ЗАПУСК ПОЛНОЙ ДИАГНОСТИКИ")
         print("=" * 80)
 
-        # 1. Анализ весов модели
         self.analyze_model_weights()
-
-        # 2. Анализ памяти
         self.analyze_memory()
-
-        # 3. Анализ выбора действий
         self.analyze_action_choice(action_samples)
-
-        # 4. Симуляция торговли
         self.run_trading_simulation(trading_cycles)
-
-        # 5. Итоговый отчёт
         self.print_final_report()
 
         print("\n" + "=" * 80)

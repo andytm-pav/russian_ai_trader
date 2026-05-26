@@ -785,7 +785,7 @@ class SmartPortfolioBroker:
             'imoex_normalized': macro_data.get('imoex', 0) / norm.get('imoex_divisor', 4000.0),
             'market_cap_total': macro_data.get('market_cap', 0) / norm.get('market_cap_divisor_total', 1e14),
             'liquidity_ratio': macro_data.get('market_liquidity_ratio', 0.0),
-            'rtsi_normalized': macro_data.get('rtsi', 0) / norm.get('rtsi_divisor', 2000.0),
+            'cbr_rate_normalized': macro_data.get('cbr_rate', 0.0) / norm.get('cbr_rate_divisor', 20.0),
             'usd_rub': macro_data.get('usd_rub', 0) / norm.get('usd_rub_divisor', 100.0),
             'moexog_normalized': macro_data.get('moexog', 0) / norm.get('moexog_divisor', 10000.0),
         }
@@ -1265,6 +1265,8 @@ class SmartPortfolioBroker:
 
         self.risk_manager.reset_daily_metrics()
 
+        self._set_daily_start_capital()
+
         # Анализ новостей
         self.news_fetcher.get_last_news(limit=100)
 
@@ -1290,6 +1292,9 @@ class SmartPortfolioBroker:
         """Действия при закрытии рынка"""
         logger.info("РЫНОК ЗАКРЫТ")
         self.trading_enabled = False
+
+        # Фиксация дневной прибыли
+        self._fixate_daily_profit()
 
         self._save_portfolio_state()
         self.model.save_model()
@@ -1691,13 +1696,21 @@ class SmartPortfolioBroker:
         partial_take_enabled = cfg.get('partial_take_enabled', True)
         partial_take_percent = cfg.get('partial_take_percent', 3.0)
         partial_take_ratio = cfg.get('partial_take_ratio', 0.5)
+        stop_loss_percent = cfg.get('stop_loss_percent', 6.0)
+        take_profit_percent = cfg.get('take_profit_percent', 12.0)
 
         for ticker, pos in list(self.portfolio.positions.items()):
             if ticker not in prices:
                 continue
 
             price = prices[ticker]
-            entry_price = pos['avg_price']
+            entry_price = pos.get('avg_price', 0.0)
+
+            # Приводим к float (могут быть строки из JSON)
+            try:
+                entry_price = float(entry_price)
+            except (ValueError, TypeError):
+                entry_price = 0.0
 
             if entry_price <= 0:
                 continue
@@ -1713,19 +1726,33 @@ class SmartPortfolioBroker:
 
             # ===== ТРЕЙЛИНГ-СТОП =====
             if trailing_stop_enabled and change_pct >= trailing_stop_activation:
-                # Активируем трейлинг-стоп: подтягиваем стоп-лосс
-                current_stop = pos.get('stop_loss', entry_price * (1 - cfg.get('stop_loss_percent', 6.0) / 100))
-                trailing_stop_price = price * (1 - trailing_stop_distance / 100)
+                current_stop_raw = pos.get('stop_loss', None)
+                if current_stop_raw is None or isinstance(current_stop_raw, str):
+                    current_stop = entry_price * (1 - stop_loss_percent / 100.0)
+                else:
+                    try:
+                        current_stop = float(current_stop_raw)
+                    except (ValueError, TypeError):
+                        current_stop = entry_price * (1 - stop_loss_percent / 100.0)
+
+                trailing_stop_price = price * (1 - trailing_stop_distance / 100.0)
 
                 if trailing_stop_price > current_stop:
-                    old_stop = pos.get('stop_loss', current_stop)
                     pos['stop_loss'] = trailing_stop_price
                     pos['trailing_activated'] = True
-                    logger.debug(f"Трейлинг-стоп {ticker}: {old_stop:.2f} → {trailing_stop_price:.2f} "
+                    logger.debug(f"Трейлинг-стоп {ticker}: {current_stop:.2f} → {trailing_stop_price:.2f} "
                                  f"(цена: {price:.2f}, +{change_pct:.1f}%)")
 
             # Проверка обновлённого стоп-лосса
-            effective_stop = pos.get('stop_loss', entry_price * (1 - cfg.get('stop_loss_percent', 6.0) / 100))
+            effective_stop_raw = pos.get('stop_loss', None)
+            if effective_stop_raw is None or isinstance(effective_stop_raw, str):
+                effective_stop = entry_price * (1 - stop_loss_percent / 100.0)
+            else:
+                try:
+                    effective_stop = float(effective_stop_raw)
+                except (ValueError, TypeError):
+                    effective_stop = entry_price * (1 - stop_loss_percent / 100.0)
+
             if price <= effective_stop:
                 qty = pos['qty']
 
@@ -1752,8 +1779,9 @@ class SmartPortfolioBroker:
 
             # ===== ЧАСТИЧНАЯ ФИКСАЦИЯ ПРИБЫЛИ =====
             if partial_take_enabled and change_pct >= partial_take_percent:
-                # Проверяем, не фиксировали ли уже частично
                 already_partial = pos.get('partial_take_done', False)
+                if isinstance(already_partial, str):
+                    already_partial = already_partial.lower() == 'true'
                 if not already_partial:
                     qty = int(pos['qty'] * partial_take_ratio)
 
@@ -1775,8 +1803,7 @@ class SmartPortfolioBroker:
                             )
 
                             pos['partial_take_done'] = True
-                            # Подтягиваем стоп в безубыток для оставшейся части
-                            pos['stop_loss'] = entry_price * 1.005  # +0.5% от входа
+                            pos['stop_loss'] = entry_price * 1.005
 
                             logger.info(f"ЧАСТИЧНАЯ ФИКСАЦИЯ: {ticker} {qty} @ {price:.2f} "
                                         f"({change_pct:+.1f}%, PnL: {pnl:+.0f}₽, "
@@ -1784,7 +1811,15 @@ class SmartPortfolioBroker:
                 continue
 
             # ===== ТЕЙК-ПРОФИТ (полный) =====
-            take_profit_price = pos.get('take_profit', entry_price * (1 + cfg.get('take_profit_percent', 12.0) / 100))
+            take_profit_raw = pos.get('take_profit', None)
+            if take_profit_raw is None or isinstance(take_profit_raw, str):
+                take_profit_price = entry_price * (1 + take_profit_percent / 100.0)
+            else:
+                try:
+                    take_profit_price = float(take_profit_raw)
+                except (ValueError, TypeError):
+                    take_profit_price = entry_price * (1 + take_profit_percent / 100.0)
+
             if price >= take_profit_price:
                 qty = pos['qty']
 
@@ -1966,7 +2001,7 @@ class SmartPortfolioBroker:
                 'imoex_normalized': macro_data.get('imoex', 0) / norm.get('imoex_divisor', 4000.0),
                 'market_cap_total': macro_data.get('market_cap', 0) / norm.get('market_cap_divisor_total', 1e14),
                 'liquidity_ratio': macro_data.get('market_liquidity_ratio', 0.0),
-                'rtsi_normalized': macro_data.get('rtsi', 0) / norm.get('rtsi_divisor', 2000.0),
+                'cbr_rate_normalized': macro_data.get('cbr_rate', 0.0) / norm.get('cbr_rate_divisor', 20.0),
                 'usd_rub': macro_data.get('usd_rub', 0) / norm.get('usd_rub_divisor', 100.0),
                 'moexog_normalized': macro_data.get('moexog', 0) / norm.get('moexog_divisor', 10000.0),
             }
@@ -2523,6 +2558,63 @@ class SmartPortfolioBroker:
 
         except Exception as e:
             logger.error(f"Ошибка сохранения состояния: {e}")
+
+    def _fixate_daily_profit(self):
+        """Фиксация дневной прибыли"""
+        profit_config = self.settings.get('daily_profit_fixation', {})
+        if not profit_config.get('enabled', False):
+            return
+
+        try:
+            total_value = self.portfolio.get_total_value({})
+            daily_start = getattr(self, 'daily_start_capital', None)
+
+            if daily_start is None or daily_start <= 0:
+                logger.debug("Нет daily_start_capital, фиксация невозможна")
+                return
+
+            daily_profit = total_value - daily_start
+            min_profit = profit_config.get('min_profit_to_fix', 50.0)
+            reinvest_pct = profit_config.get('reinvest_percent', 0.0)
+
+            if daily_profit >= min_profit:
+                # Фиксируем прибыль
+                fixated = daily_profit * (1.0 - reinvest_pct)
+                reinvested = daily_profit * reinvest_pct
+
+                self.portfolio.reserved_cash += fixated
+                self.portfolio.cash -= fixated
+                self.daily_start_capital = daily_start + reinvested
+
+                # Сохраняем в историю
+                if not hasattr(self.portfolio, 'daily_profit_history'):
+                    self.portfolio.daily_profit_history = []
+
+                self.portfolio.daily_profit_history.append({
+                    'date': datetime.now().strftime('%Y-%m-%d'),
+                    'profit': daily_profit,
+                    'fixated': fixated,
+                    'reinvested': reinvested,
+                    'total_value': total_value,
+                    'timestamp': datetime.now().isoformat()
+                })
+
+                logger.info(f"💰 ДНЕВНАЯ ПРИБЫЛЬ ЗАФИКСИРОВАНА: "
+                            f"+{daily_profit:+.0f}₽ "
+                            f"(выведено: {fixated:.0f}₽, "
+                            f"реинвестировано: {reinvested:.0f}₽)")
+            else:
+                logger.info(f"Прибыль {daily_profit:+.0f}₽ меньше порога {min_profit:.0f}₽ — переносим")
+
+        except Exception as e:
+            logger.error(f"Ошибка фиксации прибыли: {e}")
+
+    def _set_daily_start_capital(self):
+        """Установка начального капитала дня"""
+        total_value = self.portfolio.get_total_value({})
+        self.daily_start_capital = total_value
+        logger.info(f"Начальный капитал дня: {total_value:,.0f}₽")
+
 
     def get_sentiment_history(self, limit: int = 100) -> List[Dict]:
         """Получение истории сентимента для веб-дашборда"""

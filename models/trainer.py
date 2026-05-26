@@ -87,10 +87,9 @@ class ModelTrainer:
 
             logger.debug(f"Сохранение памяти в: {mem_file}")
 
-            max_save = mem_config.get("max_memory_to_save", 5000)
+            # Размер из единого параметра memory_size
+            max_save = self.model.rl_config.get("memory_size", 5000)
             compress = mem_config.get("compress", True)
-
-
 
             # 3. ПРОВЕРКА ПРАВ НА ЗАПИСЬ
             mem_path = Path(mem_file)
@@ -131,7 +130,6 @@ class ModelTrainer:
 
         except Exception as e:
             logger.error(f"Ошибка сохранения памяти: {e}")
-
             logger.error(traceback.format_exc())
 
     def load_memory(self):

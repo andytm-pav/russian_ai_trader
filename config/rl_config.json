@@ -188,7 +188,7 @@
     "rvi_divisor": 100.0,
     "imoex_divisor": 4000.0,
     "market_cap_divisor_total": 100000000000000.0,
-    "rtsi_divisor": 2000.0,
+    "cbr_rate_divisor": 20.0,
     "usd_rub_divisor": 100.0,
     "moexog_divisor": 10000.0,
     "max_hold_time_hours_norm": 72.0,
@@ -235,7 +235,6 @@
     "autosave_interval": 10,
     "memory_file": "models/saved_trader/memory_buffer.pkl",
     "auto_save_interval_cycles": 20,
-    "max_memory_to_save": 5000,
     "compress": true,
     "compression": true
   },
@@ -244,7 +243,6 @@
     "enable_autosave": true,
     "autosave_interval": 10,
     "memory_file": "models/saved_trader/memory_buffer.pkl",
-    "max_memory_to_save": 5000,
     "compression": true
   },
 
@@ -266,7 +264,7 @@
   "learning_rate": 0.0005,
   "gamma": 0.95,
   "batch_size": 32,
-  "memory_size": 5000,
+  "memory_size": 20000,
   "target_update_interval": 100,
   "tau": 0.005,
   "optimizer": "adam",
@@ -287,11 +285,11 @@
 
   "hold_reward": {
     "enabled": true,
-    "max_bonus": 0.5,
-    "overhold_penalty": 0.02,
+    "max_bonus": 0.3,
+    "overhold_penalty": 0.05,
     "overhold_threshold": 1.5,
-    "interval_cycles": 3,
-    "max_positions_per_cycle": 10
+    "interval_cycles": 10,
+    "max_positions_per_cycle": 2
   },
 
   "commission_learning": {
@@ -312,7 +310,7 @@
       "imoex_normalized",
       "market_cap_total",
       "liquidity_ratio",
-      "rtsi_normalized",
+      "cbr_rate_normalized",
       "usd_rub",
       "moexog_normalized"
     ]

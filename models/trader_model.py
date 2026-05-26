@@ -22,7 +22,9 @@ warnings.filterwarnings('ignore')
 class PrioritizedReplayBuffer:
     """Буфер с приоритетами для важных опытов (TD-error)"""
 
-    def __init__(self, max_size=5000, alpha=0.6, beta=0.4, beta_increment=0.001):
+    def __init__(self, max_size=None, alpha=0.6, beta=0.4, beta_increment=0.001):
+        if max_size is None:
+            max_size = 5000
         self.buffer = []
         self.priorities = np.zeros(max_size, dtype=np.float32)
         self.max_size = max_size
@@ -496,7 +498,6 @@ class AdvancedTraderModel:
                     'enable_autosave': True,
                     'autosave_interval': 10,
                     'memory_file': 'models/saved_trader/memory_buffer.pkl',
-                    'max_memory_to_save': 5000,
                     'compression': True
                 })
         except Exception as e:
@@ -505,7 +506,6 @@ class AdvancedTraderModel:
                 'enable_autosave': True,
                 'autosave_interval': 10,
                 'memory_file': 'models/saved_trader/memory_buffer.pkl',
-                'max_memory_to_save': 5000,
                 'compression': True
             }
 
@@ -1431,7 +1431,8 @@ class AdvancedTraderModel:
             import pickle
             import gzip
 
-            max_to_save = min(self.memory_config['max_memory_to_save'], len(self.memory))
+            # Размер из единого параметра memory_size (не max_memory_to_save!)
+            max_to_save = min(self.rl_config.get("memory_size", 5000), len(self.memory))
             memory_to_save = list(self.memory)[-max_to_save:]
 
             file_path = self.memory_config['memory_file']
