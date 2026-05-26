@@ -436,10 +436,10 @@ class AdvancedTraderModel:
         self.load_model()
         self.load_memory()
 
-        print(f"[TraderModel] Инициализирована на {self.device}")
-        print(
-            f"[TraderModel] Размерность состояния: {self.base_state_dim} + {self.strategy_params_dim} = {self.total_state_dim}")
-        print(f"[TraderModel] Конфиг: {self.rl_config.get('state_parameters', {})}")
+        logger.info(f"Инициализирована на {self.device}")
+        logger.info(
+            f"Размерность состояния: {self.base_state_dim} + {self.strategy_params_dim} = {self.total_state_dim}")
+        logger.info(f"Конфиг: {self.rl_config.get('state_parameters', {})}")
 
     def _load_rl_config(self) -> Dict:
         """Загрузка RL конфига"""
@@ -447,7 +447,7 @@ class AdvancedTraderModel:
             with open("config/rl_config.json", "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            print(f"[TraderModel] Ошибка загрузки RL конфига: {e}")
+            logger.error(f"Ошибка загрузки RL конфига: {e}")
             return {
                 "state_parameters": {
                     "state_vector_size": 181,
@@ -469,7 +469,7 @@ class AdvancedTraderModel:
             with open("config/strategies.json", "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            print(f"[TraderModel] Ошибка загрузки конфига стратегий: {e}")
+            logger.error(f"Ошибка загрузки конфига стратегий: {e}")
             return {
                 'strategies': {
                     'balanced': {
@@ -517,10 +517,10 @@ class AdvancedTraderModel:
             model = AutoModel.from_pretrained("cointegrated/rubert-tiny2")
             model.to(self.device)
             model.eval()
-            print("[TraderModel] ✓ Загружена модель RuBERT-tiny2")
+            logger.info("✓ Загружена модель RuBERT-tiny2")
             return model, tokenizer
         except Exception as e:
-            print(f"[TraderModel] ⚠ Не удалось загрузить BERT: {e}")
+            logger.error(f"⚠ Не удалось загрузить BERT: {e}")
             return None, None
 
     def build_state_vector(self,
@@ -981,7 +981,7 @@ class AdvancedTraderModel:
                 _, value, _ = self.policy_net(state)
                 return value.item()
         except Exception as e:
-            print(f"[TraderModel] Ошибка get_state_value: {e}")
+            logger.error(f"Ошибка get_state_value: {e}")
             return 0.0
 
     def remember_experience(self, state: torch.Tensor, action: int, reward: float,
@@ -1066,7 +1066,7 @@ class AdvancedTraderModel:
             return total_loss.item()
 
         except Exception as e:
-            print(f"[TraderModel] Ошибка обучения: {e}")
+            logger.error(f"Ошибка обучения: {e}")
             self.policy_net.eval()
             return None
 
@@ -1120,7 +1120,7 @@ class AdvancedTraderModel:
             return total_loss.item()
 
         except Exception as e:
-            print(f"[TraderModel] Ошибка приоритетного обучения: {e}")
+            logger.error(f"Ошибка приоритетного обучения: {e}")
             self.policy_net.eval()
             return None
 
@@ -1157,7 +1157,7 @@ class AdvancedTraderModel:
             return total_loss.item()
 
         except Exception as e:
-            print(f"[TraderModel] Ошибка кастомного обучения: {e}")
+            logger.error(f"Ошибка кастомного обучения: {e}")
             self.policy_net.eval()
             return None
 
@@ -1187,7 +1187,7 @@ class AdvancedTraderModel:
                 return news_features
 
             except Exception as e:
-                print(f"[TraderModel] Ошибка BERT кодирования: {e}")
+                logger.error(f"Ошибка BERT кодирования: {e}")
 
         return self.simple_encode_news(news_texts)
 
@@ -1364,10 +1364,10 @@ class AdvancedTraderModel:
             with open(os.path.join(self.model_dir, 'model_state.json'), 'w', encoding='utf-8') as f:
                 json.dump(state, f, indent=2, default=str)
 
-            print(f"[TraderModel] Модель сохранена")
+            logger.info("Модель сохранена")
 
         except Exception as e:
-            print(f"[TraderModel] Ошибка сохранения: {e}")
+            logger.error(f"Ошибка сохранения: {e}")
 
     def load_model(self):
         """Загрузка модели"""
@@ -1381,9 +1381,9 @@ class AdvancedTraderModel:
                 self.policy_net.load_state_dict(checkpoint['policy_net'])
                 if 'policy_optimizer' in checkpoint:
                     self.policy_optimizer.load_state_dict(checkpoint['policy_optimizer'])
-                print(f"[TraderModel] ✓ Загружены веса")
+                logger.info("✓ Загружены веса")
             except Exception as e:
-                print(f"[TraderModel] Ошибка загрузки весов: {e}")
+                logger.error(f"Ошибка загрузки весов: {e}")
 
         if os.path.exists(state_path):
             try:
@@ -1409,10 +1409,10 @@ class AdvancedTraderModel:
                     for name, perf in state['strategy_performance'].items():
                         self.strategy_performance[name] = perf
 
-                print(f"[TraderModel] ✓ Загружено состояние")
+                logger.info("✓ Загружено состояние")
 
             except Exception as e:
-                print(f"[TraderModel] Ошибка загрузки состояния: {e}")
+                logger.error(f"Ошибка загрузки состояния: {e}")
 
         # Сброс деградировавших risk_multiplier
         reset_risk = self.rl_config.get('strategy_adaptation', {}).get('reset_degraded_risk', True)
@@ -1445,10 +1445,11 @@ class AdvancedTraderModel:
                 with open(file_path, 'wb') as f:
                     pickle.dump(memory_to_save, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-            print(f"[TraderModel] Память сохранена: {len(memory_to_save)} опытов")
+            logger.info(f"Память сохранена: {len(memory_to_save)} опытов")
 
         except Exception as e:
-            print(f"[TraderModel] Ошибка сохранения памяти: {e}")
+            logger.error(f"Ошибка сохранения памяти: {e}")
+
 
     def load_memory(self):
         """Загрузка памяти"""
@@ -1487,10 +1488,10 @@ class AdvancedTraderModel:
                 for exp in loaded_memory:
                     self.prioritized_buffer.add(exp)
 
-            print(f"[TraderModel] Загружено {len(loaded_memory)} опытов")
+            logger.info(f"Загружено {len(loaded_memory)} опытов")
 
         except Exception as e:
-            print(f"[TraderModel] Ошибка загрузки памяти: {e}")
+            logger.error(f"Ошибка загрузки памяти: {e}")
 
     def decay_exploration(self):
         """Уменьшение exploration rate со временем"""

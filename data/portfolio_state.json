@@ -1,6 +1,6 @@
 {
-  "total_value": 10010.785,
-  "cash": 4013.3449999999993,
+  "total_value": 9989.34,
+  "cash": 4012.615,
   "positions": {
     "RASP": {
       "qty": 20,
@@ -41,18 +41,34 @@
     },
     "VTBR": {
       "qty": 3,
-      "avg_price": 88.24,
-      "buy_time": 1779795894.962132,
-      "total_cost": 264.71999999999997,
-      "commission_buy": 0.79,
+      "avg_price": 81.33500000000001,
+      "buy_time": 1779811822.703755,
+      "total_cost": 244.00500000000002,
+      "commission_buy": 0.73,
       "time_horizon": "balanced",
       "strategy": "balanced",
       "lot_size": 1,
       "min_step": 0.005
     }
   },
-  "last_update": "2026-05-26T19:25:57.238462",
+  "last_update": "2026-05-26T23:17:28.583261",
   "initial_capital": 10000,
-  "reserved_cash": 0,
-  "pending_commissions": []
+  "reserved_cash": 0.73,
+  "pending_commissions": [
+    {
+      "date": "2026-05-26",
+      "amount": 17.259999999999998,
+      "turnover": 5752.8,
+      "settlement_date": "2026-05-27",
+      "settlement_time": "14:00",
+      "processed": false,
+      "created_at": "2026-05-26T20:00:02.164402"
+    }
+  ],
+  "trade_history": [],
+  "daily_trades": [],
+  "commission_spent_today": 0.0,
+  "total_commission": 0.0,
+  "total_trades": 0,
+  "total_pnl": 0.0
 }

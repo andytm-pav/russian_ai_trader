@@ -9,6 +9,11 @@ from typing import Optional, Dict, Any
 import json
 import os
 
+from collections import deque
+
+# Кольцевой буфер логов для дашборда (последние 500 строк)
+_log_buffer = deque(maxlen=500)
+
 # Уровни логирования
 LOG_LEVELS = {
     'DEBUG': logging.DEBUG,
@@ -115,6 +120,15 @@ class TradeLogger:
         # Добавляем дополнительную информацию
         if extra_data:
             message = f"{message} | {json.dumps(extra_data, ensure_ascii=False)}"
+
+        # Добавляем в кольцевой буфер для дашборда
+        _log_buffer.append({
+            'timestamp': datetime.now().isoformat(),
+            'name': self.name,
+            'level': level,
+            'message': message
+        })
+
 
         # Логируем в стандартный логгер
         log_method = getattr(self.logger, level.lower(), self.logger.info)
@@ -242,6 +256,15 @@ class JsonFileLogger:
         except Exception as e:
             print(f"Ошибка записи JSON лога: {e}")
 
+
+def get_log_buffer() -> deque:
+    """Получение кольцевого буфера логов для дашборда"""
+    return _log_buffer
+
+
+def clear_log_buffer():
+    """Очистка буфера логов"""
+    _log_buffer.clear()
 
 # Глобальные логгеры для разных компонентов
 _loggers = {}

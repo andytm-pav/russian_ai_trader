@@ -1248,7 +1248,13 @@ class SmartPortfolioBroker:
                 'last_update': datetime.now().isoformat(),
                 'initial_capital': self.settings["initial_capital_rub"],
                 'reserved_cash': getattr(self.portfolio, 'reserved_cash', 0),
-                'pending_commissions': getattr(self.portfolio, 'pending_commissions', [])
+                'pending_commissions': getattr(self.portfolio, 'pending_commissions', []),
+                'trade_history': getattr(self.portfolio, 'trade_history', [])[-100:],
+                'daily_trades': getattr(self.portfolio, 'daily_trades', []),
+                'commission_spent_today': getattr(self.portfolio, 'commission_spent_today', 0.0),
+                'total_commission': getattr(self.portfolio, 'total_commission', 0.0),
+                'total_trades': getattr(self.portfolio, 'total_trades', 0),
+                'total_pnl': getattr(self.portfolio, 'total_pnl', 0.0)
             }
 
             with open('data/portfolio_state.json', 'w', encoding='utf-8') as f:

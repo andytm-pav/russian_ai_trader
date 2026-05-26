@@ -991,3 +991,11 @@ window.AITrader = {
     showToast,
     confirmAction
 };
+
+// Автоскролл журнала событий
+setInterval(function() {
+    var logDiv = document.getElementById('logs-content');
+    if (logDiv) {
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+}, 1000);
