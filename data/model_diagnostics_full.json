@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-05-13 23:37:22",
+  "timestamp": "2026-05-27 18:10:21",
   "checks": {
     "import": {
       "status": "OK",
-      "time": 7.1861960887908936
+      "time": 42.473565101623535
     },
     "config": {
       "status": "OK",
@@ -17,7 +17,7 @@
         "strategy_params_dim": 6,
         "device": "cpu",
         "gamma": 0.95,
-        "exploration_rate": 0.3
+        "exploration_rate": 0.03
       }
     },
     "networks": {
@@ -25,20 +25,20 @@
     },
     "memory": {
       "status": "OK",
-      "memory_size": 2567,
-      "prioritized_size": 2567
+      "memory_size": 8500,
+      "prioritized_size": 8500
     },
     "forward_pass": {
       "status": "OK",
-      "time_ms": 1.1589527130126953,
-      "probs_sum": 1.0000001192092896
+      "time_ms": 21.332979202270508,
+      "probs_sum": 0.9999999403953552
     },
     "choose_action": {
       "status": "OK",
-      "time_ms": 28.057336807250977,
-      "action": "0",
-      "strategy": "news_aggressive",
-      "confidence": "0.5705243"
+      "time_ms": 12.401342391967773,
+      "action": "2",
+      "strategy": "swing",
+      "confidence": "0.38488922"
     },
     "build_state": {
       "status": "OK",
@@ -56,7 +56,7 @@
         ]
       },
       "model_state.json": {
-        "size": "55.71 KB",
+        "size": "62.33 KB",
         "exists": true,
         "keys": [
           "error_memory",

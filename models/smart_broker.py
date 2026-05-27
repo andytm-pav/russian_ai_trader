@@ -211,19 +211,20 @@ class SmartPortfolioBroker:
     def _get_ticker_sentiment(self, ticker: str) -> float:
         """Получение сентимента для тикера из оптимизированного фетчера"""
         try:
-            # Получаем новости для тикера
             news_items = self.news_fetcher.search_news(ticker=ticker, limit=5)
 
             if not news_items:
-                logger.debug(f"Нет новостей для {ticker}, возвращаю нейтральный сентимент")
                 return 0.0
 
-            # Анализируем сентимент
             news_with_sentiment = self.news_fetcher.analyze_sentiment_batch(news_items)
 
-            # Усредняем сентимент
             sentiments = [n.get('sentiment', 0.0) for n in news_with_sentiment]
-            return sum(sentiments) / len(sentiments) if sentiments else 0.0
+            avg_sentiment = sum(sentiments) / len(sentiments) if sentiments else 0.0
+
+            if abs(avg_sentiment) > 0.1:
+                logger.debug(f"Новостной сентимент для {ticker}: {avg_sentiment:+.3f} ({len(sentiments)} нов.)")
+
+            return avg_sentiment
 
         except Exception as e:
             logger.error(f"Ошибка получения сентимента для {ticker}: {e}")

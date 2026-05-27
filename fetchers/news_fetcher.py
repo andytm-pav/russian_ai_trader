@@ -164,7 +164,7 @@ class OptimizedNewsFetcher:
         if (current_time - self.last_fetch_time < self.fetch_interval and
                 self.news_cache):
             self.stats['cache_hits'] += 1
-            logger.debug(f"Кэш HIT: {len(self.news_cache)} новостей")
+            # logger.debug(f"Кэш HIT: {len(self.news_cache)} новостей")
             return self.news_cache[:limit]
 
         self.stats['cache_misses'] += 1
