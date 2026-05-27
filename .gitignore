@@ -13,7 +13,8 @@ data/daily_report_*.json
 logs/*.log.*
 logs/tech_core.log
 /data/*
-/logs/
+/logs/*
 /data/
 /models/saved_trader/memory_buffer.pkl.backup*
 /models/saved_trader/*backup*
+

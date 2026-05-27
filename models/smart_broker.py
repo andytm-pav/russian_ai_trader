@@ -121,15 +121,15 @@ class SmartPortfolioBroker:
         # Запуск компонентов
         self._initialize_components()
 
-        print(f"[SmartBroker] Инициализирован. Капитал: {self.portfolio.cash:,.0f}₽")
-        print(f"[SmartBroker] Модель sentiment: {self.model.market_sentiment:.3f}")
-        print(f"[SmartBroker] Макс. позиций: {settings['max_positions']}")
-        print(f"[SmartBroker] Конфиг прибыли загружен: {len(self.profit_config) > 0}")
-        print(f"[SmartBroker] RL конфиг загружен: {len(self.rl_config) > 0}")
-        print(f"[SmartBroker] NewsFetcher: {self.news_fetcher.stats}")
+        logger.info(f"Инициализирован. Капитал: {self.portfolio.cash:,.0f}₽")
+        logger.info(f"Модель sentiment: {self.model.market_sentiment:.3f}")
+        logger.info(f"Макс. позиций: {settings['max_positions']}")
+        logger.info(f"Конфиг прибыли загружен: {len(self.profit_config) > 0}")
+        logger.info(f"RL конфиг загружен: {len(self.rl_config) > 0}")
+
 
         # ✅ Добавляем статистику новостного фетчера
-        print(f"[SmartBroker] NewsFetcher: {self.news_fetcher.stats}")
+        logger.info(f"NewsFetcher: {self.news_fetcher.stats}")
 
         self.ticker_states = {}  # {ticker: last_state}
         self.pending_experiences = []  # Опыты для обучения
@@ -1332,11 +1332,7 @@ class SmartPortfolioBroker:
 
     def _run_cycle_impl(self):
         """Реализация цикла (вся логика из старого run_cycle)"""
-        print(f"\n{'=' * 60}")
-        print(f"ЦИКЛ #{self.cycle_count}")
-        print(f"pending_experiences: {len(self.pending_experiences)}")
-        print(f"позиций: {len(self.portfolio.positions)}")
-        print(f"{'=' * 60}")
+        logger.debug(f"ЦИКЛ #{self.cycle_count} | pending_experiences: {len(self.pending_experiences)} | позиций: {len(self.portfolio.positions)}")
 
         current_hour = datetime.now().hour
         if (self.tbank_check_start <= current_hour < self.tbank_check_end and

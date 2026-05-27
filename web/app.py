@@ -481,14 +481,15 @@ logs_layout = dbc.Container([
                                 id='log-component-filter',
                                 options=[
                                     {'label': 'Все', 'value': 'ALL'},
-                                    {'label': 'SMART_BROKER', 'value': 'SMART_BROKER'},
-                                    {'label': 'RISK_MANAGER', 'value': 'RISK_MANAGER'},
-                                    {'label': 'TECH_CORE', 'value': 'TECH_CORE'},
-                                    {'label': 'TRAINER', 'value': 'TRAINER'},
+                                    {'label': 'MAIN', 'value': 'MAIN'},
                                     {'label': 'MOEX_FETCHER', 'value': 'MOEX_FETCHER'},
                                     {'label': 'NEWS_FETCHER_OPT', 'value': 'NEWS_FETCHER_OPT'},
                                     {'label': 'PORTFOLIO', 'value': 'PORTFOLIO'},
-                                    {'label': 'MAIN', 'value': 'MAIN'}
+                                    {'label': 'RISK_MANAGER', 'value': 'RISK_MANAGER'},
+                                    {'label': 'SMART_BROKER', 'value': 'SMART_BROKER'},
+                                    {'label': 'TECH_CORE', 'value': 'TECH_CORE'},
+                                    {'label': 'TRADER_MODEL', 'value': 'TRADER_MODEL'},
+                                    {'label': 'TRAINER', 'value': 'TRAINER'}
                                 ],
                                 value='ALL',
                                 clearable=False
@@ -1768,6 +1769,27 @@ def update_ticker_dropdown_simple(n_intervals):
     except:
         return [{'label': 'SBER (Сбербанк)', 'value': 'SBER'}]
 
+
+# Динамическое обновление списка компонентов в фильтре логов
+@app.callback(
+    Output("log-component-filter", "options"),
+    Input("interval-component", "n_intervals")
+)
+def update_component_filter(n_intervals):
+    """Обновление выпадающего списка компонентов на основе буфера логов"""
+    from utils.logger import get_log_buffer
+
+    log_buffer = get_log_buffer()
+    names = set()
+    for entry in log_buffer:
+        name = entry.get('name', '')
+        if name:
+            names.add(name)
+
+    options = [{'label': 'Все', 'value': 'ALL'}]
+    options += [{'label': name, 'value': name} for name in sorted(names)]
+
+    return options
 
 if __name__ == '__main__':
     print("Запуск веб-интерфейса...")
