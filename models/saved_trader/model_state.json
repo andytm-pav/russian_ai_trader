@@ -1207,6 +1207,14 @@
       "failure_count": 0,
       "success_rate": 0.5,
       "total_trades": 0
+    },
+    "LVHK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
     }
   },
   "ticker_stats": {
@@ -1675,11 +1683,11 @@
       "last_trade": null
     },
     "CHMF": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "avg_hold_time": 0.03436814685662588,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "RUAL": {
@@ -2417,9 +2425,17 @@
       "avg_hold_time": 0.0,
       "success_rate": 0.5,
       "last_trade": null
+    },
+    "LVHK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
     }
   },
-  "market_sentiment": 0.00016316071998634125,
+  "market_sentiment": 0.002597569121186716,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
@@ -2437,11 +2453,11 @@
       "win_rate": 0.5
     },
     "balanced": {
-      "total_trades": 5,
-      "profitable_trades": 0,
-      "total_pnl": -22.67999999999999,
-      "avg_pnl": -4.535999999999998,
-      "win_rate": 0.0
+      "total_trades": 14,
+      "profitable_trades": 1,
+      "total_pnl": -39.00999999999999,
+      "avg_pnl": -2.7864285714285706,
+      "win_rate": 0.07142857142857142
     },
     "momentum": {
       "total_trades": 3,
@@ -2630,5 +2646,5 @@
       }
     }
   },
-  "save_time": "2026-05-27T14:45:10.013446"
+  "save_time": "2026-05-27T19:23:38.045196"
 }

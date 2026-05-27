@@ -189,7 +189,7 @@
     "imoex_divisor": 4000.0,
     "market_cap_divisor_total": 100000000000000.0,
     "cbr_rate_divisor": 20.0,
-    "usd_rub_divisor": 100.0,
+    "vix_divisor": 50.0,
     "moexog_divisor": 10000.0,
     "max_hold_time_hours_norm": 72.0,
     "same_action_streak_max": 10.0
@@ -311,7 +311,7 @@
       "market_cap_total",
       "liquidity_ratio",
       "cbr_rate_normalized",
-      "usd_rub",
+      "vix",
       "moexog_normalized"
     ]
   },
@@ -350,9 +350,16 @@
   },
 
   "memory_clean": {
-    "keep_profitable_only": true,
-    "keep_hold_ratio": 0.1,
-    "max_memory_after_clean": 3000
+    "enabled": true,
+    "max_memory_after_clean": 20000,
+    "keep_all_profitable": true,
+    "keep_loss_ratio": 0.3,
+    "keep_extreme_ratio": 1.0,
+    "extreme_pnl_threshold": 0.05,
+    "keep_rare_events": true,
+    "remove_duplicates": true,
+    "duplicate_threshold": 0.01,
+    "max_age_days": 30
   },
 
   "bert_config": {

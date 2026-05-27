@@ -37,6 +37,7 @@
     "rvi_ticker": "RVI",
     "rvi_board": "OPTN",
     "liquidity_threshold": 1000000000,
+    "liquidity_history_size": 20,
     "market_mood_change_threshold": 5.0,
     "index_tickers": ["IMOEX", "RTSI", "MOEXBMI", "MOEXFN", "MOEXOG", "MOEXTL"]
   },

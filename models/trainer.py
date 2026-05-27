@@ -256,16 +256,11 @@ class ModelTrainer:
                 time.sleep(60)  # Подождать перед следующей попыткой
 
     def _cleanup_old_memory(self):
-        """Очистка старой памяти для эффективности"""
-        max_memory_size = 10000
+        """Очистка памяти с сохранением значимых опытов"""
+        if hasattr(self.model, 'clean_memory'):
+            self.model.clean_memory()
 
-        if len(self.model.memory) > max_memory_size:
-            # Удаляем самые старые записи
-            remove_count = len(self.model.memory) - max_memory_size
-            for _ in range(remove_count):
-                self.model.memory.popleft()
 
-            logger.debug(f"Очищена память: удалено {remove_count} старых записей")
 
     def train_on_historical_data(self,
                                  historical_file: str = "data/historical_trades.json"):

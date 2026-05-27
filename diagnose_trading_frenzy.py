@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
 ГЛУБОКАЯ ДИАГНОСТИКА ТОРГОВОЙ СИСТЕМЫ (v3)
-Исправлено: корректный подсчёт HOLD/BUY/SELL по action_mapping из конфига
+Проверяет:
+1. Реальные сделки через portfolio.buy/sell с проверкой кэша и лимитов
+2. Параметры модели: веса, градиенты, распределение действий
+3. Параметры обучения: exploration, decay, reward
+4. Статистику стратегий и тикеров
+5. Память модели: какие действия преобладают
+ИСПОЛЬЗУЕТ ИЗОЛИРОВАННЫЙ ТЕСТОВЫЙ ПОРТФЕЛЬ (test_portfolio.json)
 """
 
 import sys
@@ -50,8 +56,8 @@ class DeepDiagnostics:
             elif name.startswith('SELL'):
                 self.sell_actions.add(int(idx))
 
-        # Создаём СВЕЖИЙ портфель для чистоты эксперимента
-        self.portfolio = PortfolioManager()
+        # ИЗОЛИРОВАННЫЙ портфель для тестов (не затрагивает боевой portfolio_state.json)
+        self.portfolio = PortfolioManager(portfolio_file="data/test_portfolio.json")
         self.portfolio.cash = 10000.0
         self.portfolio.reserved_cash = 0.0
         self.portfolio.positions = {}
@@ -528,10 +534,6 @@ class DeepDiagnostics:
         print(f"\n💹 СИМУЛЯЦИЯ ТОРГОВЛИ ({cycles} циклов):")
         print("-" * 80)
 
-        buy_signals = 0
-        hold_signals = 0
-        sell_signals = 0
-
         for cycle in range(cycles):
             # Обновляем цены (±0.5%)
             for ticker in self.test_tickers:
@@ -570,14 +572,6 @@ class DeepDiagnostics:
                 self.actions_distribution[action_str] += 1
                 self.strategies_distribution[strategy] += 1
 
-                category = self._classify_action(action)
-                if category == 'BUY':
-                    buy_signals += 1
-                elif category == 'HOLD':
-                    hold_signals += 1
-                elif category == 'SELL':
-                    sell_signals += 1
-
                 if action_str.startswith('HOLD'):
                     continue
 
@@ -613,21 +607,18 @@ class DeepDiagnostics:
         print("📋 ИТОГОВЫЙ ДИАГНОСТИЧЕСКИЙ ОТЧЁТ")
         print("=" * 80)
 
-        # Подсчёт категорий в распределении действий
-        buy_total = sum(1 for a, c in self.actions_distribution.items() if a.startswith('BUY'))
-        hold_total = sum(1 for a, c in self.actions_distribution.items() if a.startswith('HOLD'))
-        sell_total = sum(1 for a, c in self.actions_distribution.items() if a.startswith('SELL'))
+        buy_total = sum(1 for a in self.actions_distribution if a.startswith('BUY'))
+        hold_total = sum(1 for a in self.actions_distribution if a.startswith('HOLD'))
+        sell_total = sum(1 for a in self.actions_distribution if a.startswith('SELL'))
         total_signals = sum(self.actions_distribution.values())
 
         print(f"\n💹 ТОРГОВЛЯ:")
         print(f"   Циклов: {self.cycles}")
         print(f"   Сигналов всего: {total_signals}")
-        print(
-            f"   BUY сигналов: {buy_total} ({buy_total / total_signals * 100:.1f}%)" if total_signals > 0 else "   BUY сигналов: 0")
-        print(
-            f"   HOLD сигналов: {hold_total} ({hold_total / total_signals * 100:.1f}%)" if total_signals > 0 else "   HOLD сигналов: 0")
-        print(
-            f"   SELL сигналов: {sell_total} ({sell_total / total_signals * 100:.1f}%)" if total_signals > 0 else "   SELL сигналов: 0")
+        if total_signals > 0:
+            print(f"   BUY сигналов: {buy_total} ({buy_total / total_signals * 100:.1f}%)")
+            print(f"   HOLD сигналов: {hold_total} ({hold_total / total_signals * 100:.1f}%)")
+            print(f"   SELL сигналов: {sell_total} ({sell_total / total_signals * 100:.1f}%)")
         print(f"   Реальных сделок: {self.real_trades}")
         print(f"   Отклонено сделок: {self.rejected_trades}")
         if self.real_trades + self.rejected_trades > 0:
@@ -690,6 +681,11 @@ class DeepDiagnostics:
         self.analyze_action_choice(action_samples)
         self.run_trading_simulation(trading_cycles)
         self.print_final_report()
+
+        # Удаляем тестовый портфель, чтобы не загрязнять историю
+        test_file = "data/test_portfolio.json"
+        if os.path.exists(test_file):
+            os.remove(test_file)
 
         print("\n" + "=" * 80)
         print("✅ ДИАГНОСТИКА ЗАВЕРШЕНА")

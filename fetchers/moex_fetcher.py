@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 import pandas as pd
 import xml.etree.ElementTree as ET
+import yfinance as yf
 
 from utils.logger import get_logger
 
@@ -45,9 +46,9 @@ class MoexFetcher:
         self.cache_hits = 0
         self.cache_misses = 0
 
-        # Для макро-данных
-        self.last_indices = {}
-        self.rvi_cache = {}
+        # История для адаптивной нормализации ликвидности
+        self.liquidity_history = []
+        self.liquidity_history_size = self.settings.get('market_data', {}).get('liquidity_history_size', 20)
 
         self.default_rvi = self.settings.get('market_data', {}).get('default_rvi', 20.0)
         self.rvi_ticker = self.settings.get('market_data', {}).get('rvi_ticker', 'RVI')
@@ -758,7 +759,10 @@ class MoexFetcher:
         result['market_mood'] = self._calculate_market_mood(result)
 
         self._save_to_cache(cache_key, result)
-        logger.info(f"📊 МАКРО: IMOEX={result.get('IMOEX')}, RTSI={result.get('RTSI')}, RVI={result.get('RVI')}")
+        logger.info(f"📊 МАКРО: IMOEX={result.get('IMOEX')}, RTSI={result.get('RTSI')}, RVI={result.get('RVI')}, "
+                    f"USD/RUB={self.get_usd_rub() or 0:.2f}, Brent={self.get_brent_price() or 0:.2f}, "
+                    f"VIX={self.get_vix() or 0:.2f}, ЦБ={self._get_cbr_key_rate() or 0:.2f}%, "
+                    f"Liq={self.get_market_liquidity_ratio():.4f}")
         return result
 
     def get_macro_data(self) -> Dict[str, float]:
@@ -779,18 +783,22 @@ class MoexFetcher:
             'moextl': indices.get('MOEXTL', 0.0),
             'brent': self.get_brent_price() or 0.0,
             'brent_change': self.get_brent_change(),
-            'cbr_rate': self._get_cbr_key_rate() or 0.0,
+            'usd_rub': self.get_usd_rub() or 0.0,
             'usd_rub_change': self.get_usd_rub_change(),
-            # НОВЫЕ 4 ПОЛЯ
+            'cbr_rate': self._get_cbr_key_rate() or 0.0,
+            'vix': self.get_vix() or 0.0,
             'shares_turnover': self.get_shares_turnover(),
             'market_cap': self.get_market_capitalization(),
             'market_liquidity_ratio': self.get_market_liquidity_ratio(),
             'market_activity_score': self.get_market_activity_score(),
         }
 
-        logger.debug(f"📊 Макро-данные: IMOEX={macro_data['imoex']:.2f}, "
-                     f"Brent={macro_data['brent']:.2f}, "
-                     f"liquidity={macro_data['market_liquidity_ratio']:.4f}")
+        # logger.debug(f"📊 Макро-данные: IMOEX={macro_data['imoex']:.2f}, "
+        #             f"USD/RUB={macro_data['usd_rub']:.2f}, "
+        #             f"Brent={macro_data['brent']:.2f}, "
+        #             f"VIX={macro_data['vix']:.2f}, "
+        #             f"ЦБ ставка={macro_data['cbr_rate']:.2f}%, "
+        #             f"liquidity={macro_data['market_liquidity_ratio']:.4f}")
 
         return macro_data
 
@@ -845,43 +853,52 @@ class MoexFetcher:
             return None
 
     def get_brent_price(self) -> Optional[float]:
-        """Получение цены Brent (активный фьючерс)"""
+        """Получение цены Brent (приоритет: MOEX → YFinance)"""
         cache_key = "brent_price"
         cached = self._get_from_cache(cache_key)
         if cached is not None:
             return cached
 
-        contract = self.get_active_brent_contract()
-        if not contract:
-            return None
-
+        # 1. Пробуем MOEX (старый метод)
         try:
-            url = f"{self.base_url}/engines/futures/markets/forts/securities/{contract}.json"
-            params = {
-                'iss.meta': 'off',
-                'iss.only': 'marketdata',
-                'marketdata.columns': 'SECID,LAST,CHANGE,CHANGEPRC'
-            }
-
-            data = self._make_request(url, params, timeout=10)
-            if data and 'marketdata' in data and data['marketdata']['data']:
-                row = data['marketdata']['data'][0]
-                cols = data['marketdata']['columns']
-
-                if 'LAST' in cols:
-                    idx = cols.index('LAST')
-                    if idx < len(row) and row[idx] is not None:
-                        price = self._safe_float(row[idx])
-                        if price > 0:
-                            self._save_to_cache(cache_key, price)
-                            logger.debug(f"Brent ({contract}): {price:.2f}")
-                            return price
-
-            return None
-
+            contract = self.get_active_brent_contract()
+            if contract:
+                url = f"{self.base_url}/engines/futures/markets/forts/securities/{contract}.json"
+                params = {
+                    'iss.meta': 'off',
+                    'iss.only': 'marketdata',
+                    'marketdata.columns': 'SECID,LAST'
+                }
+                data = self._make_request(url, params, timeout=10)
+                if data and 'marketdata' in data and data['marketdata']['data']:
+                    row = data['marketdata']['data'][0]
+                    cols = data['marketdata']['columns']
+                    if 'LAST' in cols:
+                        idx = cols.index('LAST')
+                        if idx < len(row) and row[idx] is not None:
+                            price = self._safe_float(row[idx])
+                            if price > 0:
+                                self._save_to_cache(cache_key, price)
+                                logger.debug(f"Brent (MOEX {contract}): {price:.2f}")
+                                return price
         except Exception as e:
-            logger.error(f"Ошибка получения Brent: {e}")
-            return None
+            logger.debug(f"Brent MOEX недоступен: {e}")
+
+        # 2. Fallback: YFinance
+        try:
+            ticker = yf.Ticker("BZ=F")
+            df = ticker.history(period="1d")
+            if not df.empty:
+                price = float(df['Close'].iloc[-1])
+                if price > 0:
+                    self._save_to_cache(cache_key, price)
+                    logger.debug(f"Brent (YFinance): {price:.2f}")
+                    return price
+        except Exception as e:
+            logger.debug(f"Brent YFinance недоступен: {e}")
+
+        logger.debug("Brent не доступен (ни MOEX, ни YFinance)")
+        return None
 
     def get_brent_change(self) -> float:
         """Получение изменения цены Brent"""
@@ -890,35 +907,43 @@ class MoexFetcher:
         if cached is not None:
             return cached
 
-        contract = self.get_active_brent_contract()
-        if not contract:
-            return 0.0
+        # Пробуем YFinance (история за 2 дня)
+        try:
+            ticker = yf.Ticker("BZ=F")
+            df = ticker.history(period="5d")
+            if len(df) >= 2:
+                last_close = float(df['Close'].iloc[-1])
+                prev_close = float(df['Close'].iloc[-2])
+                if prev_close > 0:
+                    change = ((last_close - prev_close) / prev_close) * 100
+                    self._save_to_cache(cache_key, change)
+                    logger.debug(f"Brent change (YFinance): {change:+.2f}%")
+                    return change
+        except Exception as e:
+            logger.debug(f"Brent change YFinance недоступен: {e}")
+
+        return 0.0
+
+    def get_vix(self) -> Optional[float]:
+        """Получение индекса волатильности VIX через YFinance"""
+        cache_key = "vix"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
 
         try:
-            url = f"{self.base_url}/engines/futures/markets/forts/securities/{contract}.json"
-            params = {
-                'iss.meta': 'off',
-                'iss.only': 'marketdata',
-                'marketdata.columns': 'SECID,CHANGE,CHANGEPRC'
-            }
-
-            data = self._make_request(url, params, timeout=10)
-            if data and 'marketdata' in data and data['marketdata']['data']:
-                row = data['marketdata']['data'][0]
-                cols = data['marketdata']['columns']
-
-                if 'CHANGE' in cols:
-                    idx = cols.index('CHANGE')
-                    if idx < len(row) and row[idx] is not None:
-                        change = self._safe_float(row[idx])
-                        self._save_to_cache(cache_key, change)
-                        return change
-
-            return 0.0
-
+            ticker = yf.Ticker("^VIX")
+            df = ticker.history(period="1d")
+            if not df.empty:
+                value = float(df['Close'].iloc[-1])
+                if value > 0:
+                    self._save_to_cache(cache_key, value)
+                    logger.debug(f"VIX (YFinance): {value:.2f}")
+                    return value
         except Exception as e:
-            logger.error(f"Ошибка получения изменения Brent: {e}")
-            return 0.0
+            logger.debug(f"VIX YFinance недоступен: {e}")
+
+        return None
 
     def get_usd_rub(self) -> Optional[float]:
         """Получение курса USD/RUB (приоритет: MOEX → ЦБ РФ)"""
@@ -1011,21 +1036,45 @@ class MoexFetcher:
             return 0.0
 
     def get_market_liquidity_ratio(self) -> float:
-        """Коэффициент ликвидности рынка"""
+        """Коэффициент ликвидности рынка (адаптивная нормализация)"""
         cache_key = "liquidity_ratio"
         cached = self._get_from_cache(cache_key)
         if cached is not None:
             return cached
 
-        turnover = self.get_shares_turnover()
+        # API MOEX возвращает оборот в миллионах рублей — переводим в рубли
+        turnover_millions = self.get_shares_turnover()
+        turnover_rub = turnover_millions * 1_000_000.0
+
         market_cap = self.get_market_capitalization()
 
-        if market_cap > 0:
-            ratio = (turnover / market_cap) * 1_000_000_000
-            ratio = min(ratio, 1.0)
-            self._save_to_cache(cache_key, ratio)
-            return ratio
-        return 0.0
+        if market_cap <= 0:
+            return 0.0
+
+        # Сырое отношение оборота к капитализации
+        raw_ratio = turnover_rub / market_cap
+
+        # Накапливаем историю
+        history_size = self.settings.get('market_data', {}).get('liquidity_history_size', 20)
+        self.liquidity_history.append(raw_ratio)
+        if len(self.liquidity_history) > history_size:
+            self.liquidity_history = self.liquidity_history[-history_size:]
+
+        # Адаптивная нормализация: процентиль текущего значения относительно истории
+        if len(self.liquidity_history) >= 3:
+            min_hist = min(self.liquidity_history)
+            max_hist = max(self.liquidity_history)
+            if max_hist > min_hist:
+                ratio = (raw_ratio - min_hist) / (max_hist - min_hist)
+                ratio = max(0.0, min(1.0, ratio))
+            else:
+                ratio = 0.5
+        else:
+            # Мало истории — используем фиксированный масштаб
+            ratio = min(raw_ratio * 1000.0, 1.0)
+
+        self._save_to_cache(cache_key, ratio)
+        return ratio
 
     def get_market_activity_score(self) -> float:
         """Активность рынка"""

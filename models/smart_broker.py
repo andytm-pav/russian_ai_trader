@@ -786,7 +786,7 @@ class SmartPortfolioBroker:
             'market_cap_total': macro_data.get('market_cap', 0) / norm.get('market_cap_divisor_total', 1e14),
             'liquidity_ratio': macro_data.get('market_liquidity_ratio', 0.0),
             'cbr_rate_normalized': macro_data.get('cbr_rate', 0.0) / norm.get('cbr_rate_divisor', 20.0),
-            'usd_rub': macro_data.get('usd_rub', 0) / norm.get('usd_rub_divisor', 100.0),
+            'vix': macro_data.get('vix', 0.0) / norm.get('vix_divisor', 50.0),
             'moexog_normalized': macro_data.get('moexog', 0) / norm.get('moexog_divisor', 10000.0),
         }
 
@@ -2004,7 +2004,7 @@ class SmartPortfolioBroker:
                 'market_cap_total': macro_data.get('market_cap', 0) / norm.get('market_cap_divisor_total', 1e14),
                 'liquidity_ratio': macro_data.get('market_liquidity_ratio', 0.0),
                 'cbr_rate_normalized': macro_data.get('cbr_rate', 0.0) / norm.get('cbr_rate_divisor', 20.0),
-                'usd_rub': macro_data.get('usd_rub', 0) / norm.get('usd_rub_divisor', 100.0),
+                'vix': macro_data.get('vix', 0.0) / norm.get('vix_divisor', 50.0),
                 'moexog_normalized': macro_data.get('moexog', 0) / norm.get('moexog_divisor', 10000.0),
             }
 

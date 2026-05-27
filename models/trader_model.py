@@ -1509,6 +1509,144 @@ class AdvancedTraderModel:
         self.exploration_rate = initial_rate - (initial_rate - final_rate) * progress
         self.exploration_rate = max(final_rate, self.exploration_rate)
 
+    def clean_memory(self):
+        """Очистка памяти с сохранением значимых опытов"""
+        clean_config = self.rl_config.get('memory_clean', {})
+        if not clean_config.get('enabled', False):
+            return
+
+        max_after = clean_config.get('max_memory_after_clean', 5000)
+        if len(self.memory) <= max_after:
+            return
+
+        min_for_learning = self.rl_config.get('learning', {}).get('min_experiences_for_learning', 25)
+        if len(self.memory) < min_for_learning:
+            logger.debug(f"Память меньше минимума для обучения ({min_for_learning}), очистка пропущена")
+            return
+
+        keep_all_profitable = clean_config.get('keep_all_profitable', True)
+        keep_loss_ratio = clean_config.get('keep_loss_ratio', 0.3)
+        keep_extreme_ratio = clean_config.get('keep_extreme_ratio', 1.0)
+        extreme_threshold = clean_config.get('extreme_pnl_threshold', 0.05)
+        keep_rare_events = clean_config.get('keep_rare_events', True)
+        remove_duplicates = clean_config.get('remove_duplicates', True)
+        duplicate_threshold = clean_config.get('duplicate_threshold', 0.01)
+        max_age_seconds = clean_config.get('max_age_days', 30) * 86400
+
+        import random
+        now = time.time()
+
+        profitable = []
+        loss_ordinary = []
+        loss_extreme = []
+        profit_extreme = []
+        rare_events = []
+
+        for exp in self.memory:
+            reward = float(exp.get('reward', 0))
+            pnl_rub = float(exp.get('pnl_rub', 0))
+            done = exp.get('done', False)
+            timestamp_str = exp.get('timestamp', '')
+            action = exp.get('action', -1)
+
+            # Фильтр по возрасту
+            if timestamp_str:
+                try:
+                    exp_time = datetime.fromisoformat(timestamp_str).timestamp()
+                    if now - exp_time > max_age_seconds:
+                        continue
+                except:
+                    pass
+
+            # Классификация
+            if reward > 0 and pnl_rub > 0:
+                profitable.append(exp)
+            elif reward < 0 and pnl_rub < -extreme_threshold * 10000:
+                loss_extreme.append(exp)
+            elif reward > 0 and pnl_rub > extreme_threshold * 10000:
+                profit_extreme.append(exp)
+            elif done:
+                rare_events.append(exp)
+            else:
+                loss_ordinary.append(exp)
+
+        # Удаление дубликатов
+        if remove_duplicates:
+            profitable = self._remove_duplicate_experiences(profitable, duplicate_threshold)
+            loss_ordinary = self._remove_duplicate_experiences(loss_ordinary, duplicate_threshold)
+            loss_extreme = self._remove_duplicate_experiences(loss_extreme, duplicate_threshold)
+            profit_extreme = self._remove_duplicate_experiences(profit_extreme, duplicate_threshold)
+
+        # Расчёт количества сохраняемых убыточных
+        keep_loss_count = int(max_after * keep_loss_ratio)
+        if len(loss_ordinary) > keep_loss_count:
+            loss_ordinary = random.sample(loss_ordinary, keep_loss_count)
+
+        # Сборка новой памяти
+        new_memory = []
+
+        if keep_all_profitable:
+            new_memory.extend(profitable)
+
+        new_memory.extend(loss_ordinary)
+        new_memory.extend(loss_extreme)
+        new_memory.extend(profit_extreme)
+
+        if keep_rare_events:
+            new_memory.extend(rare_events)
+
+        # Обрезаем до максимума
+        if len(new_memory) > max_after:
+            new_memory = random.sample(new_memory, max_after)
+
+        # Если после очистки меньше минимума — не очищаем
+        if len(new_memory) < min_for_learning:
+            logger.debug(f"После очистки осталось {len(new_memory)} < {min_for_learning}, очистка отменена")
+            return
+
+        old_size = len(self.memory)
+        self.memory.clear()
+        self.memory.extend(new_memory)
+
+        logger.info(f"Очистка памяти: {old_size} → {len(self.memory)} опытов "
+                    f"(прибыльных: {len(profitable)}, "
+                    f"убыточных: {len(loss_ordinary)}, "
+                    f"экстремальных: {len(loss_extreme) + len(profit_extreme)}, "
+                    f"редких: {len(rare_events)})")
+
+    def _remove_duplicate_experiences(self, experiences: List[Dict], threshold: float = 0.01) -> List[Dict]:
+        """Удаление дубликатов опыта"""
+        if not experiences:
+            return experiences
+
+        unique = []
+        for exp in experiences:
+            is_duplicate = False
+            state = exp.get('state')
+            action = exp.get('action')
+            reward = exp.get('reward', 0)
+
+            for u in unique:
+                u_state = u.get('state')
+                u_action = u.get('action')
+                u_reward = u.get('reward', 0)
+
+                if state is not None and u_state is not None and action == u_action:
+                    try:
+                        diff = torch.norm(state.float() - u_state.float()).item()
+                        reward_diff = abs(reward - u_reward)
+                        if diff < threshold and reward_diff < threshold:
+                            is_duplicate = True
+                            break
+                    except:
+                        pass
+
+            if not is_duplicate:
+                unique.append(exp)
+
+        return unique
+
+
 
 # Глобальный экземпляр
 trader_model_instance = AdvancedTraderModel()
