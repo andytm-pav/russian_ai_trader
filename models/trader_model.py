@@ -556,7 +556,7 @@ class AdvancedTraderModel:
         # === 1. Цена/Объем (4) ===
         features = [
             price / norm.get('price_normalization', 10000.0),
-            market_data.get('volume', 0) / norm.get('volume_normalization', 1e7),
+            market_data.get('volume', 0) / norm.get('volume_normalization', 1e9),
             market_data.get('spread', 0.01) * 100,
             market_data.get('market_cap', 0) / norm.get('market_cap_divisor', 1e12),
         ]

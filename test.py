@@ -1,46 +1,84 @@
-#!/usr/bin/env python3
 """
-ТЕСТ: проверка реальных значений turnover и market_cap
-для подбора liquidity_scale_factor
+Диагностика: проверка нормализации признака объёма
 """
+import json
+import numpy as np
 
-import sys
-sys.path.insert(0, '.')
+with open("config/settings.json", "r", encoding="utf-8") as f:
+    settings = json.load(f)
 
-from fetchers.moex_fetcher import MoexFetcher
+with open("config/rl_config.json", "r", encoding="utf-8") as f:
+    rl_config = json.load(f)
 
-print("\n" + "=" * 60)
-print("🔍 ТЕСТ: TURNOVER И MARKET CAP")
-print("=" * 60)
+# Текущая нормализация из конфига
+volume_normalization = rl_config.get("normalization", {}).get("volume_normalization", 1e7)
+print(f"Текущая volume_normalization: {volume_normalization:,.0f}")
 
-moex = MoexFetcher()
+# Примеры реальных объёмов из логов
+test_cases = [
+    ("CHMF", 72.26),       # из diagnose_coach.py: volume / 1e7 = 72 → реальный объём = 722 млн
+    ("VTBR", 423.98),      # из diagnose_coach.py: volume / 1e7 = 424 → реальный объём = 4.24 млрд
+    ("SBER (типичный)", 1500.0),  # ~15 млрд руб для Сбера
+    ("Малоликвидный", 5.0),       # 50 млн руб
+]
 
-# Получаем сырые данные
-turnover = moex.get_shares_turnover()
-market_cap = moex.get_market_capitalization()
+print("\n" + "=" * 70)
+print("ТЕКУЩАЯ НОРМАЛИЗАЦИЯ (volume / 1e7)")
+print("=" * 70)
+print(f"{'Тикер':<20} {'Реальный объём':<18} {'В векторе':<12} {'Вклад в модель'}")
+print("-" * 70)
 
-print(f"\n📊 СЫРЫЕ ДАННЫЕ:")
-print(f"   turnover (оборот): {turnover:,.2f}")
-print(f"   market_cap (капитализация): {market_cap:,.2f}")
+for name, vol_in_vector in test_cases:
+    real_volume = vol_in_vector * 1e7
+    impact = "ДОМИНИРУЕТ" if vol_in_vector > 10 else "нормальный" if vol_in_vector < 5 else "повышенный"
+    print(f"{name:<20} {real_volume:>15,.0f} ₽ {vol_in_vector:>10.1f}   {impact}")
 
-if market_cap > 0:
-    raw_ratio = turnover / market_cap
-    print(f"\n📐 РАСЧЁТ:")
-    print(f"   turnover / market_cap = {raw_ratio:.10f}")
+# Предлагаемая нормализация: делить на market_cap_total из конфига
+market_cap_divisor = rl_config.get("normalization", {}).get("market_cap_divisor_total", 1e14)
+print(f"\nmarket_cap_divisor_total: {market_cap_divisor:,.0f}")
 
-    # Подбираем scale_factor для разных целевых значений
-    print(f"\n🎯 ПОДБОР liquidity_scale_factor:")
-    for target in [0.1, 0.3, 0.5, 0.7, 0.9]:
-        scale = target / raw_ratio
-        print(f"   Для liquidity={target:.1f}: scale_factor = {scale:,.0f}")
+print("\n" + "=" * 70)
+print("ПРЕДЛАГАЕМАЯ НОРМАЛИЗАЦИЯ (volume / 1e12)")
+print("=" * 70)
+print(f"{'Тикер':<20} {'Реальный объём':<18} {'В векторе':<12} {'Вклад в модель'}")
+print("-" * 70)
 
-    # Текущий расчёт
-    current_scale = moex.settings.get('market_data', {}).get('liquidity_scale_factor', 1000.0)
-    current_ratio = raw_ratio * current_scale
-    print(f"\n📈 ТЕКУЩИЙ РЕЗУЛЬТАТ:")
-    print(f"   scale_factor из конфига: {current_scale:,.1f}")
-    print(f"   liquidity = {current_ratio:.6f}")
+new_normalization = 1e12
+for name, vol_in_vector in test_cases:
+    real_volume = vol_in_vector * 1e7
+    new_value = real_volume / new_normalization
+    impact = "нормальный" if new_value < 5 else "повышенный"
+    print(f"{name:<20} {real_volume:>15,.0f} ₽ {new_value:>10.6f}   {impact}")
 
-print("\n" + "=" * 60)
-print("✅ ТЕСТ ЗАВЕРШЁН")
-print("=" * 60)
+# Проверяем другие признаки для сравнения масштабов
+print("\n" + "=" * 70)
+print("СРАВНЕНИЕ МАСШТАБОВ ПРИЗНАКОВ (первые 10 из diagnose_coach.py)")
+print("=" * 70)
+
+sample_vector = [0.0696, 72.26, 40.0, 0.582, 0.342, 1.015, 1.016, -0.417, 0.0033, 5.09]
+sample_names = [
+    "price/10000",
+    "volume/1e7 (СТАРЫЙ)",
+    "spread*100",
+    "market_cap/1e12",
+    "rsi/100",
+    "sma_10_ratio",
+    "sma_20_ratio",
+    "bb_position",
+    "atr/price",
+    "volume_ratio"
+]
+
+print(f"{'Признак':<25} {'Значение':<12} {'Масштаб'}")
+print("-" * 50)
+for name, val in zip(sample_names, sample_vector):
+    bar = "█" * min(int(abs(val)), 20)
+    print(f"{name:<25} {val:>10.4f}   {bar}")
+
+# Предлагаемое изменение
+print("\n" + "=" * 70)
+print("РЕКОМЕНДАЦИЯ")
+print("=" * 70)
+print("Заменить volume / 1e7 на volume / 1e12 в build_state_vector")
+print("Это нормализует объём к диапазону 0.01-1.5 вместо 5-1500")
+print("Все признаки будут в сопоставимом масштабе")

@@ -502,11 +502,23 @@ class OptimizedNewsFetcher:
             title_lower = title.lower()
             summary_lower = summary.lower()
 
+            # Поиск по тикеру (латиница)
             if ticker_upper:
                 if ticker_upper not in title.upper() and ticker_upper not in summary.upper():
-                    continue
+                    # Тикер не найден — пробуем keywords
+                    if keywords_lower:
+                        found = False
+                        for kw in keywords_lower:
+                            if kw in title_lower or kw in summary_lower:
+                                found = True
+                                break
+                        if not found:
+                            continue
+                    else:
+                        continue
 
-            if keywords_lower:
+            # Поиск по keywords (если тикер не задан, но keywords заданы)
+            elif keywords_lower:
                 found = False
                 for kw in keywords_lower:
                     if kw in title_lower or kw in summary_lower:
@@ -515,6 +527,7 @@ class OptimizedNewsFetcher:
                 if not found:
                     continue
 
+            # Поиск по query
             if query:
                 if query not in title_lower and query not in summary_lower:
                     continue

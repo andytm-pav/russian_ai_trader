@@ -211,7 +211,12 @@ class SmartPortfolioBroker:
     def _get_ticker_sentiment(self, ticker: str) -> float:
         """Получение сентимента для тикера из оптимизированного фетчера"""
         try:
-            news_items = self.news_fetcher.search_news(ticker=ticker, limit=5)
+            # Получаем keywords из конфига
+            ticker_names = self.rl_config.get('ticker_names', {})
+            keywords = ticker_names.get(ticker, [])
+
+            # Ищем новости с keywords
+            news_items = self.news_fetcher.search_news(ticker=ticker, limit=5, keywords=keywords)
 
             if not news_items:
                 return 0.0
@@ -741,7 +746,9 @@ class SmartPortfolioBroker:
 
         indicators = self.technical_core.calculate_indicators(ticker)
 
-        news_items = self.news_fetcher.search_news(ticker=ticker, limit=3)
+        ticker_names = self.rl_config.get('ticker_names', {})
+        keywords = ticker_names.get(ticker, [])
+        news_items = self.news_fetcher.search_news(ticker=ticker, limit=3, keywords=keywords)
         news_texts = [n.get('title', '') + ' ' + n.get('summary', '') for n in news_items]
         news_features = self.model.encode_news(news_texts)
 
@@ -1950,7 +1957,9 @@ class SmartPortfolioBroker:
             except:
                 pass
 
-            news_items = self.news_fetcher.search_news(ticker=ticker, limit=3)
+            ticker_names = self.rl_config.get('ticker_names', {})
+            keywords = ticker_names.get(ticker, [])
+            news_items = self.news_fetcher.search_news(ticker=ticker, limit=3, keywords=keywords)
             news_texts = [n.get('title', '') + ' ' + n.get('summary', '') for n in news_items]
             news_features = self.model.encode_news(news_texts)
 

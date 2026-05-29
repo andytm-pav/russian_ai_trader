@@ -173,6 +173,7 @@
     "sentiment_divisor": 10.0,
     "news_noise_scale": 0.1,
     "max_hold_time_days_norm": 7.0,
+    "volume_normalization": 1000000000,
     "max_trades_for_experience_norm": 50.0,
     "position_factor_max": 10.0,
     "commission_rate": 0.003,
