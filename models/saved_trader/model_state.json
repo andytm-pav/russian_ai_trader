@@ -1327,6 +1327,14 @@
       "failure_count": 0,
       "success_rate": 0.5,
       "total_trades": 0
+    },
+    "STSBP": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
     }
   },
   "ticker_stats": {
@@ -1339,11 +1347,11 @@
       "last_trade": null
     },
     "MTSS": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_pnl": -13.74,
+      "avg_hold_time": 0.5312374479240841,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "AQUA": {
@@ -1515,11 +1523,11 @@
       "last_trade": null
     },
     "AFLT": {
-      "total_trades": 0,
+      "total_trades": 3,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_pnl": -29.050000000000004,
+      "avg_hold_time": 0.543858086930381,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "T": {
@@ -1651,11 +1659,11 @@
       "last_trade": null
     },
     "VKCO": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_pnl": -2.8566666666666665,
+      "avg_hold_time": 1.1749920015202628,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "EVRZ": {
@@ -1747,11 +1755,11 @@
       "last_trade": null
     },
     "SBER": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_pnl": -11.56,
+      "avg_hold_time": 0.5006586580806308,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "LKOH": {
@@ -2657,16 +2665,24 @@
       "avg_hold_time": 0.0,
       "success_rate": 0.5,
       "last_trade": null
+    },
+    "STSBP": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
     }
   },
-  "market_sentiment": 0.09371737083472953,
+  "market_sentiment": 0.06705554947509734,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
-      "total_trades": 1,
+      "total_trades": 2,
       "profitable_trades": 0,
-      "total_pnl": -28.32,
-      "avg_pnl": -28.32,
+      "total_pnl": -39.88,
+      "avg_pnl": -19.94,
       "win_rate": 0.0
     },
     "tech_conservative": {
@@ -2677,18 +2693,18 @@
       "win_rate": 0.5
     },
     "balanced": {
-      "total_trades": 64,
-      "profitable_trades": 3,
-      "total_pnl": -154.78500000000022,
-      "avg_pnl": -2.4185156250000035,
-      "win_rate": 0.046875
+      "total_trades": 76,
+      "profitable_trades": 4,
+      "total_pnl": -171.26000000000016,
+      "avg_pnl": -2.253421052631581,
+      "win_rate": 0.05263157894736842
     },
     "momentum": {
-      "total_trades": 3,
+      "total_trades": 5,
       "profitable_trades": 1,
-      "total_pnl": -62.07000000000008,
-      "avg_pnl": -20.690000000000026,
-      "win_rate": 0.3333333333333333
+      "total_pnl": -84.53000000000007,
+      "avg_pnl": -16.906000000000013,
+      "win_rate": 0.2
     },
     "swing": {
       "total_trades": 3,
@@ -2698,11 +2714,11 @@
       "win_rate": 0.0
     },
     "mean_reversion": {
-      "total_trades": 0,
+      "total_trades": 3,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_pnl": 0.0,
-      "win_rate": 0.5
+      "total_pnl": -23.186666666666667,
+      "avg_pnl": -7.728888888888889,
+      "win_rate": 0.0
     },
     "breakout": {
       "total_trades": 0,
@@ -2781,9 +2797,9 @@
       "horizon": "day_session",
       "news_weight": 0.3,
       "tech_weight": 0.7,
-      "risk_multiplier": 1.0,
-      "target_hold_time_hours": 4,
-      "stop_loss_percent": 3.0,
+      "risk_multiplier": 0.5,
+      "target_hold_time_hours": 24,
+      "stop_loss_percent": 4.0,
       "take_profit_percent": 8.0,
       "max_positions": 3,
       "min_win_rate": 0.45,
@@ -2870,5 +2886,5 @@
       }
     }
   },
-  "save_time": "2026-05-29T21:19:40.429669"
+  "save_time": "2026-05-31T22:47:14.858878"
 }
