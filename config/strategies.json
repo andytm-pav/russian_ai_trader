@@ -152,7 +152,7 @@
   },
   "strategy_selection": {
     "exploration_rate": 0.03,
-    "confidence_boost_factor": 0.4,
+    "confidence_boost_factor": 0.15,
     "memory_size": 2000,
     "min_trades_for_evaluation": 10,
     "adaptation_rate": 0.1,

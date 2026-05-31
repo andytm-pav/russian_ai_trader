@@ -214,9 +214,19 @@ dashboard_layout = dbc.Container([
                             dbc.Button("⏹️ Стоп", id="stop-trading-btn", color="danger", className="w-100", disabled=False)
                         ], width=4),
                         dbc.Col([
-                            dbc.Button("📊 Обновить данные", id="refresh-data-btn", color="info", className="w-100 mb-2"),
-                            dbc.Button("💾 Сохранить состояние", id="save-state-btn", color="primary", className="w-100 mb-2"),
-                            dbc.Button("🔄 Ребалансировка", id="rebalance-btn", color="secondary", className="w-100")
+                            dbc.Button("📊 Обновить данные",
+                                       id="refresh-data-btn",
+                                       color="info",
+                                       className="w-100 mb-2"),
+                            dbc.Button("💾 Сохранить состояние",
+                                       id="save-state-btn",
+                                       color="primary",
+                                       className="w-100 mb-2"),
+                            dbc.Button("🔄 Ребалансировка",
+                                       id="rebalance-btn",
+                                       color="secondary",
+                                       className="w-100 mb-2"),
+
                         ], width=4),
                         dbc.Col([
                             html.Div([
@@ -309,7 +319,12 @@ settings_layout = dbc.Container([
                             dbc.Input(id="risk-per-trade-input", type="number", value=1.5, min=0.5, max=5, step=0.1)
                         ], width=4)
                     ], className="mb-3"),
-                    dbc.Button("💾 Сохранить настройки", id="save-settings-btn", color="primary", className="w-100")
+                    dbc.Button("💾 Сохранить настройки", id="save-settings-btn", color="primary", className="w-100"),
+                    html.Hr(),
+                    dbc.Button("🔧 Обновить конфиги",
+                               id="reload-configs-btn",
+                               color="warning",
+                               className="w-100 mt-2")
                 ])
             ])
         ])
@@ -1790,6 +1805,23 @@ def update_component_filter(n_intervals):
     options += [{'label': name, 'value': name} for name in sorted(names)]
 
     return options
+
+@app.callback(
+    Output("reload-configs-btn", "children"),
+    Input("reload-configs-btn", "n_clicks")
+)
+def reload_configs(n_clicks):
+    """Перезагрузка конфигов на лету"""
+    if n_clicks and broker_instance is not None:
+        try:
+            broker_instance.reload_configs()
+            logger.info("Конфиги перезагружены через дашборд")
+            return "✅ Конфиги обновлены!"
+        except Exception as e:
+            logger.error(f"Ошибка перезагрузки конфигов: {e}")
+            return "❌ Ошибка!"
+    return "🔧 Обновить конфиги"
+
 
 if __name__ == '__main__':
     print("Запуск веб-интерфейса...")

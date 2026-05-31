@@ -2215,6 +2215,84 @@ class SmartPortfolioBroker:
         except Exception as e:
             logger.error(f"Ошибка обновления настроек брокера: {e}")
 
+    def reload_configs(self):
+        """Перезагрузка конфигов на лету без перезапуска"""
+        try:
+            # Перезагружаем settings.json
+            with open('config/settings.json', 'r', encoding='utf-8') as f:
+                new_settings = json.load(f)
+
+            # Обновляем настройки брокера
+            self.settings.update(new_settings)
+
+            # Обновляем Risk Manager
+            if hasattr(self, 'risk_manager'):
+                self.risk_manager.config = self.risk_manager._load_config("config/settings.json")
+                self.risk_manager.config.update({
+                    'stop_loss_percent': new_settings.get('stop_loss_percent', 6.0),
+                    'take_profit_percent': new_settings.get('take_profit_percent', 12.0),
+                    'min_cash_per_trade': new_settings.get('min_cash_per_trade', 1000),
+                    'max_daily_trades': new_settings.get('max_daily_trades', 20),
+                    'max_positions': new_settings.get('max_positions', 10),
+                    'max_position_weight_percent': new_settings.get('max_position_weight_percent', 30),
+                    'daily_loss_limit_percent': new_settings.get('daily_loss_limit_percent', 5),
+                    'risk_per_trade_percent': new_settings.get('risk_per_trade_percent', 3.0),
+                })
+
+            # Обновляем Portfolio
+            if hasattr(self, 'portfolio'):
+                self.portfolio.max_positions = new_settings.get('max_positions', 10)
+                self.portfolio.max_trades_per_hour = new_settings.get('max_trades_per_hour', 10)
+                self.portfolio.daily_commission_limit = new_settings.get('daily_commission_limit', 100.0)
+
+            # Перезагружаем strategies.json
+            with open('config/strategies.json', 'r', encoding='utf-8') as f:
+                new_strategies = json.load(f)
+
+            if hasattr(self, 'model') and self.model:
+                # Обновляем стратегии
+                if 'strategies' in new_strategies:
+                    for name, params in new_strategies['strategies'].items():
+                        if name in self.model.strategies:
+                            # Сохраняем обученный risk_multiplier, если он ниже конфигового
+                            old_risk = self.model.strategies[name].get('risk_multiplier', 1.0)
+                            new_risk = params.get('risk_multiplier', 1.0)
+                            self.model.strategies[name].update(params)
+                            if old_risk < new_risk:
+                                self.model.strategies[name]['risk_multiplier'] = old_risk
+
+                # Обновляем confidence_boost_factor
+                strategy_selection = new_strategies.get('strategy_selection', {})
+                if 'confidence_boost_factor' in strategy_selection:
+                    self.model.confidence_boost_factor = strategy_selection['confidence_boost_factor']
+
+            # Перезагружаем rl_config.json
+            if hasattr(self, 'model') and self.model:
+                with open('config/rl_config.json', 'r', encoding='utf-8') as f:
+                    new_rl = json.load(f)
+
+                # Обновляем exploration
+                if 'exploration' in new_rl:
+                    self.model.exploration_rate = new_rl['exploration'].get('initial_exploration_rate', 0.03)
+
+                # Обновляем hold_reward
+                if 'hold_reward' in new_rl:
+                    self.rl_config['hold_reward'] = new_rl['hold_reward']
+
+                # Обновляем reward_config
+                if 'reward_config' in new_rl:
+                    self.rl_config['reward_config'] = new_rl['reward_config']
+
+                # Обновляем signal_filter
+                if 'signal_filter' in new_rl:
+                    self.rl_config['signal_filter'] = new_rl['signal_filter']
+
+            logger.info("✅ Конфиги перезагружены на лету")
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка перезагрузки конфигов: {e}")
+
+
     # ============================================
     # БЭКОФИС ФУНКЦИИ
     # ============================================

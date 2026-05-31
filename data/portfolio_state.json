@@ -1,6 +1,6 @@
 {
-  "total_value": 7643.699999999993,
-  "cash": 194.78499999999303,
+  "total_value": 7639.589999999994,
+  "cash": 460.7349999999933,
   "positions": {
     "MRKZ": {
       "qty": 10000,
@@ -39,19 +39,6 @@
       "stop_loss": "218.684",
       "take_profit": "247.208"
     },
-    "SBER": {
-      "qty": 6,
-      "avg_price": 321.19,
-      "buy_time": 1780172466.949866,
-      "total_cost": 1927.1399999999999,
-      "commission_buy": 5.78,
-      "time_horizon": "week",
-      "strategy": "momentum",
-      "lot_size": 1,
-      "min_step": 0.01,
-      "stop_loss": 289.071,
-      "take_profit": "346.88522"
-    },
     "SBERP": {
       "qty": 6,
       "avg_price": 322.05,
@@ -64,11 +51,24 @@
       "min_step": 0.01,
       "stop_loss": 289.845,
       "take_profit": "347.814"
+    },
+    "DATA": {
+      "qty": 18,
+      "avg_price": 92.06,
+      "buy_time": 1780255180.0441792,
+      "total_cost": 1657.08,
+      "commission_buy": 4.97,
+      "time_horizon": "three_days",
+      "strategy": "swing",
+      "lot_size": 1,
+      "min_step": 0.02,
+      "stop_loss": 82.854,
+      "take_profit": "105.86904"
     }
   },
-  "last_update": "2026-05-31T22:47:14.873163",
+  "last_update": "2026-05-31T23:36:54.706748",
   "initial_capital": 10000,
-  "reserved_cash": 5.8,
+  "reserved_cash": 4.97,
   "pending_commissions": [
     {
       "date": "2026-05-29",
@@ -99,50 +99,6 @@
     }
   ],
   "trade_history": [
-    {
-      "timestamp": "2026-05-29T11:28:32.006211",
-      "action": "BUY",
-      "ticker": "VTBR",
-      "quantity": 4,
-      "price": 78.595,
-      "cost": 314.38,
-      "commission": 0.94,
-      "cash_after": 3946.399999999996,
-      "reserved_after": 0.94,
-      "position_after": {
-        "qty": 4,
-        "avg_price": 78.595,
-        "buy_time": 1780039712.0062063,
-        "total_cost": 314.38,
-        "commission_buy": 0.94,
-        "time_horizon": "balanced",
-        "strategy": "balanced",
-        "lot_size": 1,
-        "min_step": 0.005
-      },
-      "strategy": "balanced",
-      "params": {
-        "lot_size": 1,
-        "min_step": 0.005
-      }
-    },
-    {
-      "timestamp": "2026-05-29T11:49:21.054912",
-      "action": "SELL",
-      "ticker": "AFKS",
-      "quantity": 100,
-      "price": 11.666,
-      "revenue": 1166.6000000000001,
-      "commission_buy": 3.48,
-      "commission_sell": 3.5,
-      "commission_total": 6.98,
-      "pnl": 1.0199999999999996,
-      "pnl_percent": 0.08803728638011388,
-      "cash_after": 5109.499999999996,
-      "reserved_after": 0,
-      "position_after": {},
-      "strategy": "balanced"
-    },
     {
       "timestamp": "2026-05-29T11:49:25.205120",
       "action": "BUY",
@@ -2368,54 +2324,59 @@
         "stop_loss": 289.845,
         "take_profit": "347.814"
       }
-    }
-  ],
-  "daily_trades": [
+    },
     {
-      "timestamp": "2026-05-31T20:20:51.576023",
-      "ticker": "SMLT",
+      "timestamp": "2026-05-31T23:16:09.982002",
       "action": "SELL",
-      "quantity": 1,
-      "price": 397.40000000000003,
-      "value": 397.40000000000003,
-      "commission": 1.19,
-      "pnl": 6.440000000000012,
-      "strategy": "balanced"
-    },
-    {
-      "timestamp": "2026-05-31T22:00:46.103713",
-      "ticker": "AFLT",
-      "action": "BUY",
-      "quantity": 30,
-      "price": 48.410000000000004,
-      "value": 1452.3000000000002,
-      "commission_reserved": 4.36,
-      "strategy": "momentum"
-    },
-    {
-      "timestamp": "2026-05-31T22:30:51.820284",
-      "ticker": "AFLT",
-      "action": "SELL",
-      "quantity": 30,
-      "price": 48.410000000000004,
-      "value": 1452.3000000000002,
-      "commission": 4.36,
-      "pnl": -8.72,
-      "strategy": "momentum"
-    },
-    {
-      "timestamp": "2026-05-31T22:40:33.360496",
-      "ticker": "SBERP",
-      "action": "BUY",
+      "ticker": "SBER",
       "quantity": 6,
-      "price": 322.05,
-      "value": 1932.3000000000002,
-      "commission_reserved": 5.8,
-      "strategy": "balanced"
+      "price": 321.47,
+      "revenue": 1928.8200000000002,
+      "commission_buy": 5.78,
+      "commission_sell": 5.79,
+      "commission_total": 11.57,
+      "pnl": -9.88999999999971,
+      "pnl_percent": -0.5131957200825944,
+      "cash_after": 2117.8149999999932,
+      "reserved_after": 0,
+      "position_after": {},
+      "strategy": "momentum"
+    },
+    {
+      "timestamp": "2026-05-31T23:19:40.044197",
+      "action": "BUY",
+      "ticker": "DATA",
+      "quantity": 18,
+      "price": 92.06,
+      "cost": 1657.08,
+      "commission": 4.97,
+      "cash_after": 460.7349999999933,
+      "reserved_after": 4.97,
+      "position_after": {
+        "qty": 18,
+        "avg_price": 92.06,
+        "buy_time": 1780255180.0441792,
+        "total_cost": 1657.08,
+        "commission_buy": 4.97,
+        "time_horizon": "three_days",
+        "strategy": "swing",
+        "lot_size": 1,
+        "min_step": 0.02,
+        "stop_loss": 82.854,
+        "take_profit": "105.86904"
+      },
+      "strategy": "swing",
+      "params": {
+        "lot_size": 1,
+        "min_step": 0.02,
+        "stop_loss": 82.854,
+        "take_profit": "105.86904"
+      }
     }
   ],
-  "commission_spent_today": 15.71,
-  "total_commission": 378.72999999999945,
-  "total_trades": 88,
-  "total_pnl": -2436.936666666668
+  "daily_trades": [],
+  "commission_spent_today": 26.47,
+  "total_commission": 389.4899999999995,
+  "total_trades": 89,
+  "total_pnl": -2446.8266666666677
 }

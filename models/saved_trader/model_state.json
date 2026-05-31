@@ -1435,11 +1435,11 @@
       "last_trade": null
     },
     "DATA": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "avg_hold_time": 0.0811103512181176,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "LSRG": {
@@ -1611,11 +1611,11 @@
       "last_trade": null
     },
     "MRKZ": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "avg_hold_time": 48.07861207266649,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "MRKP": {
@@ -1755,10 +1755,10 @@
       "last_trade": null
     },
     "SBER": {
-      "total_trades": 1,
+      "total_trades": 2,
       "profitable_trades": 0,
       "total_pnl": -11.56,
-      "avg_hold_time": 0.5006586580806308,
+      "avg_hold_time": 11.659379251003266,
       "success_rate": 0.0,
       "last_trade": null
     },
@@ -1827,11 +1827,11 @@
       "last_trade": null
     },
     "SBERP": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "avg_hold_time": 0.494153396487236,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "ALRS": {
@@ -2675,7 +2675,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": 0.06705554947509734,
+  "market_sentiment": 0.04340628154530041,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
@@ -2700,11 +2700,11 @@
       "win_rate": 0.05263157894736842
     },
     "momentum": {
-      "total_trades": 5,
+      "total_trades": 6,
       "profitable_trades": 1,
-      "total_pnl": -84.53000000000007,
-      "avg_pnl": -16.906000000000013,
-      "win_rate": 0.2
+      "total_pnl": -94.41999999999979,
+      "avg_pnl": -15.73666666666663,
+      "win_rate": 0.16666666666666666
     },
     "swing": {
       "total_trades": 3,
@@ -2780,7 +2780,7 @@
       "news_weight": 0.5,
       "tech_weight": 0.5,
       "risk_multiplier": 0.5,
-      "target_hold_time_hours": 24,
+      "target_hold_time_hours": 13.5,
       "stop_loss_percent": 4.0,
       "take_profit_percent": 8.0,
       "max_positions": 4,
@@ -2798,7 +2798,7 @@
       "news_weight": 0.3,
       "tech_weight": 0.7,
       "risk_multiplier": 0.5,
-      "target_hold_time_hours": 24,
+      "target_hold_time_hours": 9.0,
       "stop_loss_percent": 4.0,
       "take_profit_percent": 8.0,
       "max_positions": 3,
@@ -2886,5 +2886,5 @@
       }
     }
   },
-  "save_time": "2026-05-31T22:47:14.858878"
+  "save_time": "2026-05-31T23:36:54.693502"
 }
