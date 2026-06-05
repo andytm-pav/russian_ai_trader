@@ -60,6 +60,19 @@ def main():
     # 2. Инициализация SmartBroker
     broker = SmartPortfolioBroker(settings, scheduler)
 
+    # Инициализация LLM-коуча
+    if settings.get("llm_coach", {}).get("enabled", False):
+        try:
+            from models.llm_coach import LLMCoach
+            coach = LLMCoach(settings["llm_coach"])
+            if coach.is_available():
+                broker.set_coach(coach)
+                logger.info("LLM-коуч подключён к брокеру")
+            else:
+                logger.warning("LLM-коуч недоступен")
+        except Exception as e:
+            logger.error(f"Ошибка инициализации LLM-коуча: {e}")
+
     # 3. Запуск веб-сервера в отдельном потоке
     web_thread = threading.Thread(
         target=run_web_server,

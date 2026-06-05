@@ -1,6 +1,5 @@
 {
   "model_config_path": "config/model_config.json",
-
   "execution": {
     "max_signals_per_cycle": 5,
     "sell_fraction": 0.5,
@@ -11,7 +10,6 @@
       "risk_per_trade_percent": 2
     }
   },
-
   "reward_calculation": {
     "pnl_normalization": 100,
     "time_penalty_factor": 0.1,
@@ -25,7 +23,6 @@
     "base_reward_multiplier": 100.0,
     "reward_pnl_scaling": 100.0
   },
-
   "strategy_adaptation": {
     "success_win_rate_threshold": 0.6,
     "failure_win_rate_threshold": 0.4,
@@ -44,7 +41,6 @@
     "aggressive_decrease_factor": 0.7,
     "reset_degraded_risk": false
   },
-
   "learning": {
     "min_experiences_for_learning": 25,
     "batch_size": 32,
@@ -61,7 +57,6 @@
     "convergence_lookback": 20,
     "convergence_threshold": 0.1
   },
-
   "exploration": {
     "initial_exploration_rate": 0.03,
     "final_exploration_rate": 0.01,
@@ -70,7 +65,6 @@
     "min_exploration_rate": 0.01,
     "max_exploration_rate": 0.3
   },
-
   "sentiment_integration": {
     "market_sentiment_weight": 0.3,
     "ticker_sentiment_weight": 0.4,
@@ -81,7 +75,6 @@
     "market_sentiment_cache_minutes": 5,
     "search_news_in_summary": true
   },
-
   "state_parameters": {
     "state_vector_size": 210,
     "total_state_size": 216,
@@ -90,7 +83,6 @@
     "market_features_count": 48,
     "reserved_slots": 0
   },
-
   "state_dimensions": {
     "price_volume": 4,
     "technical": 7,
@@ -106,7 +98,6 @@
     "hysteresis": 3,
     "horizon": 3
   },
-
   "default_stats": {
     "strategy_performance": {
       "total_trades": 0,
@@ -132,12 +123,10 @@
       "last_trade": null
     }
   },
-
   "initial_market_state": {
     "market_sentiment": 0.0,
     "volatility_index": 1.0
   },
-
   "action_dim": 7,
   "action_mapping": {
     "0": "HOLD_SHORT",
@@ -153,12 +142,28 @@
     "HOLD": 0.0,
     "HOLD_LONG": 0.0,
     "BUY_SMALL": 0.05,
-    "BUY_NORMAL": 0.10,
+    "BUY_NORMAL": 0.1,
     "SELL_SMALL": 0.25,
     "SELL_ALL": 1.0
   },
   "strategy_selection_timeout": 10,
-
+  "llm_coach": {
+    "enabled": true,
+    "timeout_seconds": 30,
+    "coach_interval_cycles": 20,
+    "coach_action_weight": 0.3,
+    "min_confidence_threshold": 0.0,
+    "max_coach_experiences": 1000,
+    "max_consecutive_timeouts": 5,
+    "cooldown_after_timeouts_minutes": 10,
+    "provider": {
+      "type": "ollama",
+      "url": "http://localhost:11434",
+      "model": "gemma3:1b",
+      "timeout": 30,
+      "api_key": ""
+    }
+  },
   "normalization": {
     "hours_in_day": 24.0,
     "days_in_week": 7.0,
@@ -195,7 +200,6 @@
     "max_hold_time_hours_norm": 72.0,
     "same_action_streak_max": 10.0
   },
-
   "model_weights": {
     "failure_factor_rate": 0.2,
     "max_failure_factor": 0.6,
@@ -223,13 +227,12 @@
     "max_hold_days": 60,
     "hold_penalty_rate": 0.3,
     "min_sell_percentage": 0.25,
-    "max_sell_percentage": 0.50,
+    "max_sell_percentage": 0.5,
     "min_quantity": 1,
     "news_encoder_hidden_dim": 256,
     "weight_decay": 0.01,
     "max_sentiment_history": 200
   },
-
   "memory_persistence": {
     "enable_memory_save": true,
     "enable_autosave": true,
@@ -239,14 +242,12 @@
     "compress": true,
     "compression": true
   },
-
   "memory_serialization": {
     "enable_autosave": true,
     "autosave_interval": 10,
     "memory_file": "models/saved_trader/memory_buffer.pkl",
     "compression": true
   },
-
   "reward_scaling": 0.001,
   "price_change_threshold": 0.01,
   "reward_clip_min": -5.0,
@@ -261,7 +262,6 @@
   "sentiment_negative_threshold": -0.1,
   "sentiment_positive_bonus_multiplier": 0.5,
   "sentiment_negative_bonus_multiplier": 0.3,
-
   "learning_rate": 0.0005,
   "gamma": 0.95,
   "batch_size": 32,
@@ -271,7 +271,6 @@
   "optimizer": "adam",
   "loss_function": "smooth_l1",
   "gradient_clip": 1.0,
-
   "risk_calculation": {
     "failure_penalty_rate": 0.08,
     "max_failure_penalty": 0.8,
@@ -283,7 +282,6 @@
     "base_volatility_factor": 0.8,
     "success_rate_threshold": 0.5
   },
-
   "hold_reward": {
     "enabled": true,
     "max_bonus": 0.3,
@@ -292,7 +290,6 @@
     "interval_cycles": 10,
     "max_positions_per_cycle": 2
   },
-
   "commission_learning": {
     "enable_commission_penalty": true,
     "enable_frequency_penalty": true,
@@ -300,7 +297,6 @@
     "commission_settlement_time": "14:00",
     "commission_settlement_days": 1
   },
-
   "feature_config": {
     "reserved_slots": 0,
     "market_features": [
@@ -316,7 +312,6 @@
       "moexog_normalized"
     ]
   },
-
   "reward_config": {
     "pnl_scale_factor": 100.0,
     "profit_bonus_enabled": true,
@@ -338,18 +333,15 @@
     "reward_clip_max": 5.0,
     "reward_clip_min": -5.0
   },
-
   "logging": {
     "pnl_summary_interval": 10
   },
-
   "signal_filter": {
     "enabled": false,
     "min_trades_for_filter": 3,
     "min_success_rate": 0.5,
     "new_ticker_confidence_mult": 0.6
   },
-
   "memory_clean": {
     "enabled": true,
     "max_memory_after_clean": 20000,
@@ -362,12 +354,10 @@
     "duplicate_threshold": 0.01,
     "max_age_days": 30
   },
-
   "bert_config": {
     "max_length": 128,
     "model_name": "cointegrated/rubert-tiny2"
   },
-
   "state_building": {
     "sector_onehot_size": 5,
     "strategy_onehot_size": 8,
@@ -377,37 +367,108 @@
     "breakeven_multiplier": 1.006,
     "drawdown_multiplier": 2.0
   },
-
   "sentiment_config": {
-    "positive_keywords": ["рост", "прибыль", "увеличение", "дивиденд", "выше", "улучшение", "рекомендуют", "покупать"],
-    "negative_keywords": ["падение", "убыток", "снижение", "проблемы", "ниже", "сокращение", "продавать", "снижают"],
-    "market_keywords": ["рынок", "акци", "бирж", "фондов", "инвест", "торг", "ликвид", "волатиль"],
+    "positive_keywords": [
+      "рост",
+      "прибыль",
+      "увеличение",
+      "дивиденд",
+      "выше",
+      "улучшение",
+      "рекомендуют",
+      "покупать"
+    ],
+    "negative_keywords": [
+      "падение",
+      "убыток",
+      "снижение",
+      "проблемы",
+      "ниже",
+      "сокращение",
+      "продавать",
+      "снижают"
+    ],
+    "market_keywords": [
+      "рынок",
+      "акци",
+      "бирж",
+      "фондов",
+      "инвест",
+      "торг",
+      "ликвид",
+      "волатиль"
+    ],
     "sentiment_divisor": 10,
     "noise_scale": 0.1
   },
-
   "ticker_names": {
-    "SBER": ["сбер"],
-    "VTBR": ["втб"],
-    "GAZP": ["газпром"],
-    "LKOH": ["лукойл", "лукоил"],
-    "NVTK": ["новатэк"],
-    "ROSN": ["роснефть"],
-    "GMKN": ["норникель", "норильский", "гмк"],
-    "PLZL": ["полюс"],
-    "MTSS": ["мтс"],
-    "YNDX": ["яндекс", "yandex"],
-    "TATN": ["татнефть"],
-    "SNGS": ["сургутнефтегаз", "сургут"],
-    "CHMF": ["северсталь"],
-    "MAGN": ["магнитогорск", "ммк"],
-    "RUAL": ["русал"],
-    "MGNT": ["магнит"],
-    "OZON": ["озон"],
-    "AFKS": ["афк", "система"],
-    "MOEX": ["биржа", "мосбиржа", "московская биржа"]
+    "SBER": [
+      "сбер"
+    ],
+    "VTBR": [
+      "втб"
+    ],
+    "GAZP": [
+      "газпром"
+    ],
+    "LKOH": [
+      "лукойл",
+      "лукоил"
+    ],
+    "NVTK": [
+      "новатэк"
+    ],
+    "ROSN": [
+      "роснефть"
+    ],
+    "GMKN": [
+      "норникель",
+      "норильский",
+      "гмк"
+    ],
+    "PLZL": [
+      "полюс"
+    ],
+    "MTSS": [
+      "мтс"
+    ],
+    "YNDX": [
+      "яндекс",
+      "yandex"
+    ],
+    "TATN": [
+      "татнефть"
+    ],
+    "SNGS": [
+      "сургутнефтегаз",
+      "сургут"
+    ],
+    "CHMF": [
+      "северсталь"
+    ],
+    "MAGN": [
+      "магнитогорск",
+      "ммк"
+    ],
+    "RUAL": [
+      "русал"
+    ],
+    "MGNT": [
+      "магнит"
+    ],
+    "OZON": [
+      "озон"
+    ],
+    "AFKS": [
+      "афк",
+      "система"
+    ],
+    "MOEX": [
+      "биржа",
+      "мосбиржа",
+      "московская биржа"
+    ]
   },
-
   "prioritized_buffer": {
     "alpha": 0.6,
     "beta": 0.4,

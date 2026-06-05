@@ -398,6 +398,19 @@ class AdvancedTraderModel:
             action_dim=self.action_dim
         ).to(self.device)
 
+        # Coach predictor — предсказывает действие, рекомендованное LLM-коучем
+        self.coach_predictor = nn.Sequential(
+            nn.Linear(self.total_state_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, self.action_dim)
+        ).to(self.device)
+
+        self.coach_optimizer = optim.AdamW(
+            self.coach_predictor.parameters(),
+            lr=self.rl_config.get("learning_rate", 0.0005),
+            weight_decay=self.model_weights.get('weight_decay', 0.01)
+        )
+
         # Оптимизаторы
         self.policy_optimizer = optim.AdamW(
             self.policy_net.parameters(),
@@ -1181,6 +1194,31 @@ class AdvancedTraderModel:
             self.policy_net.eval()
             return None
 
+    def learn_from_coach(self, state: torch.Tensor, coach_action: int) -> Optional[float]:
+        """Обучение coach_predictor на основе совета LLM-коуча"""
+        try:
+            if not hasattr(self, 'coach_predictor'):
+                return None
+
+            self.coach_predictor.train()
+
+            state_tensor = state.unsqueeze(0).to(self.device) if state.dim() == 1 else state.to(self.device)
+            target = torch.LongTensor([coach_action]).to(self.device)
+
+            logits = self.coach_predictor(state_tensor)
+            loss = nn.CrossEntropyLoss()(logits, target)
+
+            self.coach_optimizer.zero_grad()
+            loss.backward()
+            self.coach_optimizer.step()
+
+            self.coach_predictor.eval()
+            return loss.item()
+
+        except Exception as e:
+            logger.error(f"Ошибка learn_from_coach: {e}")
+            return None
+
     def encode_news(self, news_texts: List[str]) -> torch.Tensor:
         """Кодирование новостей"""
         if not news_texts:
@@ -1369,6 +1407,8 @@ class AdvancedTraderModel:
                 'news_encoder': self.news_encoder.state_dict(),
                 'policy_net': self.policy_net.state_dict(),
                 'policy_optimizer': self.policy_optimizer.state_dict(),
+                'coach_predictor': self.coach_predictor.state_dict() if hasattr(self, 'coach_predictor') else None,
+                'coach_optimizer': self.coach_optimizer.state_dict() if hasattr(self, 'coach_optimizer') else None,
             }, os.path.join(self.model_dir, 'model_weights.pth'))
 
             state = {
@@ -1394,6 +1434,7 @@ class AdvancedTraderModel:
         weights_path = os.path.join(self.model_dir, 'model_weights.pth')
         state_path = os.path.join(self.model_dir, 'model_state.json')
 
+        checkpoint = None
         if os.path.exists(weights_path):
             try:
                 checkpoint = torch.load(weights_path, map_location=self.device)
@@ -1401,6 +1442,10 @@ class AdvancedTraderModel:
                 self.policy_net.load_state_dict(checkpoint['policy_net'])
                 if 'policy_optimizer' in checkpoint:
                     self.policy_optimizer.load_state_dict(checkpoint['policy_optimizer'])
+                if checkpoint and 'coach_predictor' in checkpoint and checkpoint['coach_predictor'] is not None:
+                    self.coach_predictor.load_state_dict(checkpoint['coach_predictor'])
+                if checkpoint and 'coach_optimizer' in checkpoint and checkpoint['coach_optimizer'] is not None:
+                    self.coach_optimizer.load_state_dict(checkpoint['coach_optimizer'])
                 logger.info("✓ Загружены веса")
             except Exception as e:
                 logger.error(f"Ошибка загрузки весов: {e}")

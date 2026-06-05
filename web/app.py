@@ -388,6 +388,60 @@ settings_layout = dbc.Container([
         ])
     ], className="mb-4"),
 
+    # Настройки LLM-коуча
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🧠 LLM-Коуч", id="coach-card-header"),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Checklist(
+                                options=[{"label": "Включить коуча", "value": "enabled"}],
+                                value=[], id="coach-enabled-check", switch=True
+                            )
+                        ], width=4),
+                        dbc.Col([
+                            html.Label("Модель:", className="form-label"),
+                            html.Div([
+                                dcc.Dropdown(
+                                    id="coach-model-dropdown",
+                                    options=[],
+                                    value="",
+                                    placeholder="Выберите модель...",
+                                    clearable=False
+                                ),
+                                dbc.Button("🔄 Обновить список", id="refresh-models-btn", color="secondary", size="sm",
+                                           className="mt-1 w-100")
+                            ])
+                        ], width=5),
+                        dbc.Col([
+                            html.Div(id="coach-model-status", className="mt-4 text-center")
+                        ], width=3)
+                    ]),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Частота вызовов (циклов):", className="form-label mt-2"),
+                            dbc.Input(id="coach-interval-input", type="number", value=20, min=5, max=100, step=5)
+                        ], width=4),
+                        dbc.Col([
+                            html.Label("Таймаут (сек):", className="form-label mt-2"),
+                            dbc.Input(id="coach-timeout-input", type="number", value=30, min=10, max=120, step=5)
+                        ], width=4),
+                        dbc.Col([
+                            html.Label("Вес советов:", className="form-label mt-2"),
+                            dcc.Slider(id="coach-weight-slider", min=0.1, max=1.0, step=0.1, value=0.3,
+                                       marks={0.1: '0.1', 0.5: '0.5', 1.0: '1.0'})
+                        ], width=4)
+                    ], className="mt-2"),
+                    dbc.Button("💾 Сохранить настройки коуча", id="save-coach-settings-btn", color="primary",
+                               className="w-100 mt-2")
+                ])
+            ])
+        ])
+    ], className="mb-4"),
+
+
     # Настройки торговых сессий
     dbc.Row([
         dbc.Col([
@@ -469,91 +523,42 @@ logs_layout = dbc.Container([
         ])
     ]),
 
-    # Фильтр логов
+    # Табы внутри страницы логов
     dbc.Row([
         dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    dbc.Row([
-                        dbc.Col([
-                            html.Label("Уровень:", className="form-label"),
-                            dcc.Dropdown(
-                                id='log-level-filter',
-                                options=[
-                                    {'label': 'Все', 'value': 'ALL'},
-                                    {'label': 'INFO', 'value': 'INFO'},
-                                    {'label': 'WARNING', 'value': 'WARNING'},
-                                    {'label': 'ERROR', 'value': 'ERROR'},
-                                    {'label': 'СДЕЛКИ', 'value': 'TRADES'}
-                                ],
-                                value='ALL',
-                                clearable=False
-                            )
-                        ], width=4),
-                        dbc.Col([
-                            html.Label("Компонент:", className="form-label"),
-                            dcc.Dropdown(
-                                id='log-component-filter',
-                                options=[
-                                    {'label': 'Все', 'value': 'ALL'},
-                                    {'label': 'MAIN', 'value': 'MAIN'},
-                                    {'label': 'MOEX_FETCHER', 'value': 'MOEX_FETCHER'},
-                                    {'label': 'NEWS_FETCHER_OPT', 'value': 'NEWS_FETCHER_OPT'},
-                                    {'label': 'PORTFOLIO', 'value': 'PORTFOLIO'},
-                                    {'label': 'RISK_MANAGER', 'value': 'RISK_MANAGER'},
-                                    {'label': 'SMART_BROKER', 'value': 'SMART_BROKER'},
-                                    {'label': 'TECH_CORE', 'value': 'TECH_CORE'},
-                                    {'label': 'TRADER_MODEL', 'value': 'TRADER_MODEL'},
-                                    {'label': 'TRAINER', 'value': 'TRAINER'}
-                                ],
-                                value='ALL',
-                                clearable=False
-                            )
-                        ], width=4),
-                    ])
-                ])
-            ], className="mb-2")
+            dbc.Tabs([
+                dbc.Tab(label="📋 Журнал событий", tab_id="tab-events"),
+                dbc.Tab(label="🧠 Работа моделей", tab_id="tab-models"),
+            ], id="logs-tabs", active_tab="tab-events")
         ])
-    ]),
+    ], className="mb-3"),
 
-    # Журнал событий
+    # Контент вкладок
     dbc.Row([
         dbc.Col([
-            dbc.Card([
-                dbc.CardHeader([
-                    "Журнал событий",
-                    dbc.Button("🗑️ Очистить", id="clear-logs-btn", color="danger", size="sm", className="float-end")
-                ]),
-                dbc.CardBody([
-                    html.Div(id="logs-content",
-                             style={
-                                 'height': '500px',
-                                 'overflowY': 'auto',
-                                 'backgroundColor': '#1a1a1a',
-                                 'padding': '10px',
-                                 'fontFamily': 'monospace',
-                                 'fontSize': '12px'
-                             })
-                ])
-            ])
+            html.Div(id="logs-tab-content")
         ])
-    ]),
-
-    dbc.Row([
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader("Статистика системы"),
-                dbc.CardBody([html.Div(id="system-stats")])
-            ])
-        ], width=6),
-        dbc.Col([
-            dbc.Card([
-                dbc.CardHeader("Статус компонентов"),
-                dbc.CardBody([html.Div(id="components-status")])
-            ])
-        ], width=6)
-    ], className="mt-4")
+    ])
 ])
+
+# Вкладка "Работа моделей" (внутри страницы логов)
+models_log_layout = dbc.Container([
+    dbc.Row([
+        dbc.Col([
+            html.H4("🧠 Рекомендации коуча", className="mb-3"),
+            html.Div(id="coach-recommendations-table",
+                     style={'maxHeight': '400px', 'overflowY': 'auto'})
+        ])
+    ], className="mb-4"),
+    dbc.Row([
+        dbc.Col([
+            html.H4("🤖 Действия модели", id="model-actions-header", className="mb-3"),
+            html.Div(id="model-actions-table",
+                     style={'maxHeight': '400px', 'overflowY': 'auto'})
+        ])
+    ])
+])
+
 # Часть 3 из 4: коллбэки навигации, дашборда, управления, настроек, логов
 
 # Коллбэк навигации
@@ -960,6 +965,94 @@ def add_rss_source(n_clicks, new_url, new_name):
 
     return f"✅ Добавлен: {new_source['name']}", sources_list, "", ""
 
+
+@app.callback(
+    Output("logs-tab-content", "children"),
+    Input("logs-tabs", "active_tab")
+)
+def switch_logs_tab(active_tab):
+    """Переключение вкладок внутри страницы логов"""
+    if active_tab == "tab-events":
+        return dbc.Container([
+            # Фильтр логов
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col([
+                                    html.Label("Уровень:", className="form-label"),
+                                    dcc.Dropdown(
+                                        id='log-level-filter',
+                                        options=[
+                                            {'label': 'Все', 'value': 'ALL'},
+                                            {'label': 'INFO', 'value': 'INFO'},
+                                            {'label': 'WARNING', 'value': 'WARNING'},
+                                            {'label': 'ERROR', 'value': 'ERROR'},
+                                            {'label': 'СДЕЛКИ', 'value': 'TRADES'},
+                                            {'label': 'TRAINER', 'value': 'TRAINER'}
+
+                                        ],
+                                        value='ALL',
+                                        clearable=False
+                                    )
+                                ], width=4),
+                                dbc.Col([
+                                    html.Label("Компонент:", className="form-label"),
+                                    dcc.Dropdown(
+                                        id='log-component-filter',
+                                        options=[
+                                            {'label': 'Все', 'value': 'ALL'},
+                                            {'label': 'MAIN', 'value': 'MAIN'},
+                                            {'label': 'MOEX_FETCHER', 'value': 'MOEX_FETCHER'},
+                                            {'label': 'NEWS_FETCHER_OPT', 'value': 'NEWS_FETCHER_OPT'},
+                                            {'label': 'PORTFOLIO', 'value': 'PORTFOLIO'},
+                                            {'label': 'RISK_MANAGER', 'value': 'RISK_MANAGER'},
+                                            {'label': 'SMART_BROKER', 'value': 'SMART_BROKER'},
+                                            {'label': 'TECH_CORE', 'value': 'TECH_CORE'},
+                                            {'label': 'TRADER_MODEL', 'value': 'TRADER_MODEL'},
+                                            {'label': 'TRAINER', 'value': 'TRAINER'},
+                                            {'label': 'LLM_COACH', 'value': 'LLM_COACH'}
+                                        ],
+                                        value='ALL',
+                                        clearable=False
+                                    )
+                                ], width=4),
+                            ])
+                        ])
+                    ], className="mb-2")
+                ])
+            ]),
+            # Журнал событий
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader([
+                            "Журнал событий",
+                            dbc.Button("🗑️ Очистить", id="clear-logs-btn", color="danger", size="sm", className="float-end")
+                        ]),
+                        dbc.CardBody([
+                            html.Div(id="logs-content",
+                                     style={
+                                         'height': '400px',
+                                         'overflowY': 'auto',
+                                         'backgroundColor': '#1a1a1a',
+                                         'padding': '10px',
+                                         'fontFamily': 'monospace',
+                                         'fontSize': '12px'
+                                     })
+                        ])
+                    ])
+                ])
+            ]),
+            dbc.Row([
+                dbc.Col([dbc.Card([dbc.CardHeader("Статистика системы"), dbc.CardBody([html.Div(id="system-stats")])])], width=6),
+                dbc.Col([dbc.Card([dbc.CardHeader("Статус компонентов"), dbc.CardBody([html.Div(id="components-status")])])], width=6)
+            ], className="mt-4")
+        ])
+    elif active_tab == "tab-models":
+        return models_log_layout
+    return ""
 
 # Коллбэк логов (новый — из буфера памяти)
 @app.callback(
@@ -1822,6 +1915,268 @@ def reload_configs(n_clicks):
             return "❌ Ошибка!"
     return "🔧 Обновить конфиги"
 
+
+# ============================================================
+# API для LLM-коуча
+# ============================================================
+@app.server.route("/api/ollama/models")
+def get_ollama_models():
+    """Возвращает список загруженных моделей Ollama"""
+    try:
+        import requests as req
+        resp = req.get("http://localhost:11434/api/tags", timeout=5)
+        if resp.status_code == 200:
+            models = [m["name"] for m in resp.json().get("models", [])]
+            return {"models": models, "status": "ok"}
+        return {"models": [], "status": "error", "error": f"HTTP {resp.status_code}"}
+    except Exception as e:
+        return {"models": [], "status": "error", "error": str(e)}
+
+
+@app.server.route("/api/coach/model", methods=["POST"])
+def set_coach_model():
+    """Сохраняет выбранную модель коуча в rl_config.json"""
+    try:
+        import flask
+        data = flask.request.json
+        model_name = data.get("model", "")
+
+        if not model_name:
+            return {"status": "error", "error": "Не указана модель"}
+
+        config_path = "config/rl_config.json"
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+
+        if "llm_coach" not in config:
+            config["llm_coach"] = {}
+        if "provider" not in config["llm_coach"]:
+            config["llm_coach"]["provider"] = {}
+
+        config["llm_coach"]["provider"]["type"] = "ollama"
+        config["llm_coach"]["provider"]["model"] = model_name
+        config["llm_coach"]["provider"]["url"] = config["llm_coach"]["provider"].get("url", "http://localhost:11434")
+
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+
+        logger.info(f"Модель коуча обновлена: {model_name}")
+        return {"status": "ok", "model": model_name}
+
+    except Exception as e:
+        logger.error(f"Ошибка сохранения модели коуча: {e}")
+        return {"status": "error", "error": str(e)}
+
+
+@app.server.route("/api/coach/model", methods=["GET"])
+def get_coach_model():
+    """Возвращает текущую модель коуча из конфига"""
+    try:
+        config_path = "config/rl_config.json"
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+
+        coach_config = config.get("llm_coach", {})
+        provider = coach_config.get("provider", {})
+        return {
+            "status": "ok",
+            "model": provider.get("model", ""),
+            "type": provider.get("type", "ollama"),
+            "enabled": coach_config.get("enabled", False)
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+# ============================================================
+# Коллбэки LLM-коуча (один комбинированный коллбэк)
+# ============================================================
+@app.callback(
+    [Output("coach-model-dropdown", "options"),
+     Output("coach-model-dropdown", "value"),
+     Output("coach-model-status", "children"),
+     Output("coach-enabled-check", "value"),
+     Output("coach-interval-input", "value"),
+     Output("coach-timeout-input", "value"),
+     Output("coach-weight-slider", "value")],
+    [Input("refresh-models-btn", "n_clicks"),
+     Input("interval-component", "n_intervals")],
+    prevent_initial_call=False
+)
+def update_coach_ui(refresh_clicks, n_intervals):
+    """Обновляет весь UI коуча: список моделей, статус, настройки"""
+    # Получаем список моделей и статус
+    try:
+        import requests as req
+        resp = req.get("http://localhost:11434/api/tags", timeout=5)
+        models = []
+        status = "✅ Ollama доступна"
+
+        if resp.status_code == 200:
+            models = [m["name"] for m in resp.json().get("models", [])]
+            if not models:
+                status = "⚠️ Нет загруженных моделей"
+        else:
+            status = f"❌ Ошибка HTTP {resp.status_code}"
+    except Exception as e:
+        models = []
+        status = f"❌ Ollama недоступна"
+
+    # Получаем настройки из конфига
+    try:
+        with open("config/rl_config.json", "r", encoding="utf-8") as f:
+            config = json.load(f)
+
+        coach = config.get("llm_coach", {})
+        current_model = coach.get("provider", {}).get("model", "")
+        enabled = ["enabled"] if coach.get("enabled", False) else []
+        interval = coach.get("coach_interval_cycles", 20)
+        timeout = coach.get("timeout_seconds", 30)
+        weight = coach.get("coach_action_weight", 0.3)
+    except:
+        current_model = ""
+        enabled = []
+        interval = 20
+        timeout = 30
+        weight = 0.3
+
+    # Всегда добавляем текущую модель в опции, даже если она не загружена
+    options = [{"label": m, "value": m} for m in models]
+    if current_model and current_model not in models:
+        options.insert(0, {"label": f"{current_model} (не загружена)", "value": current_model})
+
+    return options, current_model, status, enabled, interval, timeout, weight
+
+
+@app.callback(
+    Output("save-coach-settings-btn", "children"),
+    [Input("save-coach-settings-btn", "n_clicks")],
+    [State("coach-enabled-check", "value"),
+     State("coach-model-dropdown", "value"),
+     State("coach-interval-input", "value"),
+     State("coach-timeout-input", "value"),
+     State("coach-weight-slider", "value")]
+)
+def save_coach_settings(n_clicks, enabled, model, interval, timeout, weight):
+    """Сохранение настроек коуча в rl_config.json"""
+    if not n_clicks:
+        return "💾 Сохранить настройки коуча"
+
+    try:
+        config_path = "config/rl_config.json"
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+
+        if "llm_coach" not in config:
+            config["llm_coach"] = {}
+
+        config["llm_coach"]["enabled"] = "enabled" in enabled
+        config["llm_coach"]["coach_interval_cycles"] = interval
+        config["llm_coach"]["timeout_seconds"] = timeout
+        config["llm_coach"]["coach_action_weight"] = weight
+
+        if "provider" not in config["llm_coach"]:
+            config["llm_coach"]["provider"] = {}
+
+        config["llm_coach"]["provider"]["type"] = "ollama"
+        config["llm_coach"]["provider"]["model"] = model
+        config["llm_coach"]["provider"]["timeout"] = timeout
+        config["llm_coach"]["provider"]["url"] = config["llm_coach"]["provider"].get("url", "http://localhost:11434")
+
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+
+        logger.info(f"Настройки коуча сохранены: enabled={config['llm_coach']['enabled']}, model={model}")
+        return "✅ Настройки коуча сохранены!"
+
+    except Exception as e:
+        logger.error(f"Ошибка сохранения настроек коуча: {e}")
+        return "❌ Ошибка сохранения"
+
+
+@app.callback(
+    Output("coach-card-header", "children"),
+    Input("coach-model-dropdown", "value")
+)
+def update_coach_header(model_name):
+    """Обновляет заголовок карточки с названием модели"""
+    if model_name:
+        return f"🧠 LLM-Коуч — {model_name}"
+    return "🧠 LLM-Коуч"
+
+# ============================================================
+# Коллбэки для вкладки "Работа моделей"
+# ============================================================
+@app.callback(
+    [Output("coach-recommendations-table", "children"),
+     Output("model-actions-table", "children")],
+    Input("interval-component", "n_intervals")
+)
+def update_models_logs(n_intervals):
+    """Обновляет таблицы рекомендаций коуча и действий модели"""
+    coach_rows = []
+    model_rows = []
+
+    if broker_instance and hasattr(broker_instance, 'coach_log'):
+        for entry in broker_instance.coach_log[-20:]:
+            coach_rows.append(html.Tr([
+                html.Td(entry.get('time', ''), style={'fontSize': '11px'}),
+                html.Td(html.Strong(entry.get('ticker', '')), style={'fontSize': '11px'}),
+                html.Td(html.Span(entry.get('action', ''), className=f"badge {'bg-danger' if entry.get('action') == 'SELL' else 'bg-success' if entry.get('action') == 'BUY' else 'bg-warning'}"), style={'fontSize': '11px'}),
+                html.Td(entry.get('rule', ''), style={'fontSize': '11px'}),
+                html.Td(f"{entry.get('confidence', 0):.2f}", style={'fontSize': '11px'}),
+                html.Td(entry.get('rationale', ''), style={'fontSize': '11px', 'maxWidth': '300px', 'wordBreak': 'break-word'})
+            ]))
+
+    if broker_instance and hasattr(broker_instance, 'model_log'):
+        for entry in broker_instance.model_log[-20:]:
+            coach_advice = entry.get('coach_advice', '—')
+            match = '✅' if entry.get('matched', False) else '❌'
+            match_color = 'text-success' if entry.get('matched', False) else 'text-danger'
+            model_rows.append(html.Tr([
+                html.Td(entry.get('time', ''), style={'fontSize': '11px'}),
+                html.Td(html.Strong(entry.get('ticker', '')), style={'fontSize': '11px'}),
+                html.Td(html.Span(entry.get('action', ''), className=f"badge {'bg-danger' if 'SELL' in str(entry.get('action', '')) else 'bg-success' if 'BUY' in str(entry.get('action', '')) else 'bg-warning'}"), style={'fontSize': '11px'}),
+                html.Td(f"{entry.get('state_value', 0):.2f}", style={'fontSize': '11px'}),
+                html.Td(coach_advice, style={'fontSize': '11px'}),
+                html.Td(html.Span(match, className=match_color), style={'fontSize': '11px', 'textAlign': 'center'})
+            ]))
+
+    coach_header = html.Thead(html.Tr([
+        html.Th("Время"), html.Th("Тикер"), html.Th("Совет"), html.Th("Правило"),
+        html.Th("Уверенность"), html.Th("Обоснование")
+    ]))
+
+    model_header = html.Thead(html.Tr([
+        html.Th("Время"), html.Th("Тикер"), html.Th("Действие"), html.Th("Value"),
+        html.Th("Совет коуча"), html.Th("Совпало?")
+    ]))
+
+    coach_table = html.Table([coach_header, html.Tbody(coach_rows)], className="table table-sm table-hover table-striped") if coach_rows else html.P("Нет рекомендаций коуча", className="text-muted")
+    model_table = html.Table([model_header, html.Tbody(model_rows)], className="table table-sm table-hover table-striped") if model_rows else html.P("Нет действий модели", className="text-muted")
+
+    return coach_table, model_table
+
+
+@app.callback(
+    Output("model-actions-header", "children"),
+    Input("model-actions-table", "children")
+)
+def update_model_actions_header(table_children):
+    """Обновляет заголовок с процентом совпадений"""
+    if not table_children or not hasattr(table_children, 'props'):
+        return "🤖 Действия модели"
+
+    # Подсчитываем совпадения из логов
+    if broker_instance and hasattr(broker_instance, 'model_log') and broker_instance.model_log:
+        logs = broker_instance.model_log
+        total = len(logs)
+        matched = sum(1 for entry in logs if entry.get('matched', False))
+        if total > 0:
+            pct = (matched / total) * 100
+            return f"🤖 Действия модели — совпадений: {matched}/{total} ({pct:.1f}%)"
+
+    return "🤖 Действия модели"
 
 if __name__ == '__main__':
     print("Запуск веб-интерфейса...")

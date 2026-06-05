@@ -118,6 +118,19 @@ class SmartPortfolioBroker:
         self.strategy_usage_counter = defaultdict(int)
         self.last_trade_time = defaultdict(float)
 
+        # LLM-коуч
+        self.coach = None
+        self.coach_log = []
+        self.model_log = []
+        coach_config = self.rl_config.get('llm_coach', {})
+        if coach_config.get('enabled', False):
+            try:
+                from models.llm_coach import LLMCoach
+                self.coach = LLMCoach(coach_config)
+                logger.info("LLM-коуч инициализирован")
+            except Exception as e:
+                logger.error(f"Ошибка инициализации LLM-коуча: {e}")
+
         # Запуск компонентов
         self._initialize_components()
 
@@ -383,10 +396,90 @@ class SmartPortfolioBroker:
                 current_state = self._create_initial_state(ticker, price, security_info)
                 self.ticker_states[ticker] = current_state
 
+            # === ВЫЗОВ КОУЧА ПЕРЕД ПРИНЯТИЕМ РЕШЕНИЯ ===
+            coach_action_str = None
+            if self.coach and self.coach.is_available():
+                try:
+                    indicators = self.technical_core.calculate_indicators(ticker)
+                    rsi = indicators.get('rsi', 50)
+                    bb_upper = indicators.get('bb_upper', price * 1.1)
+                    bb_lower = indicators.get('bb_lower', price * 0.9)
+                    bb_position = (price - bb_lower) / (bb_upper - bb_lower) if bb_upper > bb_lower else 0.5
+                    momentum = indicators.get('momentum', 0)
+
+                    ticker_names = self.rl_config.get('ticker_names', {})
+                    keywords = ticker_names.get(ticker, [])
+                    ticker_news = self.news_fetcher.search_news(ticker=ticker, limit=3, keywords=keywords)
+                    if ticker_news:
+                        ticker_news = self.news_fetcher.analyze_sentiment_batch(ticker_news)
+                    news_title = ticker_news[0].get('title', 'нет новостей') if ticker_news else 'нет новостей'
+                    news_sentiment = sum(n.get('sentiment', 0) for n in ticker_news) / max(len(ticker_news),
+                                                                                           1) if ticker_news else 0
+
+                    has_pos = ticker in self.portfolio.positions
+                    pnl_pct = 0.0
+                    if has_pos:
+                        pos = self.portfolio.positions[ticker]
+                        entry = pos.get('avg_price', price)
+                        pnl_pct = ((price - entry) / entry) * 100 if entry > 0 else 0
+
+                    macro = self.moex.get_macro_data()
+
+                    snapshot = {
+                        'ticker': ticker, 'price': price, 'rsi': rsi, 'bb_position': bb_position,
+                        'momentum': momentum, 'has_position': has_pos, 'pnl_pct': pnl_pct,
+                        'imoex_change': macro.get('imoex_change', 0), 'brent_change': macro.get('brent_change', 0),
+                        'news_title': news_title, 'news_sentiment': news_sentiment
+                    }
+
+                    rule, coach_act, reason = self.coach._precompute_rule(snapshot)
+                    snapshot['rule_triggered'] = rule
+                    snapshot['suggested_action'] = coach_act
+
+                    advice = self.coach.get_coach_advice(snapshot)
+                    if advice:
+                        coach_action_str = advice.get('action')
+                        # Сохраняем в лог коуча
+                        self.coach_log.append({
+                            'time': datetime.now().strftime('%H:%M:%S'),
+                            'ticker': ticker,
+                            'action': advice.get('action'),
+                            'rule': advice.get('rule_triggered'),
+                            'confidence': advice.get('confidence'),
+                            'rationale': advice.get('rationale', '')
+                        })
+                        if len(self.coach_log) > 50:
+                            self.coach_log.pop(0)
+                except Exception as e:
+                    logger.debug(f"Коуч недоступен для {ticker}: {e}")
+
             strategy, stop_loss, take_profit, action_idx = self._select_buy_strategy_with_action(
                 ticker, price, confidence, current_state,
                 assigned_horizon=signal.get('assigned_horizon', 'week')
             )
+
+            action_str = self.action_mapping.get(str(action_idx), 'HOLD')
+
+            # Логирование действия модели
+            if ticker in self.ticker_states:
+                state = self.ticker_states[ticker]
+                strategy_params = self.model.strategies.get(strategy, self.model.strategies.get('balanced', {}))
+                full_state = self.model._create_strategy_state(state, strategy_params)
+                with torch.no_grad():
+                    _, state_value, _ = self.model.policy_net(full_state.unsqueeze(0).to(self.model.device))
+                matched = False
+                if coach_action_str:
+                    matched = (coach_action_str in action_str) or (action_str in coach_action_str)
+                self.model_log.append({
+                    'time': datetime.now().strftime('%H:%M:%S'),
+                    'ticker': ticker,
+                    'action': action_str,
+                    'state_value': state_value.item(),
+                    'coach_advice': coach_action_str or '—',
+                    'matched': matched
+                })
+                if len(self.model_log) > 50:
+                    self.model_log.pop(0)
 
             action_str = self.action_mapping.get(str(action_idx), 'HOLD')
 
@@ -889,7 +982,7 @@ class SmartPortfolioBroker:
         return final_strategy, stop_loss, take_profit, action
 
     def _periodic_learning(self):
-        """ОПТИМИЗИРОВАННОЕ онлайн-обучение с приоритетами"""
+        """ОПТИМИЗИРОВАННОЕ онлайн-обучение с приоритетами и LLM-коучем"""
         try:
             # 🔥 ДИАГНОСТИКА
             print(f"\n📊 ДИАГНОСТИКА ПАМЯТИ:")
@@ -947,6 +1040,15 @@ class SmartPortfolioBroker:
                     if regular_loss:
                         logger.debug(f"Регулярное обучение: Loss={regular_loss:.6f}")
 
+            # === LLM-КОУЧ ===
+            if self.coach and self.coach.is_available():
+                coach_config = self.rl_config.get('llm_coach', {})
+                coach_interval = coach_config.get('coach_interval_cycles', 20)
+                weight = coach_config.get('coach_action_weight', 0.3)
+
+                if self.cycle_count % coach_interval == 0:
+                    self._invoke_coach(weight)
+
             # 5. Адаптация стратегий
             if self.cycle_count % self.strategy_adaptation_cycles == 0:
                 self._adapt_strategies_for_profit()
@@ -955,6 +1057,149 @@ class SmartPortfolioBroker:
             logger.error(f"Ошибка обучения: {e}")
             import traceback
             logger.error(traceback.format_exc())
+
+    def _invoke_coach(self, weight: float = 0.3):
+        """Вызов LLM-коуча для получения совета"""
+        try:
+            # Выбираем тикер с позицией или первый из портфеля
+            ticker = None
+            if self.portfolio.positions:
+                ticker = list(self.portfolio.positions.keys())[0]
+            elif self.current_tickers:
+                ticker = self.current_tickers[0]
+            else:
+                return
+
+            price = self.moex.get_price(ticker)
+            if not price:
+                return
+
+            # Собираем снимок состояния
+            indicators = self.technical_core.calculate_indicators(ticker)
+            rsi = indicators.get('rsi', 50)
+            bb_upper = indicators.get('bb_upper', price * 1.1)
+            bb_lower = indicators.get('bb_lower', price * 0.9)
+            bb_position = (price - bb_lower) / (bb_upper - bb_lower) if bb_upper > bb_lower else 0.5
+            momentum = indicators.get('momentum', 0)
+
+            # Новости
+            ticker_names = self.rl_config.get('ticker_names', {})
+            keywords = ticker_names.get(ticker, [])
+            ticker_news = self.news_fetcher.search_news(ticker=ticker, limit=3, keywords=keywords)
+            if ticker_news:
+                ticker_news = self.news_fetcher.analyze_sentiment_batch(ticker_news)
+            news_title = ticker_news[0].get('title', 'нет новостей') if ticker_news else 'нет новостей'
+            news_sentiment = sum(n.get('sentiment', 0) for n in ticker_news) / max(len(ticker_news),
+                                                                                   1) if ticker_news else 0
+
+            # Позиция
+            has_pos = ticker in self.portfolio.positions
+            pnl_pct = 0.0
+            if has_pos:
+                pos = self.portfolio.positions[ticker]
+                entry = pos.get('avg_price', price)
+                pnl_pct = ((price - entry) / entry) * 100 if entry > 0 else 0
+
+            # Макро
+            macro = self.moex.get_macro_data()
+
+            snapshot = {
+                'ticker': ticker,
+                'price': price,
+                'rsi': rsi,
+                'bb_position': bb_position,
+                'momentum': momentum,
+                'has_position': has_pos,
+                'pnl_pct': pnl_pct,
+                'imoex_change': macro.get('imoex_change', 0),
+                'brent_change': macro.get('brent_change', 0),
+                'news_title': news_title,
+                'news_sentiment': news_sentiment
+            }
+
+            # Предвычисляем правило
+            rule, action, reason = self.coach._precompute_rule(snapshot)
+            snapshot['rule_triggered'] = rule
+            snapshot['suggested_action'] = action
+
+            # Получаем совет
+            advice = self.coach.get_coach_advice(snapshot)
+            if advice is None:
+                return
+
+            # Обучаем coach_predictor
+            if ticker in self.ticker_states:
+                state = self.ticker_states[ticker]
+                strategy_params = self.model.strategies.get('balanced', list(self.model.strategies.values())[0])
+                full_state = self.model._create_strategy_state(state, strategy_params)
+
+                action_map = {'BUY': 3, 'BUY_SMALL': 3, 'BUY_NORMAL': 4, 'SELL': 5, 'SELL_SMALL': 5, 'SELL_ALL': 6,
+                              'HOLD': 1}
+                coach_action = action_map.get(advice.get('action', 'HOLD'), 1)
+
+                coach_loss = self.model.learn_from_coach(full_state, coach_action)
+                if coach_loss:
+                    logger.debug(f"Коуч-обучение: Loss={coach_loss:.6f}, совет={advice.get('action')}")
+
+            # Сохраняем в приоритетный буфер
+            coach_exp = {
+                'state': full_state.cpu(),
+                'action': coach_action,
+                'reward': weight,
+                'next_state': full_state.cpu(),
+                'done': False,
+                'is_coach': True,
+                'timestamp': datetime.now().isoformat()
+            }
+            if hasattr(self.model, 'prioritized_buffer'):
+                self.model.prioritized_buffer.add(coach_exp, td_error=1.0)
+
+            logger.info(
+                f"🧠 Коуч: {ticker} → {advice.get('action')} (правило {advice.get('rule_triggered')}, conf={advice.get('confidence'):.2f})")
+
+            # Сохраняем в лог коуча
+            self.coach_log.append({
+                'time': datetime.now().strftime('%H:%M:%S'),
+                'ticker': ticker,
+                'action': advice.get('action'),
+                'rule': advice.get('rule_triggered'),
+                'confidence': advice.get('confidence'),
+                'rationale': advice.get('rationale', '')
+            })
+            if len(self.coach_log) > 50:
+                self.coach_log.pop(0)
+
+            # Сохраняем действие модели для сравнения
+            if ticker in self.ticker_states:
+                state = self.ticker_states[ticker]
+                strategy_params = self.model.strategies.get('balanced', list(self.model.strategies.values())[0])
+                full_state = self.model._create_strategy_state(state, strategy_params)
+                state_tensor = full_state.unsqueeze(0).to(self.model.device)
+                with torch.no_grad():
+                    action_probs, state_value, _ = self.model.policy_net(state_tensor)
+                    model_action_idx = action_probs.argmax().item()
+                model_action = self.action_mapping.get(str(model_action_idx), str(model_action_idx))
+                coach_action = advice.get('action')
+                matched = (coach_action in model_action) or (model_action in coach_action)
+
+                self.model_log.append({
+                    'time': datetime.now().strftime('%H:%M:%S'),
+                    'ticker': ticker,
+                    'action': model_action,
+                    'state_value': state_value.item(),
+                    'coach_advice': coach_action,
+                    'matched': matched
+                })
+                if len(self.model_log) > 50:
+                    self.model_log.pop(0)
+
+        except Exception as e:
+            logger.error(f"Ошибка вызова коуча: {e}")
+
+    def set_coach(self, coach):
+        """Установить экземпляр коуча извне"""
+        self.coach = coach
+        logger.info("LLM-коуч установлен")
 
     def _train_extreme(self, extreme_batch):
         """АГРЕССИВНОЕ обучение на экстремальных сделках"""

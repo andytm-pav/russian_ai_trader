@@ -2035,11 +2035,11 @@
       "last_trade": null
     },
     "TATNP": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "avg_hold_time": 0.1677308155430688,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "SIBN": {
@@ -2059,11 +2059,11 @@
       "last_trade": null
     },
     "CNRU": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "avg_hold_time": 0.031799546281496685,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "SNGSP": {
@@ -2899,7 +2899,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": 0.019244256524762023,
+  "market_sentiment": 0.10137117440163453,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
@@ -2917,11 +2917,11 @@
       "win_rate": 0.0
     },
     "balanced": {
-      "total_trades": 131,
+      "total_trades": 144,
       "profitable_trades": 10,
-      "total_pnl": -368.7650000000004,
-      "avg_pnl": -2.815000000000003,
-      "win_rate": 0.07633587786259542
+      "total_pnl": -434.1350000000004,
+      "avg_pnl": -3.0148263888888915,
+      "win_rate": 0.06944444444444445
     },
     "momentum": {
       "total_trades": 6,
@@ -2952,10 +2952,10 @@
       "win_rate": 0.0
     },
     "price_prediction": {
-      "total_trades": 2,
+      "total_trades": 3,
       "profitable_trades": 0,
-      "total_pnl": -111.85999999999972,
-      "avg_pnl": -55.92999999999986,
+      "total_pnl": -125.19999999999968,
+      "avg_pnl": -41.73333333333323,
       "win_rate": 0.0
     }
   },
@@ -2977,7 +2977,8 @@
         "market_sentiment_threshold": 0.3,
         "min_news_count": 2,
         "max_volatility": 0.05
-      }
+      },
+      "enabled": true
     },
     "tech_conservative": {
       "description": "\u041a\u043e\u043d\u0441\u0435\u0440\u0432\u0430\u0442\u0438\u0432\u043d\u0430\u044f \u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u0442\u043e\u0440\u0433\u043e\u0432\u043b\u044f",
@@ -2996,7 +2997,8 @@
         "rsi_threshold_low": 30,
         "rsi_threshold_high": 70,
         "volume_ratio_min": 1.5
-      }
+      },
+      "enabled": true
     },
     "balanced": {
       "description": "\u0421\u0431\u0430\u043b\u0430\u043d\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u043f\u043e\u0434\u0445\u043e\u0434",
@@ -3033,7 +3035,8 @@
         "momentum_threshold": 1.5,
         "volume_ratio_min": 2.0,
         "max_spread_percent": 0.1
-      }
+      },
+      "enabled": true
     },
     "swing": {
       "description": "\u0421\u0432\u0438\u043d\u0433-\u0442\u0440\u0435\u0439\u0434\u0438\u043d\u0433 (\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u044b\u0435 \u0434\u0432\u0438\u0436\u0435\u043d\u0438\u044f)",
@@ -3052,7 +3055,8 @@
         "trend_strength_min": 0.6,
         "max_volatility": 0.03,
         "min_volume_ratio": 1.2
-      }
+      },
+      "enabled": true
     },
     "mean_reversion": {
       "description": "\u0412\u043e\u0437\u0432\u0440\u0430\u0442 \u043a \u0441\u0440\u0435\u0434\u043d\u0435\u043c\u0443 (\u043f\u0440\u043e\u0442\u0438\u0432 \u0442\u0440\u0435\u043d\u0434\u0430)",
@@ -3072,7 +3076,8 @@
         "rsi_threshold_high": 75,
         "bb_position_min": 0.8,
         "bb_position_max": 0.2
-      }
+      },
+      "enabled": true
     },
     "breakout": {
       "description": "\u0422\u043e\u0440\u0433\u043e\u0432\u043b\u044f \u043d\u0430 \u043f\u0440\u043e\u0431\u043e\u0439 \u0443\u0440\u043e\u0432\u043d\u0435\u0439",
@@ -3091,7 +3096,8 @@
         "volume_ratio_min": 2.5,
         "volatility_threshold": 0.04,
         "atr_multiplier": 1.5
-      }
+      },
+      "enabled": true
     },
     "price_prediction": {
       "description": "\u0422\u043e\u0440\u0433\u043e\u0432\u043b\u044f \u043d\u0430 \u043e\u0441\u043d\u043e\u0432\u0435 \u043f\u0440\u0435\u0434\u0441\u043a\u0430\u0437\u0430\u043d\u0438\u0439 \u043c\u043e\u0434\u0435\u043b\u0438",
@@ -3107,8 +3113,9 @@
       "prediction_weight": 0.5,
       "conditions": {
         "min_confidence": 0.75
-      }
+      },
+      "enabled": true
     }
   },
-  "save_time": "2026-06-05T15:33:56.414150"
+  "save_time": "2026-06-05T23:42:50.588899"
 }
