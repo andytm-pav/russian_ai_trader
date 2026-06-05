@@ -906,7 +906,7 @@ class AdvancedTraderModel:
             return torch.softmax(dummy, dim=0).cpu().numpy()
 
     def choose_action_with_strategy(self, state: torch.Tensor, ticker: str,
-                                   price: float, market_context: Dict) -> Tuple[int, str, float]:
+                                    price: float, market_context: Dict) -> Tuple[int, str, float]:
         """Выбор действия с учетом стратегии"""
         strategy_scores = {}
 
@@ -917,6 +917,10 @@ class AdvancedTraderModel:
             base_state = state
 
         for strategy_name, params in self.strategies.items():
+            # Пропускаем отключённые стратегии
+            if params.get('enabled', True) is False:
+                continue
+
             # Добавляем параметры стратегии к состоянию
             strategy_state = self._create_strategy_state(base_state, params)
 
@@ -933,12 +937,28 @@ class AdvancedTraderModel:
                 'params': params
             }
 
+        # Если все стратегии отключены — fallback на первую доступную
+        if not strategy_scores:
+            for strategy_name, params in self.strategies.items():
+                strategy_state = self._create_strategy_state(base_state, params)
+                with torch.no_grad():
+                    action_probs, state_value, price_pred = self.policy_net(strategy_state.unsqueeze(0))
+                perf = self.strategy_performance[strategy_name]
+                confidence_boost = perf['win_rate'] * self.confidence_boost_factor
+                expected_value = state_value.item() + confidence_boost
+                strategy_scores[strategy_name] = {
+                    'expected_value': expected_value,
+                    'action_probs': action_probs.cpu().numpy().flatten(),
+                    'params': params
+                }
+                break
+
         # Выбор стратегии
         if np.random.random() < self.exploration_rate:
-            chosen_strategy = np.random.choice(list(self.strategies.keys()))
+            chosen_strategy = np.random.choice(list(strategy_scores.keys()))
         else:
             chosen_strategy = max(strategy_scores.items(),
-                                key=lambda x: x[1]['expected_value'])[0]
+                                  key=lambda x: x[1]['expected_value'])[0]
 
         action_probs = strategy_scores[chosen_strategy]['action_probs']
 

@@ -2254,6 +2254,9 @@ class SmartPortfolioBroker:
                 if 'strategies' in new_strategies:
                     for name, params in new_strategies['strategies'].items():
                         if name in self.model.strategies:
+                            # Пропускаем отключённые стратегии
+                            if params.get('enabled', True) is False:
+                                continue
                             # Сохраняем обученный risk_multiplier, если он ниже конфигового
                             old_risk = self.model.strategies[name].get('risk_multiplier', 1.0)
                             new_risk = params.get('risk_multiplier', 1.0)
