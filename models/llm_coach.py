@@ -61,6 +61,11 @@ class LLMCoach:
         if not self.is_available():
             return None
 
+        # Обновляем таймаут провайдера из конфига
+        provider_config = self.config.get("provider", {})
+        if self.provider and "timeout" in provider_config:
+            self.provider.timeout = provider_config["timeout"]
+
         prompt = self._build_context_prompt(snapshot)
         action = snapshot.get("suggested_action", "HOLD")
         rule = snapshot.get("rule_triggered", "7")

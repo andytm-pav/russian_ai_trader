@@ -149,7 +149,7 @@
   "strategy_selection_timeout": 10,
   "llm_coach": {
     "enabled": true,
-    "timeout_seconds": 40,
+    "timeout_seconds": 30,
     "coach_interval_cycles": 20,
     "coach_action_weight": 0.3,
     "min_confidence_threshold": 0.0,
@@ -159,8 +159,8 @@
     "provider": {
       "type": "ollama",
       "url": "http://localhost:11434",
-      "model": "gemma3:4b",
-      "timeout": 40,
+      "model": "gemma3:1b",
+      "timeout": 30,
       "api_key": ""
     }
   },

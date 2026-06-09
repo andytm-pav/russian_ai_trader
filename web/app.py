@@ -2049,8 +2049,7 @@ def update_coach_ui(refresh_clicks, n_intervals):
 
 
 @app.callback(
-    [Output("save-coach-settings-btn", "children"),
-     Output("coach-timeout-input", "value")],
+    Output("save-coach-settings-btn", "children"),
     [Input("save-coach-settings-btn", "n_clicks")],
     [State("coach-enabled-check", "value"),
      State("coach-model-dropdown", "value"),
