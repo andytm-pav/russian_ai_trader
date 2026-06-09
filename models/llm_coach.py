@@ -77,6 +77,7 @@ class LLMCoach:
 
         try:
             start_time = time.time()
+            logger.debug(f"Промпт коучу:\n{full_prompt}")
             response = self.provider.generate(full_prompt)
             elapsed = time.time() - start_time
 
