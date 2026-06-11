@@ -160,16 +160,19 @@ class SmartPortfolioBroker:
         if not signals:
             return allocation
 
+        # Безопасный fallback: первая доступная стратегия вместо хардкода 'balanced'
+        default_strategy = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+
         for signal in signals:
             ticker = signal['ticker']
-            strategy_name = signal.get('strategy', 'balanced')  # ← стратегия ИЗ СИГНАЛА!
+            strategy_name = signal.get('strategy', 'balanced')
 
             if ticker in self.ticker_states:
-                state = self.ticker_states[ticker]  # 151
+                state = self.ticker_states[ticker]
 
-                # 🔥 ИСПОЛЬЗУЕМ РЕАЛЬНУЮ СТРАТЕГИЮ ИЗ СИГНАЛА!
-                strategy_params = self.model.strategies.get(strategy_name, self.model.strategies['balanced'])
-                full_state = self.model._create_strategy_state(state, strategy_params)  # 151 → 157
+                strategy_params = self.model.strategies.get(strategy_name,
+                                                            self.model.strategies.get(default_strategy, {}))
+                full_state = self.model._create_strategy_state(state, strategy_params)
 
                 with torch.no_grad():
                     _, _, price_pred = self.model.policy_net(full_state.unsqueeze(0))
@@ -182,8 +185,8 @@ class SmartPortfolioBroker:
                     else:
                         horizon = 'week'
             else:
-                # Для новых тикеров - по target_hold_time
-                strategy_params = self.model.strategies.get(strategy_name, self.model.strategies['balanced'])
+                strategy_params = self.model.strategies.get(strategy_name,
+                                                            self.model.strategies.get(default_strategy, {}))
                 hold_time = strategy_params.get('target_hold_time_hours', 6)
 
                 if hold_time <= 6:
@@ -199,15 +202,12 @@ class SmartPortfolioBroker:
             if horizon in allocation:
                 allocation[horizon].append(signal)
             else:
-                logger.warning(f"Неизвестный горизонт {horizon} для {ticker}, использую week")
                 allocation['week'].append(signal)
 
-        # Ограничиваем количество сигналов согласно весам
         for horizon, config in horizons.items():
             if horizon in allocation:
                 max_signals = int(len(signals) * config.get('weight', 0.33))
                 allocation[horizon] = allocation[horizon][:max_signals]
-                logger.debug(f"Горизонт {horizon}: {len(allocation[horizon])} сигналов (max={max_signals})")
 
         return allocation
 
@@ -463,7 +463,8 @@ class SmartPortfolioBroker:
             # Логирование действия модели
             if ticker in self.ticker_states:
                 state = self.ticker_states[ticker]
-                strategy_params = self.model.strategies.get(strategy, self.model.strategies.get('balanced', {}))
+                default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                strategy_params = self.model.strategies.get(strategy, self.model.strategies.get(default_name, {}))
                 full_state = self.model._create_strategy_state(state, strategy_params)
                 with torch.no_grad():
                     _, state_value, _ = self.model.policy_net(full_state.unsqueeze(0).to(self.model.device))
@@ -499,13 +500,15 @@ class SmartPortfolioBroker:
                     pos = self.portfolio.positions[ticker]
                     if ticker in self.ticker_states:
                         hold_time = (time.time() - pos.get('buy_time', time.time())) / 3600
-                        hold_reward = self._calculate_reward(0, hold_time, pos.get('strategy', 'balanced'))
+                        default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                        hold_reward = self._calculate_reward(0, hold_time, pos.get('strategy', default_name))
 
                         current_state_hold = self.ticker_states[ticker]
                         next_state_hold = self._create_next_state(ticker, price)
+                        default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
                         strategy_params = self.model.strategies.get(
-                            pos.get('strategy', 'balanced'),
-                            self.model.strategies.get('balanced', {})
+                            pos.get('strategy', default_name),
+                            self.model.strategies.get(default_name, {})
                         )
                         full_current = self.model._create_strategy_state(current_state_hold, strategy_params)
                         full_next = self.model._create_strategy_state(next_state_hold, strategy_params)
@@ -618,15 +621,20 @@ class SmartPortfolioBroker:
 
                     ticker_sentiment = self._get_ticker_sentiment(ticker)
                     next_state = self._create_next_state(ticker, price)
+                    default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                    strategy_key = pos_info.get('strategy', default_name)
+                    if strategy_key not in self.model.strategies:
+                        strategy_key = default_name
                     strategy_params = self.model.strategies.get(
-                        pos_info.get('strategy', 'balanced'),
-                        self.model.strategies.get('balanced', {})
+                        strategy_key,
+                        self.model.strategies.get(default_name, {})
                     )
                     full_current = self.model._create_strategy_state(current_state, strategy_params)
                     full_next = self.model._create_strategy_state(next_state, strategy_params)
 
                     hold_time = (time.time() - pos_info.get('buy_time', time.time())) / 3600
-                    reward = self._calculate_reward(pnl, hold_time, pos_info.get('strategy', 'balanced'))
+                    default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                    reward = self._calculate_reward(pnl, hold_time, pos_info.get('strategy', default_name))
 
                     self.model.remember_experience(
                         state=full_current,
@@ -644,13 +652,13 @@ class SmartPortfolioBroker:
                     )
 
                     if hasattr(self.model, 'record_strategy_outcome'):
+                        default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
                         self.model.record_strategy_outcome(
-                            strategy_name=pos.get('strategy', 'balanced'),
+                            strategy_name=pos.get('strategy', default_name),
                             action='SELL',
                             pnl=pnl,
                             hold_time=time.time() - pos.get('buy_time', time.time())
                         )
-
         logger.debug(f"[DEBUG] Всего исполнено сделок: {executed_count}")
         return executed_count
 
@@ -667,7 +675,8 @@ class SmartPortfolioBroker:
 
         logger.info(f"📝 Запись опыта: {ticker} action={action} strategy={strategy}")
 
-        strategy_params = self.model.strategies.get(strategy, self.model.strategies.get('balanced', {}))
+        default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+        strategy_params = self.model.strategies.get(strategy, self.model.strategies.get(default_name, {}))
         full_state = self.model._create_strategy_state(state, strategy_params)
 
         experience = {
@@ -723,7 +732,9 @@ class SmartPortfolioBroker:
                 pnl = actual_pnl if actual_pnl is not None else 0.0
 
                 next_base_state = self._create_next_state(ticker, exit_price)
-                strategy_params = self.model.strategies.get(exp['strategy'], self.model.strategies.get('balanced', {}))
+                default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                strategy_params = self.model.strategies.get(exp['strategy'],
+                                                            self.model.strategies.get(default_name, {}))
 
                 full_start_state = self.model._create_strategy_state(
                     exp['start_state'].to(self.model.device), strategy_params
@@ -793,7 +804,8 @@ class SmartPortfolioBroker:
 
         # 4. Бонус за скорость (только для прибыльных сделок)
         if reward_config.get('speed_bonus_enabled', True) and pnl_percent > 0:
-            strategy_params = self.model.strategies.get(strategy, self.model.strategies['balanced'])
+            default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+            strategy_params = self.model.strategies.get(strategy, self.model.strategies.get(default_name, {}))
             target_time = strategy_params.get('target_hold_time_hours', 6)
             if hold_time < target_time:
                 speed_max = reward_config.get('speed_bonus_max_percent', 50.0)
@@ -942,10 +954,12 @@ class SmartPortfolioBroker:
         thread.start()
         thread.join(timeout=timeout)
 
+        default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+
         if thread.is_alive():
-            logger.error(f"⏰ ТАЙМАУТ выбора стратегии для {ticker}, использую balanced")
+            logger.error(f"⏰ ТАЙМАУТ выбора стратегии для {ticker}, использую {default_name}")
             action = 3  # HOLD
-            final_strategy = 'balanced'
+            final_strategy = default_name
             strategy_confidence = 0.5
             sentiment_score = 0.0
         else:
@@ -953,11 +967,12 @@ class SmartPortfolioBroker:
                 action, final_strategy, strategy_confidence, sentiment_score = result_queue.get_nowait()
             except:
                 action = 3  # HOLD
-                final_strategy = 'balanced'
+                final_strategy = default_name
                 strategy_confidence = 0.5
                 sentiment_score = 0.0
 
-        strategy_config = self.model.strategies.get(final_strategy, self.model.strategies['balanced'])
+        default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+        strategy_config = self.model.strategies.get(final_strategy, self.model.strategies.get(default_name, {}))
         base_stop_loss = strategy_config.get('stop_loss_percent', 2.5)
         base_take_profit = strategy_config.get('take_profit_percent', 5.0)
 
@@ -986,10 +1001,10 @@ class SmartPortfolioBroker:
         """ОПТИМИЗИРОВАННОЕ онлайн-обучение с приоритетами и LLM-коучем"""
         try:
             # 🔥 ДИАГНОСТИКА
-            print(f"\n📊 ДИАГНОСТИКА ПАМЯТИ:")
-            print(f"   memory size: {len(self.model.memory)}")
+            logger.debug(f"\n📊 ДИАГНОСТИКА ПАМЯТИ:")
+            logger.debug(f"   memory size: {len(self.model.memory)}")
             if hasattr(self.model, 'prioritized_buffer'):
-                print(f"   prioritized_buffer size: {self.model.prioritized_buffer.size}")
+                logger.debug(f"   prioritized_buffer size: {self.model.prioritized_buffer.size}")
 
             # ✅ ИСПРАВЛЕНО: определяем переменную!
             enable_extreme = self.profit_config.get("enable_extreme_learning", True)
@@ -1001,7 +1016,7 @@ class SmartPortfolioBroker:
                     if priority_loss:
                         logger.debug(f"Приоритетное обучение: Loss={priority_loss:.6f}")
                 else:
-                    print(f"   ⚠️ Недостаточно опытов в prioritized_buffer: {self.model.prioritized_buffer.size} < 32")
+                    logger.debug(f"   ⚠️ Недостаточно опытов в prioritized_buffer: {self.model.prioritized_buffer.size} < 32")
 
             # 2. Критические сделки
             critical_trades = []
@@ -1131,7 +1146,7 @@ class SmartPortfolioBroker:
             # Обучаем coach_predictor
             if ticker in self.ticker_states:
                 state = self.ticker_states[ticker]
-                strategy_params = self.model.strategies.get('balanced', list(self.model.strategies.values())[0])
+                strategy_params = list(self.model.strategies.values())[0] if self.model.strategies else {}
                 full_state = self.model._create_strategy_state(state, strategy_params)
 
                 action_map = {'BUY': 3, 'BUY_SMALL': 3, 'BUY_NORMAL': 4, 'SELL': 5, 'SELL_SMALL': 5, 'SELL_ALL': 6,
@@ -1174,7 +1189,7 @@ class SmartPortfolioBroker:
             # Сохраняем действие модели для сравнения
             if ticker in self.ticker_states:
                 state = self.ticker_states[ticker]
-                strategy_params = self.model.strategies.get('balanced', list(self.model.strategies.values())[0])
+                strategy_params = list(self.model.strategies.values())[0] if self.model.strategies else {}
                 full_state = self.model._create_strategy_state(state, strategy_params)
                 state_tensor = full_state.unsqueeze(0).to(self.model.device)
                 with torch.no_grad():
@@ -1684,8 +1699,11 @@ class SmartPortfolioBroker:
                                 current_state = self.ticker_states[ticker]
                                 next_state = self._create_next_state(ticker, current_price)
 
-                                strategy = pos.get('strategy', 'balanced')
-                                strategy_params = self.model.strategies[strategy]
+                                default_name = next(
+                                    iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                                strategy = pos.get('strategy', default_name)
+                                strategy_params = self.model.strategies.get(strategy,
+                                                                            self.model.strategies.get(default_name, {}))
 
                                 full_current = self.model._create_strategy_state(current_state, strategy_params)
                                 full_next = self.model._create_strategy_state(next_state, strategy_params)
@@ -1724,10 +1742,12 @@ class SmartPortfolioBroker:
                                 current_state = self.ticker_states[ticker]
                                 next_state = self._create_next_state(ticker, current_price)
 
-                                fallback_strategy = self.rl_config.get('fallback_strategy', 'balanced')
+                                default_name = next(
+                                    iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                                fallback_strategy = self.rl_config.get('fallback_strategy', default_name)
                                 strategy_params = self.model.strategies.get(
                                     fallback_strategy,
-                                    self.model.strategies.get('balanced', {})
+                                    self.model.strategies.get(default_name, {})
                                 )
 
                                 full_current = self.model._create_strategy_state(current_state, strategy_params)
@@ -2149,7 +2169,8 @@ class SmartPortfolioBroker:
                     qty = (qty // lot_size) * lot_size
 
                 if qty >= lot_size:
-                    if self.portfolio.buy(ticker, qty, price, 'balanced',
+                    default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                    if self.portfolio.buy(ticker, qty, price, default_name,
                                           lot_size=lot_size,
                                           min_step=min_step):
                         self.portfolio.positions[ticker]['buy_time'] = time.time()

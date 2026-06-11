@@ -2451,7 +2451,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": -0.09357258228454333,
+  "market_sentiment": -0.0918738617354758,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
@@ -2518,10 +2518,10 @@
       "horizon": "day_session",
       "news_weight": 0.8,
       "tech_weight": 0.2,
-      "risk_multiplier": 1.0,
-      "target_hold_time_hours": 1,
-      "stop_loss_percent": 3.0,
-      "take_profit_percent": 5.0,
+      "risk_multiplier": 2.0,
+      "target_hold_time_hours": 0.5,
+      "stop_loss_percent": 4.0,
+      "take_profit_percent": 8.0,
       "max_positions": 2,
       "min_win_rate": 0.4,
       "prediction_weight": 0.1,
@@ -2651,5 +2651,5 @@
       }
     }
   },
-  "save_time": "2026-06-11T23:21:47.306478"
+  "save_time": "2026-06-12T02:08:12.837036"
 }

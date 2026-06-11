@@ -164,8 +164,14 @@
             "update_interval": 300
         },
         {
-            "url": "https://www.finam.ru/international/advanced/rsspoint/",
-            "name": "finam-новости мировых рынков",
+            "url": "Финам.RU© - Новости развитых рынков",
+            "name": "https://www.finam.ru/international/advanced/rsspoint/",
+            "enabled": true,
+            "update_interval": 300
+        },
+        {
+            "url": "https://www.finam.ru/analysis/nslent/rsspoint/",
+            "name": "Финам.RU© - Рынок и Аналитика : Лента комментариев",
             "enabled": true,
             "update_interval": 300
         }

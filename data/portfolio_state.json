@@ -51,7 +51,7 @@
       "min_step": 0.01
     }
   },
-  "last_update": "2026-06-11T23:16:57.876476",
+  "last_update": "2026-06-12T00:50:00.325415",
   "initial_capital": 10000,
   "reserved_cash": 0.96,
   "pending_commissions": [
@@ -1520,29 +1520,7 @@
       }
     }
   ],
-  "daily_trades": [
-    {
-      "timestamp": "2026-06-11T22:46:14.206199",
-      "ticker": "SBER",
-      "action": "SELL",
-      "quantity": 1,
-      "price": 321.41,
-      "value": 321.41,
-      "commission": 0.96,
-      "pnl": -1.9800000000000022,
-      "strategy": "balanced"
-    },
-    {
-      "timestamp": "2026-06-11T22:46:25.371173",
-      "ticker": "SBER",
-      "action": "BUY",
-      "quantity": 1,
-      "price": 321.41,
-      "value": 321.41,
-      "commission_reserved": 0.96,
-      "strategy": "balanced"
-    }
-  ],
+  "daily_trades": [],
   "commission_spent_today": 3.84,
   "total_commission": 98.50999999999995,
   "total_trades": 34,

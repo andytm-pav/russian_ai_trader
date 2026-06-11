@@ -966,6 +966,18 @@ class AdvancedTraderModel:
                 }
                 break
 
+        # Если даже fallback не сработал — возвращаем HOLD
+
+        if not strategy_scores:
+            logger.error("❌ Все стратегии отключены или отсутствуют! Возвращаю HOLD.")
+            hold_idx = 3
+            action_mapping = self.rl_config.get('action_mapping', {})
+            for key, value in action_mapping.items():
+                if value == 'HOLD':
+                    hold_idx = int(key)
+                    break
+            return hold_idx, 'balanced', 0.0
+
         # Выбор стратегии
         if np.random.random() < self.exploration_rate:
             chosen_strategy = np.random.choice(list(strategy_scores.keys()))
