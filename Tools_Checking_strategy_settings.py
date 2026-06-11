@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-ПРОВЕРКА НАСТРОЕК СТРАТЕГИЙ (v2)
-Сравнивает strategies.json, model_state.json и runtime-стратегии.
-Показывает расхождения и причину.
+ПРОВЕРКА НАСТРОЕК СТРАТЕГИЙ (v4)
+Сравнивает strategies.json, model_state.json, runtime-стратегии и реальный выбор моделью.
 """
 
 import json
 import sys
+import random
+import torch
+from collections import Counter
 
 sys.path.insert(0, '.')
 
 print("\n" + "=" * 60)
-print("🔍 ПРОВЕРКА НАСТРОЕК СТРАТЕГИЙ (v2)")
+print("🔍 ПРОВЕРКА НАСТРОЕК СТРАТЕГИЙ (v4)")
 print("=" * 60)
 
 # 1. strategies.json
@@ -34,7 +36,7 @@ except Exception as e:
     strategies_state = {}
     perf_state = {}
 
-# 3. Runtime (если система запущена)
+# 3. Runtime
 strategies_runtime = {}
 try:
     from models.trader_model import trader_model_instance
@@ -43,68 +45,136 @@ try:
 except Exception as e:
     print(f"\n⚠️ Система не запущена — runtime-стратегии недоступны")
 
-print(f"\n{'='*60}")
-print(f"📊 СВОДНАЯ ТАБЛИЦА")
-print(f"{'='*60}")
-print(f"{'Стратегия':20s} {'config':8s} {'state':8s} {'runtime':8s} {'trades':>7s} {'win_rate':>8s} {'Вердикт'}")
-print(f"{'-'*20} {'-'*8} {'-'*8} {'-'*8} {'-'*7} {'-'*8} {'-'*30}")
+print(f"\n{'='*80}")
+print(f"📊 ПОЛНАЯ СВОДНАЯ ТАБЛИЦА")
+print(f"{'='*80}")
+print(f"{'Стратегия':20s} {'config':10s} {'state':10s} {'runtime':10s} {'trades':>7s} {'win':>7s} {'Итог':20s} {'Пояснение'}")
+print(f"{'-'*20} {'-'*10} {'-'*10} {'-'*10} {'-'*7} {'-'*7} {'-'*20} {'-'*30}")
 
-for name in strategies_config:
-    # Данные из конфига
-    cfg_enabled = strategies_config[name].get('enabled', True)
-    cfg_risk = strategies_config[name].get('risk_multiplier', 1.0)
+all_names = set(strategies_config.keys()) | set(strategies_state.keys()) | set(strategies_runtime.keys())
 
-    # Данные из model_state.json
-    st_enabled = strategies_state.get(name, {}).get('enabled', True) if name in strategies_state else '—'
-    st_risk = strategies_state.get(name, {}).get('risk_multiplier', '—') if name in strategies_state else '—'
+for name in sorted(all_names):
+    cfg_params = strategies_config.get(name, {})
+    cfg_enabled = cfg_params.get('enabled', True)
+    cfg_risk = cfg_params.get('risk_multiplier', '—')
+
+    st_params = strategies_state.get(name, {})
+    st_enabled = st_params.get('enabled', True) if name in strategies_state else '—'
+    st_risk = st_params.get('risk_multiplier', '—') if name in strategies_state else '—'
     st_trades = perf_state.get(name, {}).get('total_trades', 0)
     st_win = perf_state.get(name, {}).get('win_rate', 0)
 
-    # Данные из runtime
-    rt_enabled = '—'
-    rt_risk = '—'
-    if strategies_runtime:
-        rt_params = strategies_runtime.get(name, {})
-        rt_enabled = rt_params.get('enabled', True)
-        rt_risk = rt_params.get('risk_multiplier', '—')
+    rt_params = strategies_runtime.get(name, {})
+    rt_present = name in strategies_runtime
+    rt_risk = rt_params.get('risk_multiplier', '—') if rt_present else '—'
 
-    # Форматирование
     cfg_str = f"{'✅' if cfg_enabled else '❌'} {cfg_risk}"
     st_str = f"{'✅' if st_enabled == True else '❌' if st_enabled == False else '—'} {st_risk}"
-    rt_str = f"{'✅' if rt_enabled == True else '❌' if rt_enabled == False else '—'} {rt_risk}"
+    rt_str = f"{'✅' if rt_present else '❌ нет'} {rt_risk}"
+
+    will_use = rt_present
+    verdict = []
+    explanation = []
+
+    if not rt_present:
+        verdict.append("НЕ ИСПОЛЬЗУЕТСЯ")
+        if cfg_enabled is False:
+            explanation.append("отключена в конфиге")
+        else:
+            explanation.append("отсутствует в runtime")
+    else:
+        verdict.append("ИСПОЛЬЗУЕТСЯ ✅")
+        if st_risk != '—' and st_risk != cfg_risk and st_risk < cfg_risk:
+            explanation.append(f"risk снижен {cfg_risk}→{st_risk}")
+        if st_trades > 50 and st_win < 0.10:
+            explanation.append(f"{st_trades} сделок, win={st_win:.0%}")
+        if not explanation:
+            explanation.append("OK")
+
+    print(f"{name:20s} {cfg_str:10s} {st_str:10s} {rt_str:10s} {st_trades:>7d} {st_win:>6.1%} {verdict[0]:20s} {', '.join(explanation)}")
+
+# Анализ расхождений
+print(f"\n{'='*80}")
+print(f"📋 АНАЛИЗ РАСХОЖДЕНИЙ")
+print(f"{'='*80}")
+
+issues = []
+for name in sorted(all_names):
+    cfg_params = strategies_config.get(name, {})
+    cfg_enabled = cfg_params.get('enabled', True)
+    rt_present = name in strategies_runtime
+    st_present = name in strategies_state
+
+    if cfg_enabled is False and rt_present:
+        issues.append(f"🔴 {name}: отключена в конфиге, но присутствует в runtime!")
+        issues.append(f"   → Нажмите '🔧 Обновить конфиги' в дашборде")
+    elif cfg_enabled is False and not rt_present and st_present:
+        issues.append(f"🟡 {name}: отключена в конфиге и удалена из runtime, но осталась в model_state.json")
+        issues.append(f"   → При следующем save_model() будет удалена из model_state.json")
+    elif cfg_enabled and rt_present and not st_present:
+        issues.append(f"🟡 {name}: включена в конфиге и runtime, но отсутствует в model_state.json")
+        issues.append(f"   → Появится в model_state.json после save_model()")
+
+if not issues:
+    print("   ✅ Все стратегии синхронизированы. Расхождений нет.")
+else:
+    for line in issues:
+        print(f"   {line}")
+
+# Реальный выбор моделью
+print(f"\n{'='*80}")
+print(f"🎯 РЕАЛЬНЫЙ ВЫБОР МОДЕЛЬЮ (50 проходов)")
+print(f"{'='*80}")
+
+if strategies_runtime:
+    model = trader_model_instance
+    state = torch.randn(model.base_state_dim).to(model.device)
+    choices = Counter()
+    actions = Counter()
+
+    for i in range(50):
+        ticker = random.choice(['SBER', 'GAZP', 'LKOH', 'ROSN', 'VTBR'])
+        price = random.uniform(100, 500)
+        try:
+            action, strategy, conf = model.choose_action_with_strategy(
+                state=state,
+                ticker=ticker,
+                price=price,
+                market_context={
+                    'market_sentiment': 0,
+                    'volatility': 1.0,
+                    'confidence': 0.7,
+                    'time_of_day': 0.5,
+                    'ticker_sentiment': 0,
+                    'assigned_horizon': 'week'
+                }
+            )
+            choices[strategy] += 1
+            action_name = model.rl_config.get('action_mapping', {}).get(str(action), f'UNK{action}')
+            actions[action_name] += 1
+        except Exception as e:
+            choices[f'ОШИБКА: {e}'] += 1
+
+    total = sum(choices.values())
+    print(f"\n   Стратегии ({total} проходов):")
+    for name, count in choices.most_common():
+        bar = '█' * int(count / total * 30)
+        print(f"   {name:20s}: {count:>3d} ({count/total*100:5.1f}%) {bar}")
+
+    print(f"\n   Действия:")
+    for name, count in actions.most_common():
+        print(f"   {name:15s}: {count:>3d}")
 
     # Вердикт
-    verdict = []
-    if cfg_enabled is False and strategies_runtime and rt_enabled is not False:
-        verdict.append("🔴 state переопределяет enabled!")
-    if cfg_enabled is False and not strategies_runtime and st_enabled is not False:
-        verdict.append("🔴 state не содержит enabled — модель считает активной!")
-    if st_risk != '—' and st_risk < cfg_risk:
-        verdict.append(f"🟡 risk снижен {cfg_risk}→{st_risk}")
-    if st_trades > 50 and st_win < 0.10:
-        verdict.append(f"⚠️ {st_trades} сделок, win_rate={st_win:.0%}")
-    if not verdict:
-        verdict.append("✅ OK")
+    disabled_in_config = [n for n, p in strategies_config.items() if p.get('enabled', True) is False]
+    used_disabled = [n for n in disabled_in_config if choices.get(n, 0) > 0]
+    if used_disabled:
+        print(f"\n   🔴 ОТКЛЮЧЁННЫЕ СТРАТЕГИИ ВЫБИРАЮТСЯ: {used_disabled}")
+    else:
+        print(f"\n   ✅ Отключённые стратегии не выбираются.")
+else:
+    print("   ⚠️ Система не запущена — проверка выбора невозможна.")
 
-    print(f"{name:20s} {cfg_str:8s} {st_str:8s} {rt_str:8s} {st_trades:>7d} {st_win:>7.1%} {verdict[0]}")
-
-print(f"\n{'='*60}")
-print("📋 РЕКОМЕНДАЦИИ")
-print(f"{'='*60}")
-
-issues_found = False
-for name in strategies_config:
-    cfg_enabled = strategies_config[name].get('enabled', True)
-    st_enabled = strategies_state.get(name, {}).get('enabled', True) if name in strategies_state else True
-
-    if cfg_enabled is False and st_enabled is not False:
-        print(f"   🔴 {name}: отключена в конфиге, но model_state.json переопределяет!")
-        print(f"      → Удалите model_state.json (пункт 5 в reset_system.py)")
-        issues_found = True
-
-if not issues_found:
-    print(f"   ✅ Все стратегии синхронизированы между конфигом и model_state.json")
-
-print("\n" + "=" * 60)
+print("\n" + "=" * 80)
 print("✅ ПРОВЕРКА ЗАВЕРШЕНА")
-print("=" * 60)
+print("=" * 80)

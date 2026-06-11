@@ -2501,8 +2501,9 @@ class SmartPortfolioBroker:
                 if 'strategies' in new_strategies:
                     for name, params in new_strategies['strategies'].items():
                         if name in self.model.strategies:
-                            # Пропускаем отключённые стратегии
+                            # Удаляем отключённые стратегии
                             if params.get('enabled', True) is False:
+                                self.model.strategies.pop(name, None)
                                 continue
                             # Сохраняем обученный risk_multiplier, если он ниже конфигового
                             old_risk = self.model.strategies[name].get('risk_multiplier', 1.0)
@@ -2536,6 +2537,10 @@ class SmartPortfolioBroker:
                 # Обновляем signal_filter
                 if 'signal_filter' in new_rl:
                     self.rl_config['signal_filter'] = new_rl['signal_filter']
+
+            # Сохраняем обновлённые стратегии в model_state.json
+            if hasattr(self, 'model') and self.model:
+                self.model.save_model()
 
             logger.info("✅ Конфиги перезагружены на лету")
 
