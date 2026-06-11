@@ -853,22 +853,18 @@ class MoexFetcher:
             return None
 
     def get_brent_price(self) -> Optional[float]:
-        """Получение цены Brent (приоритет: MOEX → YFinance)"""
+        """Получение цены Brent (приоритет: MOEX → Investing.com → кэш)"""
         cache_key = "brent_price"
         cached = self._get_from_cache(cache_key)
         if cached is not None:
             return cached
 
-        # 1. Пробуем MOEX (старый метод)
+        # 1. MOEX фьючерсы
         try:
             contract = self.get_active_brent_contract()
             if contract:
                 url = f"{self.base_url}/engines/futures/markets/forts/securities/{contract}.json"
-                params = {
-                    'iss.meta': 'off',
-                    'iss.only': 'marketdata',
-                    'marketdata.columns': 'SECID,LAST'
-                }
+                params = {'iss.meta': 'off', 'iss.only': 'marketdata', 'marketdata.columns': 'SECID,LAST'}
                 data = self._make_request(url, params, timeout=10)
                 if data and 'marketdata' in data and data['marketdata']['data']:
                     row = data['marketdata']['data'][0]
@@ -879,71 +875,114 @@ class MoexFetcher:
                             price = self._safe_float(row[idx])
                             if price > 0:
                                 self._save_to_cache(cache_key, price)
-                                logger.debug(f"Brent (MOEX {contract}): {price:.2f}")
                                 return price
         except Exception as e:
             logger.debug(f"Brent MOEX недоступен: {e}")
 
-        # 2. Fallback: YFinance
+        # 2. Investing.com
         try:
-            ticker = yf.Ticker("BZ=F")
-            df = ticker.history(period="1d")
-            if not df.empty:
-                price = float(df['Close'].iloc[-1])
-                if price > 0:
-                    self._save_to_cache(cache_key, price)
-                    logger.debug(f"Brent (YFinance): {price:.2f}")
-                    return price
+            import re
+            resp = self.session.get(
+                "https://ru.investing.com/commodities/brent-oil",
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                match = re.search(r'data-test="instrument-price-last">\s*([\d.,]+)', resp.text)
+                if not match:
+                    match = re.search(r'"last":([\d.]+)', resp.text)
+                if match:
+                    raw = match.group(1).replace('.', '').replace(',', '.')
+                    price = float(raw)
+                    if price > 0:
+                        self._save_to_cache(cache_key, price)
+                        logger.debug(f"Brent (Investing.com): {price:.2f}")
+                        return price
         except Exception as e:
-            logger.debug(f"Brent YFinance недоступен: {e}")
+            logger.debug(f"Brent Investing.com недоступен: {e}")
 
-        logger.debug("Brent не доступен (ни MOEX, ни YFinance)")
+        # 3. Устаревший кэш
+        if cache_key in self.cache:
+            cached_data, _ = self.cache[cache_key]
+            logger.debug(f"Brent из устаревшего кэша: {cached_data:.2f}")
+            return cached_data
+
         return None
 
     def get_brent_change(self) -> float:
-        """Получение изменения цены Brent"""
+        """Получение изменения цены Brent через Investing.com"""
         cache_key = "brent_change"
         cached = self._get_from_cache(cache_key)
         if cached is not None:
             return cached
 
-        # Пробуем YFinance (история за 2 дня)
         try:
-            ticker = yf.Ticker("BZ=F")
-            df = ticker.history(period="5d")
-            if len(df) >= 2:
-                last_close = float(df['Close'].iloc[-1])
-                prev_close = float(df['Close'].iloc[-2])
-                if prev_close > 0:
-                    change = ((last_close - prev_close) / prev_close) * 100
-                    self._save_to_cache(cache_key, change)
-                    logger.debug(f"Brent change (YFinance): {change:+.2f}%")
-                    return change
+            import re
+            resp = self.session.get(
+                "https://ru.investing.com/commodities/brent-oil",
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                # Ищем процент изменения
+                match = re.search(r'data-test="instrument-price-change-percent">\s*([+\-\d.,]+)%', resp.text)
+                if not match:
+                    match = re.search(r'"changePercent":([\d.\-]+)', resp.text)
+                if match:
+                    raw = match.group(1).replace(',', '.')
+                    change = float(raw)
+                    if change != 0:
+                        self._save_to_cache(cache_key, change)
+                        logger.debug(f"Brent change (Investing.com): {change:+.2f}%")
+                        return change
         except Exception as e:
-            logger.debug(f"Brent change YFinance недоступен: {e}")
+            logger.debug(f"Brent change Investing.com недоступен: {e}")
+
+        # Устаревший кэш
+        if cache_key in self.cache:
+            cached_data, _ = self.cache[cache_key]
+            return cached_data
 
         return 0.0
 
     def get_vix(self) -> Optional[float]:
-        """Получение индекса волатильности VIX через YFinance"""
+        """Получение индекса волатильности (Investing.com → MOEX RVI)"""
         cache_key = "vix"
         cached = self._get_from_cache(cache_key)
         if cached is not None:
             return cached
 
+        # 1. Investing.com
         try:
-            ticker = yf.Ticker("^VIX")
-            df = ticker.history(period="1d")
-            if not df.empty:
-                value = float(df['Close'].iloc[-1])
-                if value > 0:
-                    self._save_to_cache(cache_key, value)
-                    logger.debug(f"VIX (YFinance): {value:.2f}")
-                    return value
+            import re
+            resp = self.session.get(
+                "https://ru.investing.com/indices/volatility-s-p-500",
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                match = re.search(r'data-test="instrument-price-last">\s*([\d.,]+)', resp.text)
+                if not match:
+                    match = re.search(r'"last":([\d.]+)', resp.text)
+                if match:
+                    raw = match.group(1).replace('.', '').replace(',', '.')
+                    value = float(raw)
+                    if value > 0:
+                        self._save_to_cache(cache_key, value)
+                        logger.debug(f"VIX (Investing.com): {value:.2f}")
+                        return value
         except Exception as e:
-            logger.debug(f"VIX YFinance недоступен: {e}")
+            logger.debug(f"VIX Investing.com недоступен: {e}")
 
-        return None
+        # 2. MOEX RVI как запасной вариант
+        rvi_data = self.get_rvi()
+        if rvi_data:
+            rvi_value = rvi_data.get('value', self.default_rvi)
+            self._save_to_cache(cache_key, rvi_value)
+            logger.debug(f"VIX через RVI MOEX: {rvi_value:.2f}")
+            return rvi_value
+
+        return self.default_rvi
 
     def get_usd_rub(self) -> Optional[float]:
         """Получение курса USD/RUB (приоритет: MOEX → ЦБ РФ)"""

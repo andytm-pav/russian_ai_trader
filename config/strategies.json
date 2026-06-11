@@ -42,7 +42,7 @@
     },
     "balanced": {
       "description": "Сбалансированный подход",
-      "enabled": true,
+      "enabled": false,
       "horizon": "three_days",
       "news_weight": 0.5,
       "tech_weight": 0.5,
