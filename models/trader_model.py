@@ -847,8 +847,29 @@ class AdvancedTraderModel:
         features.append(market_data.get('market_liquidity_ratio', 0.0))
         features.append(market_data.get('market_activity_score', 0.0))
 
+        # === 17. Частота сделок (1 признак) ===
+        trades_last_hour = 0.0
+        if portfolio is not None and hasattr(portfolio, 'trade_history'):
+            now_ts = time.time()
+            count = 0
+            for t in portfolio.trade_history:
+                ts = t.get('timestamp')
+                if ts:
+                    if isinstance(ts, str):
+                        try:
+                            ts_float = datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp()
+                        except:
+                            continue
+                    else:
+                        ts_float = float(ts)
+                    if ts_float > now_ts - 3600:
+                        count += 1
+            trades_last_hour = count
+        features.append(min(trades_last_hour / 10.0, 1.0))
+
+
         # Проверка размерности
-        expected_dim = self._get_expected_dimension()
+        expected_dim = self._get_expected_dimension() + feature_config.get('reserved_slots', 0)
         if len(features) != expected_dim:
             logger.warning(f"build_state_vector: ожидалось {expected_dim}, получено {len(features)}")
             if len(features) < expected_dim:

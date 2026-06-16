@@ -133,9 +133,9 @@
   "news_sensitivity_score": 0.7,
   "enable_technical_core": true,
   "enable_news_core": true,
-  "min_cash_per_trade": 1000,
+  "min_cash_per_trade": 3000,
   "daily_commission_limit": 100.0,
-  "cooldown_seconds": 1800,
+  "cooldown_seconds": 3600,
   "trades_lookback_seconds": 3600,
   "max_positions_per_horizon": {
     "day_session": 5,

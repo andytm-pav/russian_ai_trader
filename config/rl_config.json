@@ -58,8 +58,8 @@
     "convergence_threshold": 0.1
   },
   "exploration": {
-    "initial_exploration_rate": 0.03,
-    "final_exploration_rate": 0.01,
+    "initial_exploration_rate": 0.1,
+    "final_exploration_rate": 0.03,
     "exploration_decay_steps": 200,
     "action_exploration_rate": 0.01,
     "min_exploration_rate": 0.01,
@@ -76,12 +76,12 @@
     "search_news_in_summary": true
   },
   "state_parameters": {
-    "state_vector_size": 210,
-    "total_state_size": 216,
+    "state_vector_size": 211,
+    "total_state_size": 227,
     "news_features_size": 132,
     "strategy_params_size": 6,
     "market_features_count": 48,
-    "reserved_slots": 0
+    "reserved_slots": 10
   },
   "state_dimensions": {
     "price_volume": 4,
@@ -149,7 +149,7 @@
   "strategy_selection_timeout": 10,
   "llm_coach": {
     "enabled": true,
-    "timeout_seconds": 15,
+    "timeout_seconds": 20,
     "coach_interval_cycles": 10,
     "coach_action_weight": 0.3,
     "min_confidence_threshold": 0.0,
@@ -160,7 +160,7 @@
       "type": "ollama",
       "url": "http://localhost:11434",
       "model": "gemma3:1b",
-      "timeout": 15,
+      "timeout": 20,
       "api_key": ""
     }
   },
@@ -298,7 +298,7 @@
     "commission_settlement_days": 1
   },
   "feature_config": {
-    "reserved_slots": 0,
+    "reserved_slots": 10,
     "market_features": [
       "spread_pct",
       "market_mood",
@@ -326,7 +326,7 @@
     "hold_penalty_threshold": 24.0,
     "hold_penalty_rate": 0.1,
     "commission_penalty_enabled": true,
-    "commission_penalty_scale": 200.0,
+    "commission_penalty_scale": 600.0,
     "concentration_penalty_enabled": true,
     "max_positions_before_penalty": 3,
     "concentration_penalty_per_position": 0.5,
