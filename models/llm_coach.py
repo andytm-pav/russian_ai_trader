@@ -114,26 +114,57 @@ class LLMCoach:
         momentum = snapshot.get("momentum", 0)
         has_pos = snapshot.get("has_position", False)
         pnl = snapshot.get("pnl_pct", 0)
+        imoex = snapshot.get("imoex", 0)
         imoex_change = snapshot.get("imoex_change", 0)
+        brent = snapshot.get("brent", 0)
         brent_change = snapshot.get("brent_change", 0)
+        rvi = snapshot.get("rvi", 0)
+        usd_rub = snapshot.get("usd_rub", 0)
         news_title = snapshot.get("news_title", "нет новостей")
         news_sentiment = snapshot.get("news_sentiment", 0)
+        positions_count = snapshot.get("positions_count", 0)
+        max_positions = snapshot.get("max_positions", 10)
+        cash = snapshot.get("cash", 0)
+        exposure = snapshot.get("exposure", 0)
+        stop_loss = snapshot.get("stop_loss", 0)
+        take_profit = snapshot.get("take_profit", 0)
+        volume = snapshot.get("volume", 0)
 
-        pos_line = f"У вас {'ОТКРЫТА' if has_pos else 'НЕТ'} позиции по {ticker}."
+        # Цена и позиция
         if has_pos:
-            pos_line += f" Текущая цена {price:.0f}₽, PnL {pnl:+.1f}%."
+            pos_line = (f"У вас ОТКРЫТА позиция по {ticker}. "
+                        f"Цена: {price:.2f}₽. PnL: {pnl:+.1f}%. "
+                        f"Стоп-лосс: {stop_loss:.2f}₽. Тейк-профит: {take_profit:.2f}₽.")
+        else:
+            pos_line = f"У вас НЕТ позиции по {ticker}. Текущая цена: {price:.2f}₽."
 
+        # Портфель
+        port_line = (f"Портфель: {positions_count}/{max_positions} позиций, "
+                     f"свободный кэш: {cash:.0f}₽, риск (exposure): {exposure:.1%}.")
+
+        # Рынок
+        market_line = (f"IMOEX: {imoex:.0f} ({imoex_change:+.1f}%), "
+                       f"Brent: ${brent:.1f} ({brent_change:+.1f}%), "
+                       f"RVI: {rvi:.1f}, USD/RUB: {usd_rub:.2f}.")
+
+        # Новость
         sentiment_word = "позитивная" if news_sentiment > 0.1 else "негативная" if news_sentiment < -0.1 else "нейтральная"
+        news_line = f"Ключевая новость ({sentiment_word}): {news_title}"
+
+        # Объём
+        volume_line = f"Объём торгов: {volume:,.0f}₽" if volume > 0 else ""
 
         return f"""Ты — ассистент трейдера. Проверь, правильно ли сработало правило.
 
-ДАННЫЕ:
-- {pos_line}
-- RSI={rsi:.1f}, полоса Боллинджера={bb_pos:.2f}, momentum={momentum:+.1f}%
-- Рынок: IMOEX {imoex_change:+.1f}%, Brent {brent_change:+.1f}%
-- Ключевая новость ({sentiment_word}): {news_title}
+    ДАННЫЕ:
+    - {pos_line}
+    - {port_line}
+    - RSI={rsi:.1f}, полоса Боллинджера={bb_pos:.2f}, momentum={momentum:+.1f}%
+    - {market_line}
+    - {news_line}
+    {f'- {volume_line}' if volume_line else ''}
 
-АНАЛИЗ:"""
+    АНАЛИЗ:"""
 
     def _parse_response(self, text: str) -> Optional[Dict]:
         """Извлекает JSON из ответа модели"""

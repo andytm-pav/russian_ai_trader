@@ -1119,6 +1119,26 @@ class SmartPortfolioBroker:
             # Макро
             macro = self.moex.get_macro_data()
 
+            # Портфель
+            positions_count = len(self.portfolio.positions) if hasattr(self.portfolio, 'positions') else 0
+            max_pos = self.portfolio.max_positions if hasattr(self.portfolio, 'max_positions') else 10
+            cash = self.portfolio.cash if hasattr(self.portfolio, 'cash') else 0
+            exposure_val = 0
+            if hasattr(self.portfolio, 'initial_capital') and self.portfolio.initial_capital > 0:
+                positions_value = sum(p['qty'] * p.get('avg_price', 0) for p in self.portfolio.positions.values())
+                exposure_val = positions_value / self.portfolio.initial_capital
+
+            # Стоп и тейк
+            stop_loss = 0.0
+            take_profit = 0.0
+            if has_pos:
+                pos = self.portfolio.positions[ticker]
+                stop_loss = pos.get('stop_loss', 0)
+                take_profit = pos.get('take_profit', 0)
+
+            # Объём
+            volume_val = indicators.get('volume', 0)
+
             snapshot = {
                 'ticker': ticker,
                 'price': price,
@@ -1127,10 +1147,21 @@ class SmartPortfolioBroker:
                 'momentum': momentum,
                 'has_position': has_pos,
                 'pnl_pct': pnl_pct,
+                'imoex': macro.get('imoex', 0),
                 'imoex_change': macro.get('imoex_change', 0),
+                'brent': macro.get('brent', 0),
                 'brent_change': macro.get('brent_change', 0),
+                'rvi': macro.get('rvi', 0),
+                'usd_rub': macro.get('usd_rub', 0),
                 'news_title': news_title,
-                'news_sentiment': news_sentiment
+                'news_sentiment': news_sentiment,
+                'positions_count': positions_count,
+                'max_positions': max_pos,
+                'cash': cash,
+                'exposure': exposure_val,
+                'stop_loss': stop_loss,
+                'take_profit': take_profit,
+                'volume': volume_val
             }
 
             # Предвычисляем правило

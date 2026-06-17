@@ -1,27 +1,168 @@
 {
-  "total_value": 10000,
-  "cash": 10000,
-  "reserved_cash": 0.0,
-  "positions": {},
-  "sector_allocation": {},
-  "correlation_matrix": {},
-  "trade_history": [],
-  "strategy_positions": {},
+  "total_value": 10000.0,
+  "cash": 1841.8799999999997,
+  "positions": {
+    "SBER": {
+      "qty": 2,
+      "avg_price": 320.26,
+      "buy_time": 1781642523.1737838,
+      "total_cost": 640.52,
+      "commission_buy": 1.92,
+      "time_horizon": "balanced",
+      "strategy": "news_aggressive",
+      "lot_size": 1,
+      "min_step": 0.01
+    },
+    "LKOH": {
+      "qty": 1,
+      "avg_price": 4518.0,
+      "buy_time": 1781642523.175285,
+      "total_cost": 4518.0,
+      "commission_buy": 13.55,
+      "time_horizon": "balanced",
+      "strategy": "news_aggressive",
+      "lot_size": 1,
+      "min_step": 0.5
+    },
+    "FLOT": {
+      "qty": 40,
+      "avg_price": 74.99,
+      "buy_time": 1781642750.968704,
+      "total_cost": 2999.6,
+      "commission_buy": 9.0,
+      "time_horizon": "week",
+      "strategy": "swing",
+      "lot_size": 10,
+      "min_step": 0.01,
+      "stop_loss": 67.491,
+      "take_profit": "89.87677"
+    }
+  },
+  "last_update": "2026-06-17T16:39:56.431160",
   "initial_capital": 10000,
-  "total_commission": 0.0,
-  "total_trades": 0,
-  "total_pnl": 0.0,
-  "commission_spent_today": 0.0,
-  "daily_trades": [],
+  "reserved_cash": 24.47,
   "pending_commissions": [],
-  "daily_profit_history": [],
-  "last_update": "2026-06-17T00:35:53.851079",
-  "stats": {
-    "cash": 10000,
-    "positions_count": 0,
-    "total_trades": 0,
-    "initial_capital": 10000,
-    "current_capital": 10000,
-    "strategies_count": 0
-  }
+  "trade_history": [
+    {
+      "timestamp": "2026-06-17T00:42:03.172604",
+      "action": "BUY",
+      "ticker": "SBER",
+      "quantity": 2,
+      "price": 320.26,
+      "cost": 640.52,
+      "commission": 1.92,
+      "cash_after": 9359.48,
+      "reserved_after": 1.92,
+      "position_after": {
+        "qty": 2,
+        "avg_price": 320.26,
+        "buy_time": 1781642523.1725893,
+        "total_cost": 640.52,
+        "commission_buy": 1.92,
+        "time_horizon": "balanced",
+        "strategy": "news_aggressive",
+        "lot_size": 1,
+        "min_step": 0.01
+      },
+      "strategy": "news_aggressive",
+      "params": {
+        "lot_size": 1,
+        "min_step": 0.01
+      }
+    },
+    {
+      "timestamp": "2026-06-17T00:42:03.174079",
+      "action": "BUY",
+      "ticker": "LKOH",
+      "quantity": 1,
+      "price": 4518.0,
+      "cost": 4518.0,
+      "commission": 13.55,
+      "cash_after": 4841.48,
+      "reserved_after": 15.47,
+      "position_after": {
+        "qty": 1,
+        "avg_price": 4518.0,
+        "buy_time": 1781642523.1740708,
+        "total_cost": 4518.0,
+        "commission_buy": 13.55,
+        "time_horizon": "balanced",
+        "strategy": "news_aggressive",
+        "lot_size": 1,
+        "min_step": 0.5
+      },
+      "strategy": "news_aggressive",
+      "params": {
+        "lot_size": 1,
+        "min_step": 0.5
+      }
+    },
+    {
+      "timestamp": "2026-06-17T00:45:50.968711",
+      "action": "BUY",
+      "ticker": "FLOT",
+      "quantity": 40,
+      "price": 74.99,
+      "cost": 2999.6,
+      "commission": 9.0,
+      "cash_after": 1841.8799999999997,
+      "reserved_after": 24.47,
+      "position_after": {
+        "qty": 40,
+        "avg_price": 74.99,
+        "buy_time": 1781642750.968704,
+        "total_cost": 2999.6,
+        "commission_buy": 9.0,
+        "time_horizon": "week",
+        "strategy": "swing",
+        "lot_size": 10,
+        "min_step": 0.01,
+        "stop_loss": 67.491,
+        "take_profit": "89.87677"
+      },
+      "strategy": "swing",
+      "params": {
+        "lot_size": 10,
+        "min_step": 0.01,
+        "stop_loss": 67.491,
+        "take_profit": "89.87677"
+      }
+    }
+  ],
+  "daily_trades": [
+    {
+      "timestamp": "2026-06-17T00:42:03.172615",
+      "ticker": "SBER",
+      "action": "BUY",
+      "quantity": 2,
+      "price": 320.26,
+      "value": 640.52,
+      "commission_reserved": 1.92,
+      "strategy": "news_aggressive"
+    },
+    {
+      "timestamp": "2026-06-17T00:42:03.174089",
+      "ticker": "LKOH",
+      "action": "BUY",
+      "quantity": 1,
+      "price": 4518.0,
+      "value": 4518.0,
+      "commission_reserved": 13.55,
+      "strategy": "news_aggressive"
+    },
+    {
+      "timestamp": "2026-06-17T00:45:50.968716",
+      "ticker": "FLOT",
+      "action": "BUY",
+      "quantity": 40,
+      "price": 74.99,
+      "value": 2999.6,
+      "commission_reserved": 9.0,
+      "strategy": "swing"
+    }
+  ],
+  "commission_spent_today": 24.47,
+  "total_commission": 24.47,
+  "total_trades": 0,
+  "total_pnl": 0.0
 }
