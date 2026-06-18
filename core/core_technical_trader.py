@@ -343,6 +343,25 @@ class TechnicalTraderCore:
 
         return signals
 
+    def get_market_regime(self, imoex: float = None, imoex_change: float = None) -> int:
+        """
+        Определение режима рынка по IMOEX.
+        Возвращает: 0 = боковик, 1 = растущий, 2 = падающий
+        """
+        if imoex is None or imoex_change is None:
+            return 0
+
+        # Боковик: изменение менее 0.3%
+        if abs(imoex_change) < 0.3:
+            return 0
+
+        # Растущий: изменение положительное
+        if imoex_change > 0:
+            return 1
+
+        # Падающий: изменение отрицательное
+        return 2
+
     def get_technical_summary(self, ticker: str) -> Dict:
         """Получение технической сводки по тикеру"""
         if ticker not in self.price_history:

@@ -60,7 +60,6 @@
   "exploration": {
     "initial_exploration_rate": 0.1,
     "final_exploration_rate": 0.03,
-    "exploration_decay_steps": 200,
     "action_exploration_rate": 0.01,
     "min_exploration_rate": 0.01,
     "max_exploration_rate": 0.3
@@ -81,7 +80,7 @@
     "news_features_size": 132,
     "strategy_params_size": 6,
     "market_features_count": 48,
-    "reserved_slots": 10
+    "reserved_slots": 9
   },
   "state_dimensions": {
     "price_volume": 4,
@@ -155,6 +154,7 @@
     "min_confidence_threshold": 0.0,
     "max_coach_experiences": 1000,
     "max_consecutive_timeouts": 5,
+    "min_hold_time_seconds": 300,
     "cooldown_after_timeouts_minutes": 10,
     "provider": {
       "type": "ollama",

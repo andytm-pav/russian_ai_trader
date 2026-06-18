@@ -229,6 +229,7 @@ class AdvancedTraderModel:
         self.rl_config = self._load_rl_config()
         self.strategy_config = self._load_strategy_config()
         self.memory_config = self._load_memory_config()
+        self.training_wheels = self._load_training_wheels()
 
         # Принудительная установка exploration из конфига
         exploration_config = self.rl_config.get('exploration', {})
@@ -521,6 +522,14 @@ class AdvancedTraderModel:
                 'memory_file': 'models/saved_trader/memory_buffer.pkl',
                 'compression': True
             }
+
+    def _load_training_wheels(self) -> Dict:
+        """Загрузка учебных костылей"""
+        try:
+            with open("config/training_wheels.json", "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
 
     def _load_bert_model(self):
         """Загрузка BERT модели"""
@@ -846,6 +855,12 @@ class AdvancedTraderModel:
         # === 16. Рыночная ликвидность и активность (2) ===
         features.append(market_data.get('market_liquidity_ratio', 0.0))
         features.append(market_data.get('market_activity_score', 0.0))
+
+        # === 16.5. Режим рынка (1 признак) ===
+        market_regime = market_data.get('market_regime', 0)  # 0=боковик, 1=растущий, 2=падающий
+        features.append(float(market_regime))
+
+
 
         # === 17. Частота сделок (1 признак) ===
         trades_last_hour = 0.0
@@ -1594,7 +1609,7 @@ class AdvancedTraderModel:
     def decay_exploration(self):
         """Уменьшение exploration rate со временем"""
         exploration_config = self.rl_config.get('exploration', {})
-        decay_steps = exploration_config.get('exploration_decay_steps', 500)
+        decay_steps = self.training_wheels.get('exploration', {}).get('decay_steps', 500)
         final_rate = exploration_config.get('final_exploration_rate', 0.03)
         initial_rate = exploration_config.get('initial_exploration_rate', 0.10)
 

@@ -147,6 +147,11 @@ class LLMCoach:
                        f"Brent: ${brent:.1f} ({brent_change:+.1f}%), "
                        f"RVI: {rvi:.1f}, USD/RUB: {usd_rub:.2f}.")
 
+        # Режим рынка
+        regime = snapshot.get('market_regime', 0)
+        regime_names = {0: "боковик", 1: "растущий", 2: "падающий"}
+        regime_line = f"Режим рынка: {regime_names.get(regime, 'не определён')}"
+
         # Новость
         sentiment_word = "позитивная" if news_sentiment > 0.1 else "негативная" if news_sentiment < -0.1 else "нейтральная"
         news_line = f"Ключевая новость ({sentiment_word}): {news_title}"
@@ -161,6 +166,7 @@ class LLMCoach:
     - {port_line}
     - RSI={rsi:.1f}, полоса Боллинджера={bb_pos:.2f}, momentum={momentum:+.1f}%
     - {market_line}
+    - {regime_line}
     - {news_line}
     {f'- {volume_line}' if volume_line else ''}
 
@@ -193,6 +199,12 @@ class LLMCoach:
         pnl = snapshot.get("pnl_pct", 0)
         has_pos = snapshot.get("has_position", False)
         imoex_change = snapshot.get("imoex_change", 0)
+
+        # Правило 0: Удержание позиции (минимальное время)
+        min_hold = self.config.get('min_hold_time_seconds', 300)
+        hold_time_seconds = snapshot.get('hold_time_seconds', 0)
+        if has_pos and hold_time_seconds < min_hold:
+            return 0, "HOLD", f"позиция открыта менее {min_hold}с — удерживать"
 
         if has_pos and pnl > 3 and (rsi > 65 or bb_pos > 0.8):
             return 1, "SELL", f"позиция с прибылью {pnl:.1f}%, RSI={rsi:.1f}, BB={bb_pos:.2f}"

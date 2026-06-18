@@ -32,6 +32,7 @@ class PortfolioManager:
 
         # ========== ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ (БУДУТ ПЕРЕЗАПИСАНЫ ИЗ КОНФИГА) ==========
         self.settings = self._load_settings()
+        self.training_wheels = self._load_training_wheels()
         self.commission_rate = 0.003  # 0.3% - тариф Т-Банка "Инвестор"
         self.min_commission = 0.01  # минимальная комиссия 0.01₽
         self.rounding = 2  # округление до 2 знаков
@@ -57,6 +58,9 @@ class PortfolioManager:
                     f"Капитал: {self.cash:,.0f}₽")
 
     # ⚠️ ИСПРАВЛЕНО: НОВЫЙ МЕТОД для загрузки комиссионных настроек
+
+
+
 
     def _load_settings(self) -> Dict:
         """Загрузка settings.json"""
@@ -109,6 +113,14 @@ class PortfolioManager:
             logger.warning(f"Не удалось загрузить настройки комиссий: {e}, "
                            f"использую значения по умолчанию")
             # Значения по умолчанию уже установлены в __init__
+
+    def _load_training_wheels(self) -> Dict:
+        """Загрузка учебных костылей"""
+        try:
+            with open("config/training_wheels.json", "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
 
     def _calculate_commission(self, amount: float) -> float:
         """
@@ -450,6 +462,14 @@ class PortfolioManager:
             if quantity > pos['qty']:
                 logger.error(f"Недостаточно акций: нужно {quantity}, есть {pos['qty']}")
                 return False, 0.0
+
+            # Проверка минимального времени удержания (учебный костыль)
+            min_hold = self.training_wheels.get('trade_limits', {}).get('min_hold_time_seconds', 0)
+            if min_hold > 0:
+                buy_time = pos.get('buy_time', 0)
+                if time.time() - buy_time < min_hold:
+                    logger.debug(f"Сделка отклонена: позиция {ticker} удерживается менее {min_hold}с")
+                    return False, 0.0
 
             # ========== РАСЧЁТ КОМИССИЙ ==========
             revenue = quantity * price

@@ -74,42 +74,21 @@ class MoexFetcher:
     def _get_index_change(self, current_value, change, change_pct):
         """
         Получение изменения индекса.
-        Приоритет: реальное значение > вычисленное из change_pct
+        Вычисляется из процентного изменения (change_pct) для точности.
         """
-        if change is not None:
-            return self._safe_float(change)
-
         if change_pct is not None and current_value is not None:
             try:
                 change_pct_float = self._safe_float(change_pct)
                 if change_pct_float == 0:
                     return 0.0
-                # previous = current / (1 + change_pct/100)
                 previous_value = current_value / (1 + change_pct_float / 100)
                 return current_value - previous_value
             except ZeroDivisionError:
-                logger.warning(f"Деление на ноль при расчете изменения индекса")
                 return 0.0
 
-        return 0.0
-
-    def _get_index_change(self, current_value, change, change_pct):
-        """
-        Получение изменения индекса.
-        Приоритет: реальное значение > вычисленное из change_pct
-        """
+        # Запасной вариант: абсолютное изменение
         if change is not None:
             return self._safe_float(change)
-
-        if change_pct is not None and current_value is not None:
-            # Точная формула: change = previous * (change_pct/100)
-            # где previous = current / (1 + change_pct/100)
-            try:
-                change_pct_float = self._safe_float(change_pct)
-                previous_value = current_value / (1 + change_pct_float / 100)
-                return current_value - previous_value
-            except ZeroDivisionError:
-                return 0.0
 
         return 0.0
 
