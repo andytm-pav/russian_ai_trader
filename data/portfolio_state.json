@@ -1,234 +1,27 @@
 {
-  "total_value": 9999.999999999998,
-  "cash": 735.1099999999992,
-  "positions": {
-    "DOMRF": {
-      "qty": 1,
-      "avg_price": 2334.1,
-      "buy_time": 1781814925.3934793,
-      "total_cost": 2334.1,
-      "commission_buy": 7.0,
-      "time_horizon": "day_session",
-      "strategy": "price_prediction",
-      "lot_size": 1,
-      "min_step": 0.1,
-      "stop_loss": "2123.9868",
-      "take_profit": "2520.7886"
-    },
-    "PLZL": {
-      "qty": 1,
-      "avg_price": 2044.6000000000001,
-      "buy_time": 1781814934.0563886,
-      "total_cost": 2044.6000000000001,
-      "commission_buy": 6.13,
-      "time_horizon": "day_session",
-      "strategy": "swing",
-      "lot_size": 1,
-      "min_step": 0.2,
-      "stop_loss": 1840.14,
-      "take_profit": "2449.9846"
-    },
-    "SIBN": {
-      "qty": 5,
-      "avg_price": 462.15000000000003,
-      "buy_time": 1781814954.1119103,
-      "total_cost": 2310.75,
-      "commission_buy": 6.93,
-      "time_horizon": "day_session",
-      "strategy": "price_prediction",
-      "lot_size": 1,
-      "min_step": 0.05,
-      "stop_loss": "420.2819",
-      "take_profit": "498.8795"
-    },
-    "ETLN": {
-      "qty": 98,
-      "avg_price": 26.28,
-      "buy_time": 1781814995.0057874,
-      "total_cost": 2575.44,
-      "commission_buy": 7.73,
-      "time_horizon": "day_session",
-      "strategy": "news_aggressive",
-      "lot_size": 1,
-      "min_step": 0.02,
-      "stop_loss": "23.89964",
-      "take_profit": "28.020844"
-    }
-  },
-  "last_update": "2026-06-19T00:46:27.590893",
+  "total_value": 10000,
+  "cash": 10000,
+  "reserved_cash": 0.0,
+  "positions": {},
+  "sector_allocation": {},
+  "correlation_matrix": {},
+  "trade_history": [],
+  "strategy_positions": {},
   "initial_capital": 10000,
-  "reserved_cash": 27.79,
-  "pending_commissions": [],
-  "trade_history": [
-    {
-      "timestamp": "2026-06-19T00:35:25.393496",
-      "action": "BUY",
-      "ticker": "DOMRF",
-      "quantity": 1,
-      "price": 2334.1,
-      "cost": 2334.1,
-      "commission": 7.0,
-      "cash_after": 7665.9,
-      "reserved_after": 7.0,
-      "position_after": {
-        "qty": 1,
-        "avg_price": 2334.1,
-        "buy_time": 1781814925.3934793,
-        "total_cost": 2334.1,
-        "commission_buy": 7.0,
-        "time_horizon": "day_session",
-        "strategy": "price_prediction",
-        "lot_size": 1,
-        "min_step": 0.1,
-        "stop_loss": "2123.9868",
-        "take_profit": "2520.7886"
-      },
-      "strategy": "price_prediction",
-      "params": {
-        "lot_size": 1,
-        "min_step": 0.1,
-        "stop_loss": "2123.9868",
-        "take_profit": "2520.7886"
-      }
-    },
-    {
-      "timestamp": "2026-06-19T00:35:34.056403",
-      "action": "BUY",
-      "ticker": "PLZL",
-      "quantity": 1,
-      "price": 2044.6000000000001,
-      "cost": 2044.6000000000001,
-      "commission": 6.13,
-      "cash_after": 5621.299999999999,
-      "reserved_after": 13.129999999999999,
-      "position_after": {
-        "qty": 1,
-        "avg_price": 2044.6000000000001,
-        "buy_time": 1781814934.0563886,
-        "total_cost": 2044.6000000000001,
-        "commission_buy": 6.13,
-        "time_horizon": "day_session",
-        "strategy": "swing",
-        "lot_size": 1,
-        "min_step": 0.2,
-        "stop_loss": 1840.14,
-        "take_profit": "2449.9846"
-      },
-      "strategy": "swing",
-      "params": {
-        "lot_size": 1,
-        "min_step": 0.2,
-        "stop_loss": 1840.14,
-        "take_profit": "2449.9846"
-      }
-    },
-    {
-      "timestamp": "2026-06-19T00:35:54.111919",
-      "action": "BUY",
-      "ticker": "SIBN",
-      "quantity": 5,
-      "price": 462.15000000000003,
-      "cost": 2310.75,
-      "commission": 6.93,
-      "cash_after": 3310.5499999999993,
-      "reserved_after": 20.06,
-      "position_after": {
-        "qty": 5,
-        "avg_price": 462.15000000000003,
-        "buy_time": 1781814954.1119103,
-        "total_cost": 2310.75,
-        "commission_buy": 6.93,
-        "time_horizon": "day_session",
-        "strategy": "price_prediction",
-        "lot_size": 1,
-        "min_step": 0.05,
-        "stop_loss": "420.2819",
-        "take_profit": "498.8795"
-      },
-      "strategy": "price_prediction",
-      "params": {
-        "lot_size": 1,
-        "min_step": 0.05,
-        "stop_loss": "420.2819",
-        "take_profit": "498.8795"
-      }
-    },
-    {
-      "timestamp": "2026-06-19T00:36:35.005798",
-      "action": "BUY",
-      "ticker": "ETLN",
-      "quantity": 98,
-      "price": 26.28,
-      "cost": 2575.44,
-      "commission": 7.73,
-      "cash_after": 735.1099999999992,
-      "reserved_after": 27.79,
-      "position_after": {
-        "qty": 98,
-        "avg_price": 26.28,
-        "buy_time": 1781814995.0057874,
-        "total_cost": 2575.44,
-        "commission_buy": 7.73,
-        "time_horizon": "day_session",
-        "strategy": "news_aggressive",
-        "lot_size": 1,
-        "min_step": 0.02,
-        "stop_loss": "23.89964",
-        "take_profit": "28.020844"
-      },
-      "strategy": "news_aggressive",
-      "params": {
-        "lot_size": 1,
-        "min_step": 0.02,
-        "stop_loss": "23.89964",
-        "take_profit": "28.020844"
-      }
-    }
-  ],
-  "daily_trades": [
-    {
-      "timestamp": "2026-06-19T00:35:25.393507",
-      "ticker": "DOMRF",
-      "action": "BUY",
-      "quantity": 1,
-      "price": 2334.1,
-      "value": 2334.1,
-      "commission_reserved": 7.0,
-      "strategy": "price_prediction"
-    },
-    {
-      "timestamp": "2026-06-19T00:35:34.056416",
-      "ticker": "PLZL",
-      "action": "BUY",
-      "quantity": 1,
-      "price": 2044.6000000000001,
-      "value": 2044.6000000000001,
-      "commission_reserved": 6.13,
-      "strategy": "swing"
-    },
-    {
-      "timestamp": "2026-06-19T00:35:54.111928",
-      "ticker": "SIBN",
-      "action": "BUY",
-      "quantity": 5,
-      "price": 462.15000000000003,
-      "value": 2310.75,
-      "commission_reserved": 6.93,
-      "strategy": "price_prediction"
-    },
-    {
-      "timestamp": "2026-06-19T00:36:35.005808",
-      "ticker": "ETLN",
-      "action": "BUY",
-      "quantity": 98,
-      "price": 26.28,
-      "value": 2575.44,
-      "commission_reserved": 7.73,
-      "strategy": "news_aggressive"
-    }
-  ],
-  "commission_spent_today": 27.79,
-  "total_commission": 27.79,
+  "total_commission": 0.0,
   "total_trades": 0,
-  "total_pnl": 0.0
+  "total_pnl": 0.0,
+  "commission_spent_today": 0.0,
+  "daily_trades": [],
+  "pending_commissions": [],
+  "daily_profit_history": [],
+  "last_update": "2026-06-19T16:12:38.000290",
+  "stats": {
+    "cash": 10000,
+    "positions_count": 0,
+    "total_trades": 0,
+    "initial_capital": 10000,
+    "current_capital": 10000,
+    "strategies_count": 0
+  }
 }

@@ -412,161 +412,17 @@ class SmartPortfolioBroker:
                 current_state = self._create_initial_state(ticker, price, security_info)
                 self.ticker_states[ticker] = current_state
 
-            # === ВЫЗОВ КОУЧА ДЛЯ ТИКЕРОВ В ПОРТФЕЛЕ ИЛИ BUY-СИГНАЛОВ ===
-            coach_advice = None
-            if self.coach and self.coach.is_available():
-                has_position = ticker in self.portfolio.positions
-                is_buy_signal = signal.get('action') == 'BUY'
-
-                if has_position or is_buy_signal:
-                    try:
-                        indicators = self.technical_core.calculate_indicators(ticker)
-                        rsi = indicators.get('rsi', 50)
-                        bb_upper = indicators.get('bb_upper', price * 1.1)
-                        bb_lower = indicators.get('bb_lower', price * 0.9)
-                        bb_pos = (price - bb_lower) / (bb_upper - bb_lower) if bb_upper > bb_lower else 0.5
-                        mom = indicators.get('momentum', 0)
-
-                        ticker_names = self.rl_config.get('ticker_names', {})
-                        kw = ticker_names.get(ticker, [])
-                        t_news = self.news_fetcher.search_news(ticker=ticker, limit=3, keywords=kw)
-                        if t_news:
-                            t_news = self.news_fetcher.analyze_sentiment_batch(t_news)
-                        n_title = t_news[0].get('title', 'нет новостей') if t_news else 'нет новостей'
-                        n_sent = sum(n.get('sentiment', 0) for n in t_news) / max(len(t_news), 1) if t_news else 0
-
-                        has_pos = ticker in self.portfolio.positions
-                        pnl_pct = 0.0
-                        if has_pos:
-                            pos = self.portfolio.positions[ticker]
-                            entry = pos.get('avg_price', price)
-                            pnl_pct = ((price - entry) / entry) * 100 if entry > 0 else 0
-
-                        macro = self.moex.get_macro_data()
-
-                        snapshot = {
-                            'ticker': ticker, 'price': price, 'rsi': rsi, 'bb_position': bb_pos,
-                            'momentum': mom, 'has_position': has_pos, 'pnl_pct': pnl_pct,
-                            'imoex_change': macro.get('imoex_change', 0), 'brent_change': macro.get('brent_change', 0),
-                            'news_title': n_title, 'news_sentiment': n_sent
-                        }
-
-                        rule, act, reason = self.coach._precompute_rule(snapshot)
-                        snapshot['rule_triggered'] = rule
-                        snapshot['suggested_action'] = act
-
-                        advice = self.coach.get_coach_advice(snapshot)
-                        if advice:
-                            coach_advice = advice
-                            self.coach_log.append({
-                                'time': datetime.now().strftime('%H:%M:%S'),
-                                'ticker': ticker, 'action': advice.get('action'),
-                                'rule': advice.get('rule_triggered'), 'confidence': advice.get('confidence'),
-                                'rationale': advice.get('rationale', '')
-                            })
-                            if len(self.coach_log) > 50:
-                                self.coach_log.pop(0)
-                    except Exception as e:
-                        logger.debug(f"Коуч для {ticker}: {e}")
-
             strategy, stop_loss, take_profit, action_idx = self._select_buy_strategy_with_action(
                 ticker, price, confidence, current_state,
                 assigned_horizon=signal.get('assigned_horizon', 'week')
             )
 
             action_str = self.action_mapping.get(str(action_idx), 'HOLD')
-
-            # === ВЫЗОВ КОУЧА ПЕРЕД ПРИНЯТИЕМ РЕШЕНИЯ (для логирования) ===
-            coach_action_str = None
-            if self.coach and self.coach.is_available():
-                try:
-                    indicators = self.technical_core.calculate_indicators(ticker)
-                    rsi = indicators.get('rsi', 50)
-                    bb_upper = indicators.get('bb_upper', price * 1.1)
-                    bb_lower = indicators.get('bb_lower', price * 0.9)
-                    bb_pos = (price - bb_lower) / (bb_upper - bb_lower) if bb_upper > bb_lower else 0.5
-                    mom = indicators.get('momentum', 0)
-
-                    ticker_names = self.rl_config.get('ticker_names', {})
-                    kw = ticker_names.get(ticker, [])
-                    t_news = self.news_fetcher.search_news(ticker=ticker, limit=3, keywords=kw)
-                    if t_news:
-                        t_news = self.news_fetcher.analyze_sentiment_batch(t_news)
-                    n_title = t_news[0].get('title', 'нет новостей') if t_news else 'нет новостей'
-                    n_sent = sum(n.get('sentiment', 0) for n in t_news) / max(len(t_news), 1) if t_news else 0
-
-                    has_pos = ticker in self.portfolio.positions
-                    pnl_pct = 0.0
-                    if has_pos:
-                        pos = self.portfolio.positions[ticker]
-                        entry = pos.get('avg_price', price)
-                        pnl_pct = ((price - entry) / entry) * 100 if entry > 0 else 0
-
-                    macro = self.moex.get_macro_data()
-
-                    snapshot = {
-                        'ticker': ticker, 'price': price, 'rsi': rsi, 'bb_position': bb_pos,
-                        'momentum': mom, 'has_position': has_pos, 'pnl_pct': pnl_pct,
-                        'imoex_change': macro.get('imoex_change', 0), 'brent_change': macro.get('brent_change', 0),
-                        'news_title': n_title, 'news_sentiment': n_sent
-                    }
-
-                    rule, act, reason = self.coach._precompute_rule(snapshot)
-                    snapshot['rule_triggered'] = rule
-                    snapshot['suggested_action'] = act
-
-                    advice = self.coach.get_coach_advice(snapshot)
-                    if advice:
-                        coach_action_str = advice.get('action')
-
-                        # Логируем рекомендацию коуча
-                        self.coach_log.append({
-                            'time': datetime.now().strftime('%H:%M:%S'),
-                            'ticker': ticker, 'action': advice.get('action'),
-                            'rule': advice.get('rule_triggered'), 'confidence': advice.get('confidence'),
-                            'rationale': advice.get('rationale', '')
-                        })
-                        if len(self.coach_log) > 50:
-                            self.coach_log.pop(0)
-                except Exception as e:
-                    logger.debug(f"Коуч для {ticker}: {e}")
-
-            strategy, stop_loss, take_profit, action_idx = self._select_buy_strategy_with_action(
-                ticker, price, confidence, current_state,
-                assigned_horizon=signal.get('assigned_horizon', 'week')
-            )
-
-            action_str = self.action_mapping.get(str(action_idx), 'HOLD')
-
-            # === ЛОГИРОВАНИЕ ДЕЙСТВИЯ МОДЕЛИ И СРАВНЕНИЕ С КОУЧЕМ ===
-            if ticker in self.ticker_states:
-                state = self.ticker_states[ticker]
-                default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
-                strategy_params = self.model.strategies.get(strategy, self.model.strategies.get(default_name, {}))
-                full_state = self.model._create_strategy_state(state, strategy_params)
-                with torch.no_grad():
-                    _, state_value, _ = self.model.policy_net(full_state.unsqueeze(0).to(self.model.device))
-
-                matched = False
-                if coach_action_str:
-                    matched = (coach_action_str in action_str) or (action_str in coach_action_str)
-
-                self.model_log.append({
-                    'time': datetime.now().strftime('%H:%M:%S'),
-                    'ticker': ticker,
-                    'action': action_str,
-                    'state_value': state_value.item(),
-                    'coach_advice': coach_action_str or '—',
-                    'matched': matched
-                })
-                if len(self.model_log) > 50:
-                    self.model_log.pop(0)
 
             logger.debug(f"[DEBUG] Сигнал: {ticker} {action_str} (action_idx={action_idx}) conf={confidence:.2f}")
 
-            # ===== HOLD действия (индексы 0, 1, 2) =====
+            # ===== HOLD действия =====
             if action_str.startswith('HOLD'):
-                # HOLD не требует исполнения — просто записываем опыт
                 ticker_sentiment = self._get_ticker_sentiment(ticker)
                 sentiment_data = {
                     'sentiment': ticker_sentiment,
@@ -608,8 +464,106 @@ class SmartPortfolioBroker:
                 logger.debug(f"Кулдаун для {ticker}: прошло {(now - last_trade):.0f}с < {cooldown_seconds}с")
                 continue
 
-            # BUY действия
+            # ===== BUY действия =====
             if action_str.startswith('BUY'):
+                # Вызов коуча перед всеми проверками
+                coach_action_str = None
+                if self.coach and self.coach.is_available():
+                    try:
+                        indicators = self.technical_core.calculate_indicators(ticker)
+                        rsi = indicators.get('rsi', 50)
+                        bb_upper = indicators.get('bb_upper', price * 1.1)
+                        bb_lower = indicators.get('bb_lower', price * 0.9)
+                        bb_pos = (price - bb_lower) / (bb_upper - bb_lower) if bb_upper > bb_lower else 0.5
+                        mom = indicators.get('momentum', 0)
+                        ticker_names = self.rl_config.get('ticker_names', {})
+                        kw = ticker_names.get(ticker, [])
+                        t_news = self.news_fetcher.search_news(ticker=ticker, limit=3, keywords=kw)
+                        if t_news:
+                            t_news = self.news_fetcher.analyze_sentiment_batch(t_news)
+                        n_title = t_news[0].get('title', 'нет новостей') if t_news else 'нет новостей'
+                        n_sent = sum(n.get('sentiment', 0) for n in t_news) / max(len(t_news), 1) if t_news else 0
+                        has_pos = ticker in self.portfolio.positions
+                        pnl_pct = 0.0
+                        if has_pos:
+                            pos = self.portfolio.positions[ticker]
+                            entry = pos.get('avg_price', price)
+                            pnl_pct = ((price - entry) / entry) * 100 if entry > 0 else 0
+
+                        #  кэш макро-данных
+                        macro = self.moex.get_macro_data()
+
+                        # Портфель
+                        positions_count = len(self.portfolio.positions) if hasattr(self.portfolio, 'positions') else 0
+                        max_pos = self.portfolio.max_positions if hasattr(self.portfolio, 'max_positions') else 10
+                        cash = self.portfolio.cash if hasattr(self.portfolio, 'cash') else 0
+                        exposure_val = 0.0
+                        if hasattr(self.portfolio, 'initial_capital') and self.portfolio.initial_capital > 0:
+                            positions_value = sum(
+                                p['qty'] * p.get('avg_price', 0) for p in self.portfolio.positions.values())
+                            exposure_val = positions_value / self.portfolio.initial_capital
+
+                        snapshot = {
+                            'ticker': ticker,
+                            'price': price,
+                            'rsi': rsi,
+                            'bb_position': bb_pos,
+                            'momentum': mom,
+                            'has_position': has_pos,
+                            'pnl_pct': pnl_pct,
+                            'imoex': macro.get('imoex', 0),
+                            'imoex_change': macro.get('imoex_change', 0),
+                            'brent': macro.get('brent', 0),
+                            'brent_change': macro.get('brent_change', 0),
+                            'rvi': macro.get('rvi', 0),
+                            'usd_rub': macro.get('usd_rub', 0),
+                            'positions_count': positions_count,
+                            'max_positions': max_pos,
+                            'cash': cash,
+                            'exposure': exposure_val,
+                            'news_title': n_title, 'news_sentiment': n_sent
+                        }
+
+                        rule, act, reason = self.coach._precompute_rule(snapshot)
+                        snapshot['rule_triggered'] = rule
+                        snapshot['suggested_action'] = act
+                        advice = self.coach.get_coach_advice(snapshot)
+                        if advice:
+                            coach_action_str = advice.get('action')
+                            self.coach_log.append({
+                                'time': datetime.now().strftime('%H:%M:%S'),
+                                'ticker': ticker, 'action': advice.get('action'),
+                                'rule': advice.get('rule_triggered'), 'confidence': advice.get('confidence'),
+                                'rationale': advice.get('rationale', '')
+                            })
+                            if len(self.coach_log) > 50:
+                                self.coach_log.pop(0)
+                    except Exception as e:
+                        logger.debug(f"Коуч для {ticker}: {e}")
+
+                # Логирование действия модели (для всех BUY-попыток)
+                if ticker in self.ticker_states:
+                    state = self.ticker_states[ticker]
+                    default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                    strategy_params = self.model.strategies.get(strategy, self.model.strategies.get(default_name, {}))
+                    full_state = self.model._create_strategy_state(state, strategy_params)
+                    with torch.no_grad():
+                        _, state_value, _ = self.model.policy_net(full_state.unsqueeze(0).to(self.model.device))
+                    matched = False
+                    if coach_action_str:
+                        matched = (coach_action_str in action_str) or (action_str in coach_action_str)
+                    self.model_log.append({
+                        'time': datetime.now().strftime('%H:%M:%S'),
+                        'ticker': ticker,
+                        'action': action_str,
+                        'state_value': state_value.item(),
+                        'coach_advice': coach_action_str or '—',
+                        'matched': matched
+                    })
+                    if len(self.model_log) > 50:
+                        self.model_log.pop(0)
+
+                # Проверки перед покупкой
                 atr = security_info.get('atr', None)
                 if atr is None:
                     indicators = self.technical_core.calculate_indicators(ticker)
@@ -671,8 +625,104 @@ class SmartPortfolioBroker:
                         f"(risk={actual_risk:.0f}₽, strategy={strategy})"
                     )
 
-            # SELL действия
+            # ===== SELL действия =====
             elif action_str.startswith('SELL') and ticker in self.portfolio.positions:
+                # Вызов коуча перед всеми проверками
+                coach_action_str = None
+                if self.coach and self.coach.is_available():
+                    try:
+                        indicators = self.technical_core.calculate_indicators(ticker)
+                        rsi = indicators.get('rsi', 50)
+                        bb_upper = indicators.get('bb_upper', price * 1.1)
+                        bb_lower = indicators.get('bb_lower', price * 0.9)
+                        bb_pos = (price - bb_lower) / (bb_upper - bb_lower) if bb_upper > bb_lower else 0.5
+                        mom = indicators.get('momentum', 0)
+                        ticker_names = self.rl_config.get('ticker_names', {})
+                        kw = ticker_names.get(ticker, [])
+                        t_news = self.news_fetcher.search_news(ticker=ticker, limit=3, keywords=kw)
+                        if t_news:
+                            t_news = self.news_fetcher.analyze_sentiment_batch(t_news)
+                        n_title = t_news[0].get('title', 'нет новостей') if t_news else 'нет новостей'
+                        n_sent = sum(n.get('sentiment', 0) for n in t_news) / max(len(t_news), 1) if t_news else 0
+                        has_pos = ticker in self.portfolio.positions
+                        pnl_pct = 0.0
+                        if has_pos:
+                            pos = self.portfolio.positions[ticker]
+                            entry = pos.get('avg_price', price)
+                            pnl_pct = ((price - entry) / entry) * 100 if entry > 0 else 0
+
+                        # кэш макро-данных
+                        macro = self.moex.get_macro_data()
+
+                        # Портфель
+                        positions_count = len(self.portfolio.positions) if hasattr(self.portfolio, 'positions') else 0
+                        max_pos = self.portfolio.max_positions if hasattr(self.portfolio, 'max_positions') else 10
+                        cash = self.portfolio.cash if hasattr(self.portfolio, 'cash') else 0
+                        exposure_val = 0.0
+                        if hasattr(self.portfolio, 'initial_capital') and self.portfolio.initial_capital > 0:
+                            positions_value = sum(p['qty'] * p.get('avg_price', 0) for p in self.portfolio.positions.values())
+                            exposure_val = positions_value / self.portfolio.initial_capital
+
+                        snapshot = {
+                            'ticker': ticker,
+                            'price': price,
+                            'rsi': rsi,
+                            'bb_position': bb_pos,
+                            'momentum': mom,
+                            'has_position': has_pos,
+                            'pnl_pct': pnl_pct,
+                            'imoex': macro.get('imoex', 0),
+                            'imoex_change': macro.get('imoex_change', 0),
+                            'brent': macro.get('brent', 0),
+                            'brent_change': macro.get('brent_change', 0),
+                            'rvi': macro.get('rvi', 0),
+                            'usd_rub': macro.get('usd_rub', 0),
+                            'positions_count': positions_count,
+                            'max_positions': max_pos,
+                            'cash': cash,
+                            'exposure': exposure_val,
+                            'news_title': n_title, 'news_sentiment': n_sent
+                        }
+                        rule, act, reason = self.coach._precompute_rule(snapshot)
+                        snapshot['rule_triggered'] = rule
+                        snapshot['suggested_action'] = act
+                        advice = self.coach.get_coach_advice(snapshot)
+                        if advice:
+                            coach_action_str = advice.get('action')
+                            self.coach_log.append({
+                                'time': datetime.now().strftime('%H:%M:%S'),
+                                'ticker': ticker, 'action': advice.get('action'),
+                                'rule': advice.get('rule_triggered'), 'confidence': advice.get('confidence'),
+                                'rationale': advice.get('rationale', '')
+                            })
+                            if len(self.coach_log) > 50:
+                                self.coach_log.pop(0)
+                    except Exception as e:
+                        logger.debug(f"Коуч для {ticker}: {e}")
+
+                # Логирование действия модели (для всех SELL-попыток)
+                if ticker in self.ticker_states:
+                    state = self.ticker_states[ticker]
+                    default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                    strategy_params = self.model.strategies.get(strategy, self.model.strategies.get(default_name, {}))
+                    full_state = self.model._create_strategy_state(state, strategy_params)
+                    with torch.no_grad():
+                        _, state_value, _ = self.model.policy_net(full_state.unsqueeze(0).to(self.model.device))
+                    matched = False
+                    if coach_action_str:
+                        matched = (coach_action_str in action_str) or (action_str in coach_action_str)
+                    self.model_log.append({
+                        'time': datetime.now().strftime('%H:%M:%S'),
+                        'ticker': ticker,
+                        'action': action_str,
+                        'state_value': state_value.item(),
+                        'coach_advice': coach_action_str or '—',
+                        'matched': matched
+                    })
+                    if len(self.model_log) > 50:
+                        self.model_log.pop(0)
+
+                # Проверки перед продажей
                 pos = self.portfolio.positions[ticker]
                 sell_ratio = self.position_sizes.get(action_str, 0.5)
 
@@ -742,6 +792,7 @@ class SmartPortfolioBroker:
                             pnl=pnl,
                             hold_time=time.time() - pos.get('buy_time', time.time())
                         )
+
         logger.debug(f"[DEBUG] Всего исполнено сделок: {executed_count}")
         return executed_count
 
@@ -1214,7 +1265,7 @@ class SmartPortfolioBroker:
                 take_profit = pos.get('take_profit', 0)
                 hold_time_seconds = time.time() - pos.get('buy_time', time.time())
 
-            # Макро (используем кэш, он обновляется в _create_initial_state)
+            #  кэш макро-данных
             macro = self.moex.get_macro_data()
 
             # Портфель
@@ -1222,6 +1273,7 @@ class SmartPortfolioBroker:
             max_pos = self.portfolio.max_positions if hasattr(self.portfolio, 'max_positions') else 10
             cash = self.portfolio.cash if hasattr(self.portfolio, 'cash') else 0
             exposure_val = 0.0
+            logger.debug(f"Портфель для коуча: positions={positions_count}, cash={cash}, max_pos={max_pos}")
             if hasattr(self.portfolio, 'initial_capital') and self.portfolio.initial_capital > 0:
                 positions_value = sum(p['qty'] * p.get('avg_price', 0) for p in self.portfolio.positions.values())
                 exposure_val = positions_value / self.portfolio.initial_capital
@@ -1906,7 +1958,7 @@ class SmartPortfolioBroker:
             if filtered_signals and self.risk_manager.check_daily_limits():
                 self._execute_trading_decisions(filtered_signals, prices, securities)
 
-            if self.cycle_count % 5 == 0:
+            if self.cycle_count % 5 == 0 and self.training_wheels.get('trade_limits', {}).get('enable_rebalance', True):
                 self._rebalance_portfolio(prices, securities)
 
             if self.cycle_count % 10 == 0:

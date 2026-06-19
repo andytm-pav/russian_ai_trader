@@ -24,6 +24,10 @@
     "atr_multiplier": 2.0
   },
 
+  "min_history_points_for_trade": 20,
+
+  "enable_rebalance": false,
+
   "coach": {
     "rule_0_enabled": true,
     "rule_0_min_hold_seconds": 300

@@ -137,11 +137,42 @@ class RiskManager:
         """Расчет размера позиции на основе риска"""
         with self.lock:
             try:
+
+                # Проверка готовности технических индикаторов
+                min_history_points = self.config.get('min_history_points_for_trade', 20)
+                ticker_history = self.portfolio_state.get('price_history', {}).get(ticker, [])
+                if len(ticker_history) < min_history_points:
+                    logger.warning(
+                        f"Недостаточно истории цен для {ticker}: {len(ticker_history)}/{min_history_points} точек")
+                    return 0, 0.0
+
+                # Проверка минимальной цены тикера (защита от неликвида)
+                min_price = self.config.get('min_ticker_price', 1.0)
+                if price < min_price:
+                    logger.warning(f"Цена {ticker} ({price:.2f}₽) ниже минимальной ({min_price}₽) — сделка отклонена")
+                    return 0, 0.0
+
                 # Текущая стоимость портфеля с fallback
                 portfolio_value = self.portfolio_state.get('total_value')
                 if not portfolio_value or portfolio_value <= 0:
                     portfolio_value = self.config.get('initial_capital_rub', 10000)
                     logger.debug(f"Использую начальный капитал для расчёта риска: {portfolio_value}")
+
+                # 0. ПРОВЕРКА ДНЕВНОГО ЛИМИТА УБЫТКА
+                max_daily_loss_pct = self.config.get('max_daily_loss_percent', 5.0)
+                if max_daily_loss_pct > 0:
+                    daily_start = self.config.get('daily_start_capital', None)
+                    if daily_start and daily_start > 0:
+                        current_value = self.portfolio_state.get('total_value', daily_start)
+                        daily_pnl = current_value - daily_start
+                        if daily_pnl < 0:
+                            daily_loss_pct = abs(daily_pnl) / daily_start * 100
+                            if daily_loss_pct > max_daily_loss_pct:
+                                logger.warning(
+                                    f"Дневной убыток {daily_loss_pct:.1f}% превысил лимит {max_daily_loss_pct}%. Торговля остановлена.")
+                                self.trading_enabled = False
+                                return 0, 0.0
+
 
                 # 1. РАСЧЕТ СТОП-ЛОССА (приоритет ATR если включен и доступен)
                 use_atr = self.config.get('use_atr_for_stops', True)
@@ -196,6 +227,12 @@ class RiskManager:
                 trade_value = quantity_by_risk * price
 
                 if trade_value < min_trade_value:
+                    # Проверяем, хватит ли кэша на минимальную сделку
+                    available_cash = self.portfolio_state.get('cash', 0) - self.portfolio_state.get('reserved_cash', 0)
+                    if available_cash < min_trade_value:
+                        logger.warning(
+                            f"Недостаточно кэша для минимальной сделки {ticker}: {available_cash:.0f}₽ < {min_trade_value:.0f}₽")
+                        return 0, 0.0
                     quantity = max(1, math.ceil(min_trade_value / price))
                     trade_value = quantity * price
 

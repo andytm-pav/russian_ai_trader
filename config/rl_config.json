@@ -75,7 +75,7 @@
     "search_news_in_summary": true
   },
   "state_parameters": {
-    "state_vector_size": 211,
+    "state_vector_size": 212,
     "total_state_size": 227,
     "news_features_size": 132,
     "strategy_params_size": 6,
@@ -298,7 +298,7 @@
     "commission_settlement_days": 1
   },
   "feature_config": {
-    "reserved_slots": 10,
+    "reserved_slots": 9,
     "market_features": [
       "spread_pct",
       "market_mood",

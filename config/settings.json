@@ -163,6 +163,8 @@
   "min_daily_volume_rub": 1000000,
   "price_history_file": "data/price_history.json",
 
+  "min_ticker_price": 10.0,
+
   "profit_optimization": {
     "extreme_pnl_threshold": 0.08,
     "max_reward": 10.0,
