@@ -18,8 +18,10 @@ logger = get_logger('RISK_MANAGER')
 class RiskManager:
     """Централизованное управление рисками"""
 
-    def __init__(self, config_path: str = "config/settings.json"):
+    def __init__(self, config_path: str = "config/settings.json",
+                 training_wheels_path: str = "config/training_wheels.json"):
         self.config = self._load_config(config_path)
+        self.tw = self._load_training_wheels(training_wheels_path)
         self.portfolio_state = self._load_portfolio_state()
 
         # Потокобезопасность - критическое исправление
@@ -32,73 +34,29 @@ class RiskManager:
         self.daily_high_watermark = self.portfolio_state.get('total_value', 0)
         self.trade_history = deque(maxlen=1000)  # Используем deque для фиксированного размера
 
-
-
-
-        logger.info(f"Инициализирован Risk Manager (риск на сделку: {self.config['risk_per_trade_percent']}%)")
+        risk_per_trade = self.tw.get('risk_params', {}).get('risk_per_trade_percent', 3.0)
+        logger.info(f"Инициализирован Risk Manager (риск на сделку: {risk_per_trade}%)")
 
     def _load_config(self, config_path: str) -> Dict:
-        """Загрузка конфигурации с расширенными параметрами"""
+        """Загрузка конфигурации"""
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 loaded_config = json.load(f)
-                # Отладочный вывод
-                logger.debug(f"Загружен конфиг: {list(loaded_config.keys())}")
-                logger.debug(
-                    f"max_position_weight_percent: {loaded_config.get('max_position_weight_percent', 'NOT FOUND')}")
-
-                # Добавляем расширенные параметры с дефолтами для обратной совместимости
-                extended_defaults = {
-                    'use_atr_for_stops': True,
-                    'atr_multiplier': 2.0,
-                    'max_adv_percent': 5.0,
-                    'max_sector_weight_percent': 40.0,
-                    'correlation_threshold': 0.7,
-                    'min_risk_per_share_percent': 0.1,
-                    'consecutive_loss_limit': 4,
-                    'consecutive_trades_window': 5,
-                    'risk_multiplier_on_high_confidence': 1.2,
-                    'max_daily_trades': 50,
-                    'confidence_weight_min': 0.5,
-                    'confidence_weight_max': 1.0
-                }
-
-                # Объединяем с существующим конфигом
-                for key, value in extended_defaults.items():
-                    if key not in loaded_config:
-                        loaded_config[key] = value
-
+                logger.debug(f"Загружен конфиг settings: {list(loaded_config.keys())}")
                 return loaded_config
 
         except Exception as e:
-            logger.error(f"Ошибка загрузки конфигурации: {e}")
-            # Возвращаем все параметры с дефолтами
-            return {
-                'initial_capital_rub': 10000,
-                'max_positions': 10,
-                'max_position_weight_percent': 20,
-                'risk_per_trade_percent': 3,
-                'daily_loss_limit_percent': 5,
-                'min_cash_per_trade': 1000,
-                'stop_loss_percent': 3,
-                'take_profit_percent': 6,
-                'commission_percent': 0.05,
-                'slippage_percent': 0.1,
-                'model_confidence_threshold': 0.65,
-                # Расширенные параметры
-                'use_atr_for_stops': True,
-                'atr_multiplier': 2.0,
-                'max_adv_percent': 5.0,
-                'max_sector_weight_percent': 40.0,
-                'correlation_threshold': 0.7,
-                'min_risk_per_share_percent': 0.1,
-                'consecutive_loss_limit': 4,
-                'consecutive_trades_window': 5,
-                'risk_multiplier_on_high_confidence': 1.2,
-                'max_daily_trades': 50,
-                'confidence_weight_min': 0.5,
-                'confidence_weight_max': 1.0
-            }
+            logger.error(f"Ошибка загрузки конфигурации settings: {e}")
+            return {}
+
+    def _load_training_wheels(self, training_wheels_path: str) -> Dict:
+        """Загрузка учебных костылей"""
+        try:
+            with open(training_wheels_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Ошибка загрузки training_wheels: {e}")
+            return {}
 
     def _load_portfolio_state(self) -> Dict:
         """Загрузка состояния портфеля"""
@@ -139,7 +97,7 @@ class RiskManager:
             try:
 
                 # Проверка готовности технических индикаторов
-                min_history_points = self.config.get('min_history_points_for_trade', 20)
+                min_history_points = self.config.get('min_history_points_for_trade', 0)
                 ticker_history = self.portfolio_state.get('price_history', {}).get(ticker, [])
                 if len(ticker_history) < min_history_points:
                     logger.warning(
@@ -159,7 +117,7 @@ class RiskManager:
                     logger.debug(f"Использую начальный капитал для расчёта риска: {portfolio_value}")
 
                 # 0. ПРОВЕРКА ДНЕВНОГО ЛИМИТА УБЫТКА
-                max_daily_loss_pct = self.config.get('max_daily_loss_percent', 5.0)
+                max_daily_loss_pct = self.tw.get('trade_limits', {}).get('max_daily_loss_percent', 10.0)
                 if max_daily_loss_pct > 0:
                     daily_start = self.config.get('daily_start_capital', None)
                     if daily_start and daily_start > 0:
@@ -173,28 +131,41 @@ class RiskManager:
                                 self.trading_enabled = False
                                 return 0, 0.0
 
-
                 # 1. РАСЧЕТ СТОП-ЛОССА (приоритет ATR если включен и доступен)
                 use_atr = self.config.get('use_atr_for_stops', True)
+                stop_loss_pct = self.tw.get('risk_params', {}).get('stop_loss_percent', 6.0)
+                min_risk_by_stop = price * (stop_loss_pct / 100)
+
                 if use_atr and atr is not None and atr > 0:
                     # Используем ATR-based стоп
                     atr_multiplier = self.config.get('atr_multiplier', 2.0)
-                    stop_loss_price = price - (atr * atr_multiplier)
                     risk_per_share = atr * atr_multiplier
-                    logger.debug(f"Использую ATR-стоп для {ticker}: ATR={atr:.2f}, стоп={stop_loss_price:.2f}")
+                    stop_loss_price = price - risk_per_share
+
+                    # Защита от нулевого ATR: если ATR-стоп меньше процентного — используем процентный
+                    if risk_per_share < min_risk_by_stop:
+                        risk_per_share = min_risk_by_stop
+                        stop_loss_price = price - risk_per_share
+                        logger.debug(f"ATR-стоп {ticker} слишком мал (ATR={atr:.2f}), "
+                                     f"использую процентный стоп {stop_loss_pct}%: {risk_per_share:.2f}₽")
+                    else:
+                        logger.debug(f"Использую ATR-стоп для {ticker}: ATR={atr:.2f}, стоп={stop_loss_price:.2f}")
                 elif stop_loss is not None and stop_loss > 0:
                     # Используем переданный стоп
                     risk_per_share = abs(price - stop_loss)
                     stop_loss_price = stop_loss
+                    # Защита: если переданный стоп меньше процентного — используем процентный
+                    if risk_per_share < min_risk_by_stop:
+                        risk_per_share = min_risk_by_stop
+                        stop_loss_price = price - risk_per_share
                 else:
                     # Дефолтный фиксированный процент из конфига
-                    default_stop_pct = self.config.get('stop_loss_percent', 3.0)
-                    risk_per_share = price * (default_stop_pct / 100)
+                    risk_per_share = min_risk_by_stop
                     stop_loss_price = price - risk_per_share
-                    logger.debug(f"Нет ATR/стопа для {ticker}, использую фиксированный {default_stop_pct}%")
+                    logger.debug(f"Нет ATR/стопа для {ticker}, использую фиксированный {stop_loss_pct}%")
 
                 # 2. ПРОВЕРКА МИНИМАЛЬНОГО РИСКА (из конфига)
-                min_risk_pct = self.config.get('min_risk_per_share_percent', 0.1) / 100
+                min_risk_pct = self.tw.get('risk_params', {}).get('min_risk_per_share_percent', 0.1) / 100
                 min_risk_per_share = price * min_risk_pct
 
                 if risk_per_share < min_risk_per_share:
@@ -203,7 +174,7 @@ class RiskManager:
                     return 0, 0
 
                 # 3. МАКСИМАЛЬНЫЙ РИСК НА СДЕЛКУ (из конфига)
-                max_risk_pct = self.config.get('risk_per_trade_percent', 3) / 100
+                max_risk_pct = self.tw.get('risk_params', {}).get('risk_per_trade_percent', 3.0) / 100
                 max_risk_rub = portfolio_value * max_risk_pct
 
                 # 4. КОРРЕКТИРОВКА НА УВЕРЕННОСТЬ (исправленная логика из конфига)
@@ -216,14 +187,14 @@ class RiskManager:
                 quantity_by_risk = int(adjusted_risk_rub / risk_per_share)
 
                 if adv is not None and adv > 0:
-                    max_adv_pct = self.config.get('max_adv_percent', 5.0) / 100
+                    max_adv_pct = self.tw.get('risk_params', {}).get('max_adv_percent', 5.0) / 100
                     max_quantity_by_adv = int(adv * max_adv_pct)
                     quantity_by_risk = min(quantity_by_risk, max_quantity_by_adv)
                     logger.debug(
                         f"Лимит ликвидности для {ticker}: {max_quantity_by_adv} акций ({max_adv_pct * 100:.1f}% от ADV)")
 
                 # 6. ПРОВЕРКА МИНИМАЛЬНОЙ СДЕЛКИ (из конфига)
-                min_trade_value = self.config.get('min_cash_per_trade', 1000)
+                min_trade_value = self.tw.get('trade_limits', {}).get('min_cash_per_trade', 1000)
                 trade_value = quantity_by_risk * price
 
                 if trade_value < min_trade_value:
@@ -240,7 +211,7 @@ class RiskManager:
                     actual_risk_rub = quantity * risk_per_share
 
                     # Лимит превышения риска (из конфига)
-                    risk_multiplier_limit = self.config.get('risk_multiplier_on_high_confidence', 1.2)
+                    risk_multiplier_limit = self.tw.get('risk_params', {}).get('risk_multiplier_on_high_confidence', 1.2)
                     if actual_risk_rub > max_risk_rub * risk_multiplier_limit:
                         logger.warning(f"Минимальная сделка {ticker} превышает лимит риска: "
                                        f"{actual_risk_rub:.0f}₽ > {max_risk_rub * risk_multiplier_limit:.0f}₽")
@@ -329,8 +300,14 @@ class RiskManager:
                         # НЕ возвращаем False, продолжаем проверку дальше!
 
                 # 2. ПРОВЕРКА МАКСИМАЛЬНОГО ВЕСА ПОЗИЦИИ (из конфига)
-                max_weight_pct = self.config.get('max_position_weight_percent', 20)
+                max_weight_pct = self.tw.get('risk_params', {}).get('max_position_weight_percent', 30)
                 max_weight = max_weight_pct / 100
+
+                # Защита от расчётных ошибок: вес > 100% означает ошибку в quantity или price
+                if new_position_value > portfolio_value:
+                    logger.error(f"Ошибка расчёта позиции {ticker}: стоимость {new_position_value:.0f}₽ "
+                                 f"превышает портфель {portfolio_value:.0f}₽")
+                    return False
 
                 if ticker in positions:
                     # Уже есть позиция
@@ -412,7 +389,7 @@ class RiskManager:
                     return False
 
                 # 2. ЛИМИТ СДЕЛОК В ДЕНЬ (из конфига)
-                max_daily_trades = self.config.get('max_daily_trades', 50)
+                max_daily_trades = self.tw.get('trade_limits', {}).get('max_daily_trades', 50)
                 if self.daily_trades >= max_daily_trades:
                     logger.warning(f"Достигнут лимит сделок за день: {self.daily_trades}/{max_daily_trades}")
                     return False
@@ -423,7 +400,7 @@ class RiskManager:
                     recent_trades = list(self.trade_history)[-consecutive_trades_window:]
                     losing_trades = [t for t in recent_trades if t.get('pnl', 0) < 0]
 
-                    consecutive_loss_limit = self.config.get('consecutive_loss_limit', 4)
+                    consecutive_loss_limit = self.tw.get('trade_limits', {}).get('max_consecutive_losses', 8)
                     if len(losing_trades) >= consecutive_loss_limit:
                         logger.warning(
                             f"Слишком много убыточных сделок подряд: {len(losing_trades)}/{consecutive_trades_window}")
@@ -549,11 +526,11 @@ class RiskManager:
 
                 # Добавляем конфигурационные параметры для прозрачности
                 metrics['config'] = {
-                    'daily_loss_limit_pct': self.config.get('daily_loss_limit_percent', 5),
-                    'max_position_weight_pct': self.config.get('max_position_weight_percent', 20),
+                    'daily_loss_limit_pct': self.tw.get('trade_limits', {}).get('max_daily_loss_percent', 10.0),
+                    'max_position_weight_pct': self.tw.get('risk_params', {}).get('max_position_weight_percent', 30),
                     'use_atr_for_stops': self.config.get('use_atr_for_stops', True),
                     'atr_multiplier': self.config.get('atr_multiplier', 2.0),
-                    'max_adv_percent': self.config.get('max_adv_percent', 5.0),
+                    'max_adv_percent': self.tw.get('risk_params', {}).get('max_adv_percent', 5.0),
                     'max_sector_weight_pct': self.config.get('max_sector_weight_percent', 40.0),
                     'correlation_threshold': self.config.get('correlation_threshold', 0.7)
                 }

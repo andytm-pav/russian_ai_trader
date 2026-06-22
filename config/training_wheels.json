@@ -1,36 +1,40 @@
 {
-  "_comment": "Учебные костыли. 0/false = отключено",
+  "_comment": "Учебные костыли. 0/false = отключено. При переходе в продакшн обнулить значения.",
 
   "trade_limits": {
-    "min_hold_time_seconds": 300,
-    "max_daily_trades": 20,
-    "cooldown_seconds": 3600,
-    "min_cash_per_trade": 3000,
-    "min_profit_per_trade_rub": 6.0,
-    "max_daily_loss_percent": 5.0,
+    "min_hold_time_seconds": 120,
+    "max_daily_trades": 50,
+    "cooldown_seconds": 900,
+    "min_cash_per_trade": 1000,
+    "min_profit_per_trade_rub": 3.0,
+    "max_daily_loss_percent": 10.0,
     "stop_on_daily_loss": false,
-    "max_consecutive_losses": 5,
+    "max_consecutive_losses": 8,
     "enable_rebalance": false,
     "force_hold_on_open_seconds": 0
   },
 
-  "exploration": {
-    "force_rate": 0.0,
-    "decay_steps": 500
-  },
-
-  "risk": {
-    "max_position_weight_percent": 30,
+  "risk_params": {
+    "risk_per_trade_percent": 3.0,
+    "stop_loss_percent": 6.0,
+    "take_profit_percent": 12.0,
+    "max_position_weight_percent": 40,
+    "min_risk_per_share_percent": 0.001,
+    "risk_multiplier_on_high_confidence": 1.2,
+    "max_adv_percent": 5.0,
     "position_sizing_atr_enabled": false,
     "atr_multiplier": 2.0
   },
 
-  "min_history_points_for_trade": 20,
+  "exploration": {
+    "force_rate": 0.0,
+    "decay_steps": 1000
+  },
 
-
+  "min_history_points_for_trade": 0,
 
   "coach": {
     "rule_0_enabled": true,
-    "rule_0_min_hold_seconds": 300
+    "rule_0_min_hold_seconds": 120
   }
 }

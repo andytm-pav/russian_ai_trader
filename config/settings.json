@@ -2,8 +2,6 @@
   "initial_capital_rub": 10000,
   "max_positions": 10,
   "max_position_weight_percent": 30,
-  "risk_per_trade_percent": 3.0,
-  "daily_loss_limit_percent": 5,
   "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f",
 
   "strategy_selection_timeout": 10,
@@ -15,7 +13,7 @@
     "top_tickers": 120
   },
 
-  "reset_model_on_start": true,
+  "reset_model_on_start": false,
 
   "trailing_stop_enabled": true,
   "trailing_stop_activation_percent": 3.0,
@@ -123,10 +121,6 @@
   "max_adv_percent": 5.0,
   "max_sector_weight_percent": 40.0,
   "correlation_threshold": 0.7,
-  "min_risk_per_share_percent": 0.05,
-  "consecutive_loss_limit": 4,
-  "consecutive_trades_window": 5,
-  "risk_multiplier_on_high_confidence": 1.2,
   "confidence_weight_min": 0.5,
   "confidence_weight_max": 1.0,
   "news_sensitivity_score": 0.7,
@@ -146,8 +140,6 @@
     "min_profit_to_fix": 50.0,
     "reinvest_percent": 0.0
   },
-  "stop_loss_percent": 6,
-  "take_profit_percent": 12,
   "commission_percent": 0.3,
   "slippage_percent": 0.1,
   "model_confidence_threshold": 0.55,

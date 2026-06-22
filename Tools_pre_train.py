@@ -158,6 +158,8 @@ seeds = [
     {"action": 2, "reward": 1.5, "desc": "Позиция 1 час"},
     {"action": 0, "reward": 0.8, "desc": "Дневной горизонт"},
     {"action": 2, "reward": 2.0, "desc": "Недельный горизонт"},
+    {"action": 5, "reward": -2.0, "desc": "SELL без позиции — ошибка"},
+    {"action": 1, "reward": 0.5, "desc": "HOLD при пустом портфеле — терпение"},
 ]
 
 seed_params = {
@@ -209,6 +211,9 @@ seed_params = {
     "Позиция 1 час": {"rsi": 55, "has_position": True, "pnl_pct": 1.5, "hold_time": 1},
     "Дневной горизонт": {"rsi": 65, "has_position": True, "pnl_pct": 0.8, "hold_time": 4},
     "Недельный горизонт": {"rsi": 55, "has_position": True, "pnl_pct": 2, "hold_time": 24},
+    "SELL без позиции — ошибка": {"rsi": 70, "imoex_change": -1, "cash": 10000, "positions_count": 0, "exposure": 0},
+    "HOLD при пустом портфеле — терпение": {"rsi": 70, "imoex_change": -1, "cash": 10000, "positions_count": 0,
+                                            "exposure": 0},
 }
 
 for seed in seeds:
@@ -336,14 +341,7 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
         portfolio.daily_commission_limit = 999999
         portfolio.settings = {
             'max_positions_per_horizon': {'balanced': 999, 'day_session': 999, 'three_days': 999, 'week': 999}}
-        portfolio.training_wheels = {
-            'trade_limits': {
-                'min_hold_time_seconds': 0,
-                'min_cash_per_trade': 0,
-                'cooldown_seconds': 0,
-                'min_history_points_for_trade': 0
-            }
-        }
+        portfolio.training_wheels = {}
 
         tech_core.price_history.clear()
         tech_core.indicators_cache.clear()
@@ -452,11 +450,19 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
 
             with torch.no_grad():
                 action_probs, state_value, _ = model.policy_net(state_tensor)
-                action = action_probs.argmax().item()
+                if learn:
+                    action = torch.multinomial(action_probs, 1).item()
+                else:
+                    action = action_probs.argmax().item()
 
             # Исполняем сделку
             if action in [3, 4]:
                 qty = int(portfolio.cash * 0.1 / price)
+                lot_size = sec_info.get('lot_size', 1)
+                if lot_size > 1:
+                    qty = (qty // lot_size) * lot_size
+                if qty < lot_size:
+                    qty = lot_size
                 if qty > 0 and portfolio.cash >= qty * price:
                     portfolio.buy(ticker, qty, price, 'balanced')
             elif action in [5, 6] and ticker in portfolio.positions:

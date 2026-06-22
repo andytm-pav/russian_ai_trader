@@ -381,11 +381,6 @@ class SmartPortfolioBroker:
 
         executed_count = 0
 
-        max_daily_trades = self.training_wheels.get('trade_limits', {}).get('max_daily_trades', 0)
-        if max_daily_trades > 0 and self.risk_manager.daily_trades >= max_daily_trades:
-            logger.warning(f"Достигнут лимит сделок на день: {self.risk_manager.daily_trades}/{max_daily_trades}")
-            return 0
-
         cooldown_seconds = self.training_wheels.get('trade_limits', {}).get('cooldown_seconds', 0)
 
         for signal in all_signals_with_horizon[:5]:
