@@ -585,3 +585,63 @@ class OptimizedNewsFetcher:
         self.stats['cache_hits'] = 0
         self.stats['cache_misses'] = 0
         logger.info("Принудительное обновление новостей")
+
+    def save_to_archive(self):
+        """Сохраняет текущие новости в архив"""
+        archive_file = "data/news_archive.json"
+        try:
+            with open(archive_file, "r", encoding="utf-8") as f:
+                archive = json.load(f)
+        except:
+            archive = []
+
+        existing_titles = {n.get('title', '') for n in archive}
+
+        for news in self.news_cache:
+            title = news.get('title', '')
+            if title and title not in existing_titles:
+                archive.append({
+                    'title': title,
+                    'summary': news.get('summary', ''),
+                    'published': news.get('published', ''),
+                    'source': news.get('source', ''),
+                    'sentiment': news.get('sentiment', 0),
+                    'ticker': news.get('ticker', '')
+                })
+                existing_titles.add(title)
+
+        # Оставляем последние 10 000 новостей
+        archive = archive[-10000:]
+
+        with open(archive_file, "w", encoding="utf-8") as f:
+            json.dump(archive, f, ensure_ascii=False, indent=2)
+
+        logger.debug(f"Архив новостей обновлён: {len(archive)} записей")
+
+    @staticmethod
+    def get_news_for_date(date_str: str, ticker: str, archive: list) -> list:
+        """Возвращает новости за указанную дату по тикеру"""
+        relevant = []
+        for news in archive:
+            published = news.get('published', '')
+            if published and published[:10] == date_str:
+                title = news.get('title', '').upper()
+                summary = news.get('summary', '').upper()
+                if ticker.upper() in title or ticker.upper() in summary:
+                    relevant.append(news)
+
+        if not relevant:
+            # Берём любые новости за эту дату
+            relevant = [n for n in archive if n.get('published', '')[:10] == date_str][:3]
+
+        return relevant
+
+    @staticmethod
+    def load_news_archive() -> list:
+        """Загружает архив новостей"""
+        archive_file = "data/news_archive.json"
+        try:
+            with open(archive_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return []

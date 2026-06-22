@@ -238,7 +238,7 @@
     "enable_autosave": true,
     "autosave_interval": 10,
     "memory_file": "models/saved_trader/memory_buffer.pkl",
-    "auto_save_interval_cycles": 20,
+    "auto_save_interval_cycles": 50,
     "compress": true,
     "compression": true
   },
@@ -265,7 +265,7 @@
   "learning_rate": 0.0005,
   "gamma": 0.95,
   "batch_size": 32,
-  "memory_size": 20000,
+  "memory_size": 50000,
   "target_update_interval": 100,
   "tau": 0.005,
   "optimizer": "adam",
@@ -344,7 +344,7 @@
   },
   "memory_clean": {
     "enabled": true,
-    "max_memory_after_clean": 20000,
+    "max_memory_after_clean": 50000,
     "keep_all_profitable": true,
     "keep_loss_ratio": 0.3,
     "keep_extreme_ratio": 1.0,

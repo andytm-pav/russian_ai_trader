@@ -10,6 +10,7 @@
     "max_daily_loss_percent": 5.0,
     "stop_on_daily_loss": false,
     "max_consecutive_losses": 5,
+    "enable_rebalance": false,
     "force_hold_on_open_seconds": 0
   },
 
@@ -26,7 +27,7 @@
 
   "min_history_points_for_trade": 20,
 
-  "enable_rebalance": false,
+
 
   "coach": {
     "rule_0_enabled": true,

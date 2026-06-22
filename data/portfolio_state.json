@@ -1,27 +1,15 @@
 {
-  "total_value": 10000,
+  "total_value": 10000.0,
   "cash": 10000,
-  "reserved_cash": 0.0,
   "positions": {},
-  "sector_allocation": {},
-  "correlation_matrix": {},
-  "trade_history": [],
-  "strategy_positions": {},
+  "last_update": "2026-06-22T16:54:06.506572",
   "initial_capital": 10000,
+  "reserved_cash": 0.0,
+  "pending_commissions": [],
+  "trade_history": [],
+  "daily_trades": [],
+  "commission_spent_today": 0.0,
   "total_commission": 0.0,
   "total_trades": 0,
-  "total_pnl": 0.0,
-  "commission_spent_today": 0.0,
-  "daily_trades": [],
-  "pending_commissions": [],
-  "daily_profit_history": [],
-  "last_update": "2026-06-19T16:12:38.000290",
-  "stats": {
-    "cash": 10000,
-    "positions_count": 0,
-    "total_trades": 0,
-    "initial_capital": 10000,
-    "current_capital": 10000,
-    "strategies_count": 0
-  }
+  "total_pnl": 0.0
 }

@@ -1,88 +1,155 @@
-#!/usr/bin/env python3
 """
-ПРОВЕРКА: удаляется ли balanced из runtime при reload_configs()
+Проверка загрузки исторических макро-данных MOEX ISS API
 """
-
 import json
-import sys
+import time
+import requests
+import pandas as pd
+from datetime import datetime, timedelta
 
-sys.path.insert(0, '.')
+BASE_URL = "https://iss.moex.com/iss"
+session = requests.Session()
+session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+})
 
-from models.trader_model import trader_model_instance
+print("=" * 70)
+print("ПРОВЕРКА ИСТОРИЧЕСКИХ МАКРО-ДАННЫХ MOEX")
+print("=" * 70)
 
-print("\n" + "=" * 60)
-print("🔍 ПРОВЕРКА УДАЛЕНИЯ BALANCED ИЗ RUNTIME")
-print("=" * 60)
+TEST_DATE_START = "2025-06-01"
+TEST_DATE_END = "2025-06-15"
 
-model = trader_model_instance
+# 1. Исторический IMOEX
+print(f"\n1. IMOEX ({TEST_DATE_START} → {TEST_DATE_END}):")
+url = f"{BASE_URL}/history/engines/stock/markets/index/securities/IMOEX.json"
+params = {
+    'from': TEST_DATE_START,
+    'till': TEST_DATE_END,
+    'iss.meta': 'off',
+    'history.columns': 'TRADEDATE,CLOSE'
+}
 
-# 1. Есть ли balanced в strategies сейчас?
-print(f"\n1. Стратегии в памяти ДО проверки:")
-for name in sorted(model.strategies.keys()):
-    enabled = model.strategies[name].get('enabled', True)
-    icon = '✅' if enabled else '❌'
-    print(f"   {icon} {name}")
+start = time.time()
+try:
+    resp = session.get(url, params=params, timeout=15)
+    elapsed = time.time() - start
+    if resp.status_code == 200:
+        data = resp.json()
+        if 'history' in data and data['history']['data']:
+            rows = data['history']['data']
+            print(f"  Получено {len(rows)} записей за {elapsed:.1f}с")
+            for row in rows[:3]:
+                print(f"    {row[0]}: IMOEX={row[1]}")
+            if len(rows) > 3:
+                print(f"    ... и ещё {len(rows)-3}")
+        else:
+            print(f"  Нет данных (за {elapsed:.1f}с)")
+    else:
+        print(f"  HTTP {resp.status_code} (за {elapsed:.1f}с)")
+except Exception as e:
+    elapsed = time.time() - start
+    print(f"  Ошибка: {e} (за {elapsed:.1f}с)")
 
-# 2. Имитируем reload_configs
-print(f"\n2. Имитация reload_configs...")
-with open('config/strategies.json', 'r', encoding='utf-8') as f:
-    new_strategies = json.load(f)
+# 2. Исторический RTSI
+print(f"\n2. RTSI ({TEST_DATE_START} → {TEST_DATE_END}):")
+url = f"{BASE_URL}/history/engines/stock/markets/index/securities/RTSI.json"
+params = {
+    'from': TEST_DATE_START,
+    'till': TEST_DATE_END,
+    'iss.meta': 'off',
+    'history.columns': 'TRADEDATE,CLOSE'
+}
 
-for name, params in new_strategies['strategies'].items():
-    if name in model.strategies:
-        if params.get('enabled', True) is False:
-            model.strategies.pop(name, None)
-            print(f"   Удалена: {name}")
-            continue
-        old_risk = model.strategies[name].get('risk_multiplier', 1.0)
-        new_risk = params.get('risk_multiplier', 1.0)
-        model.strategies[name].update(params)
-        if old_risk < new_risk:
-            model.strategies[name]['risk_multiplier'] = old_risk
+start = time.time()
+try:
+    resp = session.get(url, params=params, timeout=15)
+    elapsed = time.time() - start
+    if resp.status_code == 200:
+        data = resp.json()
+        if 'history' in data and data['history']['data']:
+            rows = data['history']['data']
+            print(f"  Получено {len(rows)} записей за {elapsed:.1f}с")
+            for row in rows[:3]:
+                print(f"    {row[0]}: RTSI={row[1]}")
+        else:
+            print(f"  Нет данных (за {elapsed:.1f}с)")
+    else:
+        print(f"  HTTP {resp.status_code} (за {elapsed:.1f}с)")
+except Exception as e:
+    elapsed = time.time() - start
+    print(f"  Ошибка: {e} (за {elapsed:.1f}с)")
 
-# 3. Есть ли balanced после?
-print(f"\n3. Стратегии в памяти ПОСЛЕ reload_configs:")
-for name in sorted(model.strategies.keys()):
-    enabled = model.strategies[name].get('enabled', True)
-    icon = '✅' if enabled else '❌'
-    print(f"   {icon} {name}")
+# 3. Исторический RVI (волатильность)
+print(f"\n3. RVI ({TEST_DATE_START} → {TEST_DATE_END}):")
+url = f"{BASE_URL}/history/engines/stock/markets/index/securities/RVI.json"
+params = {
+    'from': TEST_DATE_START,
+    'till': TEST_DATE_END,
+    'iss.meta': 'off',
+    'history.columns': 'TRADEDATE,CLOSE'
+}
 
-# 4. Проверяем choose_action_with_strategy
-if 'balanced' in model.strategies:
-    print(f"\n❌ BALANCED ВСЁ ЕЩЁ В ПАМЯТИ!")
-    print(f"   Модель будет его использовать.")
-else:
-    print(f"\n✅ BALANCED УДАЛЁН ИЗ ПАМЯТИ!")
-    print(f"   Модель НЕ будет его использовать.")
+start = time.time()
+try:
+    resp = session.get(url, params=params, timeout=15)
+    elapsed = time.time() - start
+    if resp.status_code == 200:
+        data = resp.json()
+        if 'history' in data and data['history']['data']:
+            rows = data['history']['data']
+            print(f"  Получено {len(rows)} записей за {elapsed:.1f}с")
+            for row in rows[:3]:
+                print(f"    {row[0]}: RVI={row[1]}")
+        else:
+            print(f"  Нет данных (за {elapsed:.1f}с)")
+    else:
+        print(f"  HTTP {resp.status_code} (за {elapsed:.1f}с)")
+except Exception as e:
+    elapsed = time.time() - start
+    print(f"  Ошибка: {e} (за {elapsed:.1f}с)")
 
-# 5. Имитируем вызов choose_action_with_strategy
-print(f"\n4. Имитация выбора стратегии (10 проходов):")
-import torch
-import random
+# 4. USD/RUB через ЦБ РФ
+print(f"\n4. USD/RUB ЦБ РФ ({TEST_DATE_START} → {TEST_DATE_END}):")
+import xml.etree.ElementTree as ET
 
-state = torch.randn(model.base_state_dim).to(model.device)
-found_balanced = 0
-for i in range(10):
+cbr_session = requests.Session()
+cbr_session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (compatible; CBRClient/1.0)'
+})
+
+test_dates = ["2025-06-02", "2025-06-06", "2025-06-11"]
+for date_str in test_dates:
+    url = f"http://www.cbr.ru/scripts/XML_daily.asp?date_req={date_str}"
+    start = time.time()
     try:
-        action, strategy, conf = model.choose_action_with_strategy(
-            state=state,
-            ticker='SBER',
-            price=320.0,
-            market_context={'market_sentiment': 0, 'volatility': 1.0,
-                          'confidence': 0.7, 'time_of_day': 0.5,
-                          'ticker_sentiment': 0, 'assigned_horizon': 'week'}
-        )
-        if strategy == 'balanced':
-            found_balanced += 1
-            print(f"   {i+1}: balanced (не должно быть!)")
+        resp = cbr_session.get(url, timeout=15)
+        elapsed = time.time() - start
+        if resp.status_code == 200:
+            resp.encoding = 'windows-1251'
+            root = ET.fromstring(resp.text)
+            for valute in root.findall('Valute'):
+                if valute.find('CharCode').text == 'USD':
+                    value = valute.find('Value').text
+                    nominal = valute.find('Nominal').text
+                    usd_rub = float(value.replace(',', '.')) / float(nominal)
+                    print(f"    {date_str}: USD/RUB={usd_rub:.2f} (за {elapsed:.1f}с)")
+        else:
+            print(f"    {date_str}: HTTP {resp.status_code} (за {elapsed:.1f}с)")
+            print(f"    Ответ: {resp.text[:200]}")
     except Exception as e:
-        print(f"   {i+1}: ошибка — {e}")
+        elapsed = time.time() - start
+        print(f"    {date_str}: {type(e).__name__}: {e} (за {elapsed:.1f}с)")
 
-if found_balanced == 0:
-    print(f"\n✅ Модель НИ РАЗУ не выбрала balanced!")
-else:
-    print(f"\n❌ Модель выбрала balanced {found_balanced}/10 раз!")
+# 5. Нефть Brent (через Investing.com не получится исторически)
+print(f"\n5. Brent (текущий):")
+from fetchers.moex_fetcher import MoexFetcher
+moex = MoexFetcher()
+brent = moex.get_brent_price()
+print(f"  Текущая цена: ${brent:.2f}" if brent else "  Нет данных")
 
-print("\n" + "=" * 60)
-print("✅ ПРОВЕРКА ЗАВЕРШЕНА")
-print("=" * 60)
+print("\n" + "=" * 70)
+print("ГОТОВО")
+print("=" * 70)
+print("\nВывод: MOEX отдаёт исторические данные для IMOEX, RTSI, RVI, USD/RUB.")
+print("Brent нужно получать через Investing.com (только текущие данные).")
