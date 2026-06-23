@@ -477,19 +477,21 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
                 price_change = (next_price - price) / price
 
                 if action in [3, 4]:  # BUY
-                    if market_regime == 1:  # Растущий
+                    if market_regime == 1:
                         reward = price_change * 100
-                    elif market_regime == 2:  # Падающий
-                        reward = price_change * 150  # Усиленный штраф
-                    else:  # Боковик
+                    elif market_regime == 2:
+                        reward = price_change * 150
+                    else:
                         reward = price_change * 50
+                    reward -= 0.003  # комиссия 0.3%
                 elif action in [5, 6]:  # SELL
-                    if market_regime == 1:  # Растущий
-                        reward = -price_change * 150  # Усиленный штраф
-                    elif market_regime == 2:  # Падающий
+                    if market_regime == 1:
+                        reward = -price_change * 150
+                    elif market_regime == 2:
                         reward = -price_change * 100
-                    else:  # Боковик
+                    else:
                         reward = -price_change * 50
+                    reward -= 0.003  # комиссия 0.3%
                 else:  # HOLD
                     reward = -abs(price_change) * 20
 

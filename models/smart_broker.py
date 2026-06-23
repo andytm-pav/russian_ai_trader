@@ -727,6 +727,11 @@ class SmartPortfolioBroker:
                 if pos_lot_size > 1:
                     qty = (qty // pos_lot_size) * pos_lot_size
 
+                if qty < pos_lot_size:
+                    qty = pos_lot_size
+                if qty > pos['qty']:
+                    qty = pos['qty']
+
                 if qty <= 0:
                     continue
 
@@ -1951,7 +1956,14 @@ class SmartPortfolioBroker:
                                 logger.debug(f"Не удалось записать HOLD-опыт для {ticker}: {e}")
 
             if filtered_signals and self.risk_manager.check_daily_limits():
-                self._execute_trading_decisions(filtered_signals, prices, securities)
+                # Фильтруем SELL-сигналы: только для тикеров в портфеле
+                executable_signals = []
+                for signal in filtered_signals:
+                    if signal.get('action') == 'SELL' and signal['ticker'] not in self.portfolio.positions:
+                        continue
+                    executable_signals.append(signal)
+                if executable_signals:
+                    self._execute_trading_decisions(executable_signals, prices, securities)
 
             if self.cycle_count % 5 == 0 and self.training_wheels.get('trade_limits', {}).get('enable_rebalance', True):
                 self._rebalance_portfolio(prices, securities)

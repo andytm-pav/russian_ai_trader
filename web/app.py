@@ -615,8 +615,23 @@ def update_dashboard(n_intervals, refresh_clicks):
         summary = broker_instance.get_portfolio_summary()
         session_info = summary.get('session_info', {})
 
-        system_status = "АКТИВНА" if broker_instance.trading_enabled else "ПАУЗА"
-        market_status = "Рынок открыт" if session_info.get('is_trading_time', False) else "Рынок закрыт"
+        is_trading_time = session_info.get('is_trading_time', False)
+        is_trading_day = session_info.get('is_trading_day', False)
+        trading_enabled = broker_instance.trading_enabled
+
+        if trading_enabled and is_trading_time:
+            system_status = "АКТИВНА"
+        elif trading_enabled and is_trading_day:
+            system_status = "ОЖИДАНИЕ"
+        else:
+            system_status = "ПАУЗА"
+
+        if is_trading_time:
+            market_status = "Рынок открыт"
+        elif is_trading_day:
+            market_status = "Рынок скоро откроется"
+        else:
+            market_status = "Рынок закрыт"
 
         total_value = summary.get('total_value', 0)
         cash = summary.get('cash', 0)
@@ -1236,7 +1251,7 @@ def update_price_volume_chart(ticker, period, interval_str, n_intervals):
             if interval == 24:
                 dates = pd.date_range(end=datetime.now(), periods=count, freq='D')
             else:
-                dates = pd.date_range(end=datetime.now(), periods=count, freq='H')
+                dates = pd.date_range(end=datetime.now(), periods=count, freq='h')
 
             trend = np.random.uniform(-0.01, 0.01, count).cumsum()
             prices = base_price * (1 + trend)
@@ -1866,7 +1881,9 @@ def update_ticker_dropdown_simple(n_intervals):
     try:
         portfolio_tickers = get_portfolio_tickers()
         if not portfolio_tickers:
-            return [{'label': f"{ticker}", 'value': ticker} for ticker in ['SBER', 'GAZP', 'LKOH', 'MOEX', 'VTBR', 'ROSN', 'GMKN']]
+            return [{'label': "MOEX (Индекс Мосбиржи)", 'value': 'MOEX'}] + [
+                {'label': ticker, 'value': ticker} for ticker in ['SBER', 'GAZP', 'LKOH', 'VTBR', 'ROSN', 'GMKN']
+            ]
         options = []
         for ticker in sorted(portfolio_tickers):
             if ticker == 'MOEX':

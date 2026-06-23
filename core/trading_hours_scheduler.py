@@ -511,7 +511,7 @@ class TradingScheduler:
 
                 # Утренние задачи
                 pre_market = moex.get("pre_market_start", "06:30")
-                market_open = periods.get("continuous_trading", {}).get("start", "10:00")
+                market_open = periods.get("auction_open", {}).get("start", "09:50")
 
                 # Вечернее закрытие - когда реально прекращаются торги (23:50)
                 evening_close = periods.get("evening_continuous", {}).get("end", "23:50")
