@@ -212,7 +212,7 @@ class MoexFetcher:
             params = {
                 'iss.meta': 'off',
                 'iss.only': 'securities',
-                'securities.columns': 'SECID,SHORTNAME,SECNAME,LOTSIZE,MINSTEP,PREVPRICE',
+                'securities.columns': 'SECID,SHORTNAME,SECNAME,LOTSIZE,MINSTEP,PREVPRICE,BOARDID',
                 'limit': 100
             }
 
@@ -414,6 +414,15 @@ class MoexFetcher:
                     }
 
             logger.info(f"Загружено {len(securities)} бумаг с реальными метриками")
+
+            # ОТЛАДКА: проверяем наличие boardid
+            boardid_empty = [t for t, s in securities.items() if not s.get('boardid')]
+            boardid_filled = [t for t, s in securities.items() if s.get('boardid')]
+            logger.debug(f"ОТЛАДКА boardid: пустых={len(boardid_empty)}, заполненных={len(boardid_filled)}")
+            if boardid_empty:
+                logger.debug(f"ОТЛАДКА примеры пустых: {boardid_empty[:5]}")
+            if boardid_filled:
+                logger.debug(f"ОТЛАДКА примеры заполненных: {boardid_filled[:5]}")
 
             self._save_to_cache(cache_key, securities)
             return securities

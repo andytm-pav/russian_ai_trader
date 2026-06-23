@@ -2355,7 +2355,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": -0.13013942571702308,
+  "market_sentiment": -0.1345493283618525,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
@@ -2567,5 +2567,5 @@
       }
     }
   },
-  "save_time": "2026-06-24T00:22:40.416545"
+  "save_time": "2026-06-24T00:47:52.754883"
 }
