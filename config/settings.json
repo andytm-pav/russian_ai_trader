@@ -158,7 +158,8 @@
     "min_daily_volume_rub": 50000000,
     "min_daily_trades": 100,
     "max_spread_percent": 2.0,
-    "min_price": 10.0
+    "min_price": 10.0,
+    "allowed_security_types": ["Акция обыкновенная", "Акция привилегированная"]
   },
   "price_history_file": "data/price_history.json",
 

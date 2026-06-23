@@ -260,12 +260,14 @@ class MoexFetcher:
 
                     tickers.append(ticker)
 
+                    boardid = row[columns.index('BOARDID')] if 'BOARDID' in columns else ''
                     sec_dict[ticker] = {
                         'name': name,
                         'full_name': row[columns.index('SECNAME')] if 'SECNAME' in columns else name,
                         'lot_size': lot_size,
                         'min_step': min_step,
-                        'prev_price': prev_price
+                        'prev_price': prev_price,
+                        'boardid': boardid
                     }
 
                 except (IndexError, ValueError) as e:
@@ -397,6 +399,7 @@ class MoexFetcher:
                         'full_name': base_data['full_name'],
                         'lot_size': base_data['lot_size'],
                         'min_step': base_data['min_step'],
+                        'boardid': base_data.get('boardid', ''),
                         'price': current_price,
                         'prev_price': prev_price,
                         'volume': volume,

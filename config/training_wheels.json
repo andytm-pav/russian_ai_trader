@@ -28,7 +28,7 @@
 
   "exploration": {
     "force_rate": 0.0,
-    "decay_steps": 1000
+    "decay_steps": 5000
   },
 
   "min_history_points_for_trade": 0,

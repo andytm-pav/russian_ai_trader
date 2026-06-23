@@ -59,9 +59,9 @@
   },
   "exploration": {
     "initial_exploration_rate": 0.1,
-    "final_exploration_rate": 0.03,
+    "final_exploration_rate": 0.05,
     "action_exploration_rate": 0.15,
-    "min_exploration_rate": 0.01,
+    "min_exploration_rate": 0.05,
     "max_exploration_rate": 0.3
   },
   "sentiment_integration": {

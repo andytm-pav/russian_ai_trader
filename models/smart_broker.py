@@ -1845,10 +1845,13 @@ class SmartPortfolioBroker:
                 min_trades = liquidity_filter.get('min_daily_trades', 0)
                 max_spread = liquidity_filter.get('max_spread_percent', 100.0)
                 min_price = liquidity_filter.get('min_price', 0)
+                allowed_boards = liquidity_filter.get('allowed_boards', [])
 
                 filtered_prices = {}
                 for ticker, price in prices.items():
                     sec = securities.get(ticker, {})
+                    if allowed_boards and sec.get('boardid', '') not in allowed_boards:
+                        continue
                     if sec.get('volume', 0) < min_volume:
                         continue
                     if sec.get('num_trades', 0) < min_trades:
