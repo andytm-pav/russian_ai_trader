@@ -153,6 +153,13 @@
 
   "liquidity_check_multiplier": 10.0,
   "min_daily_volume_rub": 1000000,
+  "liquidity_filter": {
+    "enabled": true,
+    "min_daily_volume_rub": 50000000,
+    "min_daily_trades": 100,
+    "max_spread_percent": 2.0,
+    "min_price": 10.0
+  },
   "price_history_file": "data/price_history.json",
 
   "min_ticker_price": 10.0,

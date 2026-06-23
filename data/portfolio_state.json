@@ -1,13 +1,11 @@
 {
-  "total_value": 10007.769999999999,
-  "cash": 1202.7699999999993,
   "positions": {
     "TRNFP": {
-      "qty": 2,
+      "qty": 1,
       "avg_price": 1295.2,
       "buy_time": 1782158326.7611752,
       "total_cost": 2590.4,
-      "commission_buy": 7.77,
+      "commission_buy": 3.885,
       "time_horizon": "day_session",
       "strategy": "momentum",
       "lot_size": 1,
@@ -16,11 +14,11 @@
       "take_profit": "1441.1617"
     },
     "RTKM": {
-      "qty": 50,
+      "qty": 20,
       "avg_price": 44.46,
       "buy_time": 1782158344.222421,
       "total_cost": 3556.8,
-      "commission_buy": 6.668749999999999,
+      "commission_buy": 2.6674999999999995,
       "time_horizon": "day_session",
       "strategy": "momentum",
       "lot_size": 10,
@@ -29,23 +27,34 @@
       "take_profit": "49.68832"
     },
     "PLZL": {
-      "qty": 2,
+      "qty": 1,
       "avg_price": 1995.8000000000002,
       "buy_time": 1782160938.7941887,
       "total_cost": 3991.6000000000004,
-      "commission_buy": 11.97,
+      "commission_buy": 5.985,
       "time_horizon": "week",
       "strategy": "mean_reversion",
       "lot_size": 1,
       "min_step": 0.2,
       "stop_loss": "1849.704",
       "take_profit": "2083.046"
+    },
+    "SBMX": {
+      "qty": 249,
+      "avg_price": 16.052,
+      "buy_time": 1782210149.5654414,
+      "total_cost": 3996.948,
+      "commission_buy": 11.99,
+      "time_horizon": "day_session",
+      "strategy": "swing",
+      "lot_size": 1,
+      "min_step": 0.001,
+      "stop_loss": 14.4468,
+      "take_profit": 19.2624
     }
   },
-  "last_update": "2026-06-23T13:53:01.256591",
+  "cash": 1856.822,
   "initial_capital": 10000,
-  "reserved_cash": 11.57875,
-  "pending_commissions": [],
   "trade_history": [
     {
       "timestamp": "2026-06-22T23:58:46.761192",
@@ -274,11 +283,209 @@
         "take_profit": "49.68832"
       },
       "strategy": "momentum"
+    },
+    {
+      "timestamp": "2026-06-23T14:14:59.140672",
+      "action": "SELL",
+      "ticker": "PLZL",
+      "quantity": 1,
+      "price": 2002.4,
+      "revenue": 2002.4,
+      "commission_buy": 5.985,
+      "commission_sell": 6.01,
+      "commission_total": 11.995000000000001,
+      "pnl": -5.395000000000091,
+      "pnl_percent": -0.2703176671009165,
+      "cash_after": 3199.159999999999,
+      "reserved_after": 0,
+      "position_after": {
+        "qty": 1,
+        "avg_price": 1995.8000000000002,
+        "buy_time": 1782160938.7941887,
+        "total_cost": 3991.6000000000004,
+        "commission_buy": 5.985,
+        "time_horizon": "week",
+        "strategy": "mean_reversion",
+        "lot_size": 1,
+        "min_step": 0.2,
+        "stop_loss": "1849.704",
+        "take_profit": "2083.046"
+      },
+      "strategy": "mean_reversion"
+    },
+    {
+      "timestamp": "2026-06-23T14:22:24.096594",
+      "action": "SELL",
+      "ticker": "TRNFP",
+      "quantity": 1,
+      "price": 1311.8000000000002,
+      "revenue": 1311.8000000000002,
+      "commission_buy": 3.885,
+      "commission_sell": 3.94,
+      "commission_total": 7.824999999999999,
+      "pnl": 8.775000000000137,
+      "pnl_percent": 0.6775015441630742,
+      "cash_after": 4507.0199999999995,
+      "reserved_after": 0,
+      "position_after": {
+        "qty": 1,
+        "avg_price": 1295.2,
+        "buy_time": 1782158326.7611752,
+        "total_cost": 2590.4,
+        "commission_buy": 3.885,
+        "time_horizon": "day_session",
+        "strategy": "momentum",
+        "lot_size": 1,
+        "min_step": 0.2,
+        "stop_loss": "1184.8668",
+        "take_profit": "1441.1617"
+      },
+      "strategy": "momentum"
+    },
+    {
+      "timestamp": "2026-06-23T14:22:29.565456",
+      "action": "BUY",
+      "ticker": "SBMX",
+      "quantity": 249,
+      "price": 16.052,
+      "cost": 3996.948,
+      "commission": 11.99,
+      "cash_after": 510.07199999999966,
+      "reserved_after": 11.99,
+      "position_after": {
+        "qty": 249,
+        "avg_price": 16.052,
+        "buy_time": 1782210149.5654414,
+        "total_cost": 3996.948,
+        "commission_buy": 11.99,
+        "time_horizon": "day_session",
+        "strategy": "swing",
+        "lot_size": 1,
+        "min_step": 0.001,
+        "stop_loss": 14.4468,
+        "take_profit": 19.2624
+      },
+      "strategy": "swing",
+      "params": {
+        "lot_size": 1,
+        "min_step": 0.001,
+        "stop_loss": 14.4468,
+        "take_profit": 19.2624
+      }
+    },
+    {
+      "timestamp": "2026-06-23T14:33:54.549101",
+      "action": "SELL",
+      "ticker": "RTKM",
+      "quantity": 10,
+      "price": 45.09,
+      "revenue": 450.90000000000003,
+      "commission_buy": 1.33375,
+      "commission_sell": 1.35,
+      "commission_total": 2.68375,
+      "pnl": 3.616250000000011,
+      "pnl_percent": 0.8133715699505198,
+      "cash_after": 959.6219999999997,
+      "reserved_after": 9.30625,
+      "position_after": {
+        "qty": 40,
+        "avg_price": 44.46,
+        "buy_time": 1782158344.222421,
+        "total_cost": 3556.8,
+        "commission_buy": 5.334999999999999,
+        "time_horizon": "day_session",
+        "strategy": "momentum",
+        "lot_size": 10,
+        "min_step": 0.01,
+        "stop_loss": "40.83049",
+        "take_profit": "49.68832"
+      },
+      "strategy": "momentum"
+    },
+    {
+      "timestamp": "2026-06-23T15:03:32.199761",
+      "action": "SELL",
+      "ticker": "RTKM",
+      "quantity": 10,
+      "price": 44.97,
+      "revenue": 449.7,
+      "commission_buy": 1.3337499999999998,
+      "commission_sell": 1.35,
+      "commission_total": 2.68375,
+      "pnl": 2.416249999999966,
+      "pnl_percent": 0.5434660368870818,
+      "cash_after": 1407.9719999999998,
+      "reserved_after": 6.6225000000000005,
+      "position_after": {
+        "qty": 30,
+        "avg_price": 44.46,
+        "buy_time": 1782158344.222421,
+        "total_cost": 3556.8,
+        "commission_buy": 4.001249999999999,
+        "time_horizon": "day_session",
+        "strategy": "momentum",
+        "lot_size": 10,
+        "min_step": 0.01,
+        "stop_loss": "40.83049",
+        "take_profit": "49.68832"
+      },
+      "strategy": "momentum"
+    },
+    {
+      "timestamp": "2026-06-23T15:19:49.800445",
+      "action": "SELL",
+      "ticker": "RTKM",
+      "quantity": 10,
+      "price": 45.02,
+      "revenue": 450.20000000000005,
+      "commission_buy": 1.3337499999999995,
+      "commission_sell": 1.35,
+      "commission_total": 2.68375,
+      "pnl": 2.9162500000000233,
+      "pnl_percent": 0.6559266756635229,
+      "cash_after": 1856.822,
+      "reserved_after": 3.9387500000000006,
+      "position_after": {
+        "qty": 20,
+        "avg_price": 44.46,
+        "buy_time": 1782158344.222421,
+        "total_cost": 3556.8,
+        "commission_buy": 2.6674999999999995,
+        "time_horizon": "day_session",
+        "strategy": "momentum",
+        "lot_size": 10,
+        "min_step": 0.01,
+        "stop_loss": "40.83049",
+        "take_profit": "49.68832"
+      },
+      "strategy": "momentum"
     }
   ],
-  "daily_trades": [],
-  "commission_spent_today": 56.01,
-  "total_commission": 56.01,
-  "total_trades": 4,
-  "total_pnl": -7.001250000000319
+  "strategy_positions": {
+    "momentum": [
+      "TRNFP",
+      "RTKM"
+    ],
+    "mean_reversion": [
+      "PLZL"
+    ],
+    "swing": [
+      "SBMX"
+    ]
+  },
+  "total_value": 10033.970000000001,
+  "last_update": "2026-06-23T15:19:49.800480",
+  "stats": {
+    "cash": 1856.822,
+    "positions_count": 4,
+    "total_trades": 14,
+    "initial_capital": 10000,
+    "current_capital": 10033.97,
+    "last_update": "2026-06-23T15:19:49.800497",
+    "strategies_count": 3
+  },
+  "total_commission": 81.99999999999997,
+  "total_trades": 9,
+  "total_pnl": 5.327499999999727,
+  "commission_spent_today": 81.99999999999997
 }

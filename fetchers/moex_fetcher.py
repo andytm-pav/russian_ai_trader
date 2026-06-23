@@ -286,7 +286,7 @@ class MoexFetcher:
                     'securities': ','.join(batch),
                     'iss.meta': 'off',
                     'iss.only': 'marketdata',
-                    'marketdata.columns': 'SECID,LAST,VALTODAY,VOLTODAY,SPREAD,ISSUECAPITALIZATION',
+                    'marketdata.columns': 'SECID,LAST,VALTODAY,VOLTODAY,SPREAD,ISSUECAPITALIZATION,NUMTRADES',
                     'limit': len(batch)
                 }
 
@@ -349,6 +349,14 @@ class MoexFetcher:
                                         except (ValueError, TypeError):
                                             data_row['market_cap'] = 0.0
 
+                                if 'NUMTRADES' in md_columns:
+                                    idx = md_columns.index('NUMTRADES')
+                                    if idx < len(md_row) and md_row[idx] is not None:
+                                        try:
+                                            data_row['num_trades'] = int(md_row[idx])
+                                        except (ValueError, TypeError):
+                                            data_row['num_trades'] = 0
+
                                 all_data[ticker] = data_row
 
                             except (IndexError, ValueError) as e:
@@ -391,12 +399,14 @@ class MoexFetcher:
                         'min_step': base_data['min_step'],
                         'price': current_price,
                         'prev_price': prev_price,
-                        'volume': volume,  # ✅ РЕАЛЬНЫЕ ДАННЫЕ
+                        'volume': volume,
                         'change': current_price - prev_price if prev_price else 0,
                         'momentum': momentum,
-                        'liquidity': liquidity,  # ✅ РАССЧИТАНО ИЗ РЕАЛЬНЫХ ДАННЫХ
-                        'spread': market_data.get('spread', 0.0),  # ✅ РЕАЛЬНЫЕ ДАННЫЕ
-                        'market_cap': market_data.get('market_cap', 0.0),  # ✅ РЕАЛЬНЫЕ ДАННЫЕ
+                        'liquidity': liquidity,
+                        'spread': market_data.get('spread', 0.0),
+                        'market_cap': market_data.get('market_cap', 0.0),
+                        'num_trades': market_data.get('num_trades', 0),
+                        'spread_pct': (market_data.get('spread', 0.0) / current_price * 100) if current_price > 0 else 0.0,
                         'update_time': datetime.now().isoformat()
                     }
 

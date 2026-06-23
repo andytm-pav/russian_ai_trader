@@ -1838,8 +1838,32 @@ class SmartPortfolioBroker:
                 if price:
                     prices[ticker] = price
 
+            # Фильтр ликвидности
+            liquidity_filter = self.settings.get('liquidity_filter', {})
+            if liquidity_filter.get('enabled', False):
+                min_volume = liquidity_filter.get('min_daily_volume_rub', 0)
+                min_trades = liquidity_filter.get('min_daily_trades', 0)
+                max_spread = liquidity_filter.get('max_spread_percent', 100.0)
+                min_price = liquidity_filter.get('min_price', 0)
+
+                filtered_prices = {}
+                for ticker, price in prices.items():
+                    sec = securities.get(ticker, {})
+                    if sec.get('volume', 0) < min_volume:
+                        continue
+                    if sec.get('num_trades', 0) < min_trades:
+                        continue
+                    if sec.get('spread_pct', 0) > max_spread:
+                        continue
+                    if price < min_price:
+                        continue
+                    filtered_prices[ticker] = price
+
+                logger.debug(f"Фильтр ликвидности: {len(prices)} → {len(filtered_prices)} тикеров")
+                prices = filtered_prices
+
             if len(prices) < 10:
-                logger.warning(f"Слишком мало цен: {len(prices)}")
+                logger.warning(f"Слишком мало цен после фильтра: {len(prices)}")
                 return
 
             all_signals = []
