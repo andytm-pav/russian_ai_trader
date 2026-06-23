@@ -1227,10 +1227,10 @@
       "last_trade": null
     },
     "MGNT": {
-      "total_trades": 1,
+      "total_trades": 2,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.26530883987744647,
+      "avg_hold_time": 0.23679253740443124,
       "success_rate": 0.0,
       "last_trade": null
     },
@@ -2003,10 +2003,10 @@
       "last_trade": null
     },
     "ETLN": {
-      "total_trades": 1,
+      "total_trades": 2,
       "profitable_trades": 0,
       "total_pnl": -5.3233846153847155,
-      "avg_hold_time": 0.2506057967742284,
+      "avg_hold_time": 0.2504991054534912,
       "success_rate": 0.0,
       "last_trade": null
     },
@@ -2339,11 +2339,11 @@
       "last_trade": null
     },
     "SBCB": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
       "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "avg_hold_time": 0.22916742377811009,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "PSMM": {
@@ -2355,7 +2355,7 @@
       "last_trade": null
     }
   },
-  "market_sentiment": -0.12593043559373204,
+  "market_sentiment": -0.13013942571702308,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
@@ -2567,5 +2567,5 @@
       }
     }
   },
-  "save_time": "2026-06-24T00:00:16.152790"
+  "save_time": "2026-06-24T00:22:40.416545"
 }

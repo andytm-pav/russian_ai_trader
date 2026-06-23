@@ -75,6 +75,7 @@ class SmartPortfolioBroker:
         self.training_wheels = self._load_training_wheels()
         # =============================================================
 
+        self.ticker_sectors = self._load_ticker_sectors()
 
 
         # ✅ ЗАГРУЖАЕМ КОНФИГИ СЕНТИМЕНТА
@@ -230,6 +231,16 @@ class SmartPortfolioBroker:
             with open("config/training_wheels.json", "r", encoding="utf-8") as f:
                 return json.load(f)
         except:
+            return {}
+
+    def _load_ticker_sectors(self) -> Dict:
+        """Загрузка маппинга тикер → сектор из ticker_sectors.json"""
+        try:
+            with open("config/ticker_sectors.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data.get("sectors", {})
+        except Exception as e:
+            logger.warning(f"Не удалось загрузить ticker_sectors.json: {e}")
             return {}
 
     def _get_ticker_sentiment(self, ticker: str) -> float:
@@ -1861,6 +1872,14 @@ class SmartPortfolioBroker:
                     if price < min_price:
                         continue
                     filtered_prices[ticker] = price
+
+                # Исключаем тикеры, чей сектор в списке исключённых
+                exclude_sectors = liquidity_filter.get('exclude_sectors', [])
+                if exclude_sectors:
+                    for ticker in list(filtered_prices.keys()):
+                        sector = self.ticker_sectors.get(ticker, '')
+                        if sector in exclude_sectors:
+                            del filtered_prices[ticker]
 
                 logger.debug(f"Фильтр ликвидности: {len(prices)} → {len(filtered_prices)} тикеров")
                 prices = filtered_prices

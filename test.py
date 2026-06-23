@@ -1,55 +1,49 @@
 #!/usr/bin/env python3
 """
-Тест: запрос карточек конкретных бумаг для поиска типа инструмента
+Проверка: попадёт ли SBCB под фильтр exclude_sectors
 """
 
-import requests
+import json
 
-TICKERS = [
-    "SBER",   # акция обыкновенная
-    "SBERP",  # акция привилегированная
-    "SBMX",   # БПИФ фонд
-    "CASH",   # ETF фонд
-    "RU000A108ZB2",  # облигация (если есть)
-]
+# Загружаем ticker_sectors.json
+with open("config/ticker_sectors.json", "r", encoding="utf-8") as f:
+    sectors_data = json.load(f)
 
-URL_TEMPLATE = "https://iss.moex.com/iss/securities/{ticker}.json"
+ticker_sectors = sectors_data.get("sectors", {})
 
-print("Проверка полей в карточках бумаг...\n")
+# Загружаем settings.json (если уже обновлён)
+with open("config/settings.json", "r", encoding="utf-8") as f:
+    settings = json.load(f)
 
-for ticker in TICKERS:
-    url = URL_TEMPLATE.format(ticker=ticker)
-    try:
-        resp = requests.get(url, params={'iss.meta': 'off'}, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception as e:
-        print(f"{ticker}: ошибка запроса - {e}")
-        continue
+liquidity_filter = settings.get("liquidity_filter", {})
+exclude_sectors = liquidity_filter.get("exclude_sectors", [])
+allowed_boards = liquidity_filter.get("allowed_boards", [])
 
-    # Ищем секцию description или boards
-    description = data.get('description', {})
-    boards = data.get('boards', {})
+print("=" * 60)
+print("ПРОВЕРКА ФИЛЬТРАЦИИ SBCB")
+print("=" * 60)
 
-    print(f"\n{'='*60}")
-    print(f"Тикер: {ticker}")
+# Информация о SBCB
+sbcb_sector = ticker_sectors.get("SBCB", "НЕ НАЙДЕН")
+print(f"\nТикер: SBCB")
+print(f"Сектор в ticker_sectors.json: {sbcb_sector}")
+print(f"Сектор в списке исключённых? {sbcb_sector in exclude_sectors}")
 
-    # Поля из description
-    desc_data = description.get('data', [])
-    desc_cols = description.get('columns', [])
-    if desc_data and desc_cols:
-        row = desc_data[0]
-        print("  Поля description:")
-        for col, val in zip(desc_cols, row):
-            if val is not None:
-                print(f"    {col}: {val}")
+if sbcb_sector in exclude_sectors:
+    print("\n✅ SBCB БУДЕТ ОТСЕЯН фильтром exclude_sectors")
+else:
+    print("\n❌ SBCB НЕ БУДЕТ ОТСЕЯН — сектор не в exclude_sectors")
 
-    # Поля из boards
-    boards_data = boards.get('data', [])
-    boards_cols = boards.get('columns', [])
-    if boards_data and boards_cols:
-        row = boards_data[0]
-        print("  Поля boards:")
-        for col, val in zip(boards_cols, row):
-            if val is not None:
-                print(f"    {col}: {val}")
+# Статистика по исключаемым секторам
+print(f"\nИсключаемые сектора: {exclude_sectors}")
+print(f"Разрешённые boardid: {allowed_boards}")
+
+if exclude_sectors:
+    excluded_tickers = []
+    for ticker, sector in ticker_sectors.items():
+        if sector in exclude_sectors:
+            excluded_tickers.append(ticker)
+
+    print(f"\nТикеров, попадающих под исключение: {len(excluded_tickers)}")
+    if excluded_tickers:
+        print(f"Первые 30: {', '.join(sorted(excluded_tickers)[:30])}")
