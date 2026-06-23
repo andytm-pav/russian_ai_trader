@@ -1,0 +1,9422 @@
+[
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Газпром",
+    "ticker": "GAZP"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Сургутнефтегаз",
+    "ticker": "SNGS"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Лукойл",
+    "ticker": "LKOH"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Татнефть",
+    "ticker": "TATN"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Башнефть",
+    "ticker": "BANE"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Роснефть",
+    "ticker": "ROSN"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "НОВАТЭК",
+    "ticker": "NVTK"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Газпром нефть",
+    "ticker": "SIBN"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Русснефть",
+    "ticker": "RNFT"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Саратовский НПЗ",
+    "ticker": "KRKN"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Саратовнефтепродукт",
+    "ticker": "SARN"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "ЯТЭК",
+    "ticker": "YAKG"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Варьеганнефтегаз",
+    "ticker": "VJGZ"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Обьнефтегазгеология (ОННГ)",
+    "ticker": "OBNEP"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Славнефть Мегионнефтегаз",
+    "ticker": "MFGS"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "РН Западная Сибирь",
+    "ticker": "CHGZ"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Славнефть",
+    "ticker": "SLAV"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "ГАЗ-сервис",
+    "ticker": "GAZS"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Газпром газораспределение Саратовская область",
+    "ticker": "SROG"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "ГР Калуга | ПАО «Газпром газораспределение Калуга »",
+    "ticker": "KLOG"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Смоленскнефтепродукт",
+    "ticker": "SMNF"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Газпром газораспределение Ставрополь",
+    "ticker": "STKG"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "ГР Уфа | ПАО «Газпром газораспределение Уфа»",
+    "ticker": "GSRB"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Газпром газораспределение Воронеж",
+    "ticker": "VOGZ"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "ГР Тула | ПАО «Газпром газораспределение Тула»",
+    "ticker": "TUOG"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Орскнефтеоргсинтез",
+    "ticker": "ORFE"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "БМК | Белорецкий металлургический комбинат",
+    "ticker": "BMKK"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Газпром газораспределение Ярославль",
+    "ticker": "YROG"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Туланефтепродукт",
+    "ticker": "TLNP"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "NVTQ-гдр",
+    "ticker": "SFTL"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Газавтоматика Газпром",
+    "ticker": "GZAV"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "МОЭК",
+    "ticker": "MOEK"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Курганнефтепродукт",
+    "ticker": "RNCU"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Калуганефтепродукт",
+    "ticker": "KLGNP"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "ВНИПИгаздобыча",
+    "ticker": "VNIP"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Кубаньнефтепродукт",
+    "ticker": "KUNP"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Саратовнефтегаз",
+    "ticker": "SNFG"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ цвет.",
+    "company": "ГМК Норникель",
+    "ticker": "GMKN"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ цвет.",
+    "company": "Русал",
+    "ticker": "RUAL"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ цвет.",
+    "company": "ВСМПО-АВИСМА",
+    "ticker": "VSMO"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ цвет.",
+    "company": "Русолово",
+    "ticker": "ROLO"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ цвет.",
+    "company": "ЮУНК",
+    "ticker": "UNKL"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ цвет.",
+    "company": "ЧЦЗ",
+    "ticker": "CHZN"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ цвет.",
+    "company": "СУМЗ | Среднеуральский медеплавильный завод",
+    "ticker": "SUMZ"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ цвет.",
+    "company": "КУЗОЦМ",
+    "ticker": "KUNF"
+  },
+  {
+    "sector": "ХИМИЯ удобрения",
+    "company": "ФосАгро",
+    "ticker": "PHOR"
+  },
+  {
+    "sector": "ХИМИЯ удобрения",
+    "company": "Акрон",
+    "ticker": "AKRN"
+  },
+  {
+    "sector": "ХИМИЯ удобрения",
+    "company": "КуйбышевАзот",
+    "ticker": "KAZT"
+  },
+  {
+    "sector": "ХИМИЯ удобрения",
+    "company": "Дорогобуж",
+    "ticker": "DGBZ"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Ставропольэнергосбыт",
+    "ticker": "STSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Пермэнергосбыт",
+    "ticker": "PMSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Рязаньэнергосбыт РЭСК",
+    "ticker": "RZSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Красноярскэнергосбыт",
+    "ticker": "KRSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Новосибирскэнергосбыт",
+    "ticker": "SBEN"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "ЛЭСК",
+    "ticker": "LPSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "ТНС энерго Воронеж",
+    "ticker": "VRSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Мордовэнергосбыт",
+    "ticker": "MRSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Астраханэнергосбыт",
+    "ticker": "ASSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "ТНС энерго Марий Эл",
+    "ticker": "MISB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "ДЭСК",
+    "ticker": "DASB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Тамбовэнергосбыт",
+    "ticker": "TASB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "ДЭК",
+    "ticker": "DVEC"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Калужская сбытовая компания",
+    "ticker": "KLSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Волгоградэнергосбыт",
+    "ticker": "VGSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "ТНС энерго",
+    "ticker": "TNSE"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "ТНС энерго Ростов-на-Дону",
+    "ticker": "RTSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Самараэнерго",
+    "ticker": "SAGO"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Саратовэнерго",
+    "ticker": "SARE"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Костромская сбытовая компания",
+    "ticker": "KTSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Челябэнергосбыт",
+    "ticker": "CLSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "ТНС энерго Кубань",
+    "ticker": "KBSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "ТНС энерго Нижний Новгород",
+    "ticker": "NNSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "ТНС энерго Ярославль",
+    "ticker": "YRSB"
+  },
+  {
+    "sector": "ЭНЕРГОСБЫТ",
+    "company": "Владимирэнергосбыт",
+    "ticker": "VDSB"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "Сегежа Групп",
+    "ticker": "SGZH"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "Европейская Электротехника",
+    "ticker": "EELT"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "ДЗРД - Донской завод радиодеталей",
+    "ticker": "DZRD"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "ТЕПЛАНТ восток",
+    "ticker": "PRFN"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "левенгук",
+    "ticker": "LVHK"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "Ламбумиз",
+    "ticker": "LMBZ"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "ЭлектроПрибор-п",
+    "ticker": "TZEPP"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "Инкаб Холдинг",
+    "ticker": "INCB"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "КрМЗ (Красногорский Завод им. Зверева)",
+    "ticker": "KZIZ"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "Физика",
+    "ticker": "NPOF"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "Комитекс",
+    "ticker": "KMTX"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "Вышневолоцкий МДОК",
+    "ticker": "VDOK"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "МЕТИЗ",
+    "ticker": "MMMZ"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "Себряковцемент",
+    "ticker": "SKCM"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "Элексталь",
+    "ticker": "ELST"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "Тернейлес",
+    "ticker": "TERL"
+  },
+  {
+    "sector": "Промышленность разное",
+    "company": "СКАИ",
+    "ticker": "SKAI"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "Софтлайн | Softline",
+    "ticker": "SOFL"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "Группа Позитив",
+    "ticker": "POSI"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "Группа Астра",
+    "ticker": "ASTR"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "Диасофт",
+    "ticker": "DIAS"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "IVA Technologies",
+    "ticker": "IVAT"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "Аренадата",
+    "ticker": "DATA"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "БАЗИС",
+    "ticker": "BAZA"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "Цифровые привычки",
+    "ticker": "DGTL"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "FabricaONE.AI | Фабрика ПО",
+    "ticker": "FIAI"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "Солар",
+    "ticker": "SOLA"
+  },
+  {
+    "sector": "Производство Софта",
+    "company": "IBS",
+    "ticker": "IBS"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "Самолет",
+    "ticker": "SMLT"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "ПИК СЗ",
+    "ticker": "PIKK"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "ЛСР Группа",
+    "ticker": "LSRG"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "Эталон",
+    "ticker": "ETLN"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "Мостотрест",
+    "ticker": "MSTT"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "ГЛОРАКС | Glorax",
+    "ticker": "GLRX"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "АПРИ",
+    "ticker": "APRI"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "Инград",
+    "ticker": "OPIN"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "Галс Девелопмент",
+    "ticker": "HALS"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "Инвест-Девелопмент",
+    "ticker": "IDVP"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "Мостострой-11",
+    "ticker": "MSTS"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "АФИ Девелопмент",
+    "ticker": "AFID"
+  },
+  {
+    "sector": "СТРОИТЕЛИ",
+    "company": "ГСИ | Глобалстрой-Инжиниринг",
+    "ticker": "GSEN"
+  },
+  {
+    "sector": "ДРУГОЕ",
+    "company": "Поступление дивидендов",
+    "ticker": "dividends"
+  },
+  {
+    "sector": "ДРУГОЕ",
+    "company": "ETF Сбербанка",
+    "ticker": "SBMX"
+  },
+  {
+    "sector": "ДРУГОЕ",
+    "company": "ГЕОТЕК",
+    "ticker": "GTSS"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Сбербанк",
+    "ticker": "SBER"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "ВТБ",
+    "ticker": "VTBR"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Т-Технологии | Тинькофф | ТКС",
+    "ticker": "T"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Банк Санкт-Петербург",
+    "ticker": "BSPB"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Кузнецкий банк",
+    "ticker": "KUZB"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Совкомбанк",
+    "ticker": "SVCB"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "МКБ",
+    "ticker": "CBOM"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "МТС Банк",
+    "ticker": "MBNK"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "ДОМ.РФ",
+    "ticker": "DOMRF"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Авангард",
+    "ticker": "AVAN"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Банк Возрождение",
+    "ticker": "VZRZ"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Открытие",
+    "ticker": "OFCB"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Уралсиб",
+    "ticker": "USBN"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Промсвязьбанк",
+    "ticker": "PSBR"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Приморье Банк",
+    "ticker": "PRMB"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Росдорбанк",
+    "ticker": "RDRB"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ разное",
+    "company": "ЧТПЗ",
+    "ticker": "CHEP"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ разное",
+    "company": "КЗМС",
+    "ticker": "KZMS"
+  },
+  {
+    "sector": "ХИМИЯ разное",
+    "company": "НКНХ",
+    "ticker": "NKNC"
+  },
+  {
+    "sector": "ХИМИЯ разное",
+    "company": "Казаньоргсинтез",
+    "ticker": "KZOS"
+  },
+  {
+    "sector": "ХИМИЯ разное",
+    "company": "Химпром",
+    "ticker": "HIMC"
+  },
+  {
+    "sector": "ХИМИЯ разное",
+    "company": "Сибур",
+    "ticker": "SIBR"
+  },
+  {
+    "sector": "ХИМИЯ разное",
+    "company": "ВХЗ",
+    "ticker": "VLHZ"
+  },
+  {
+    "sector": "ХИМИЯ разное",
+    "company": "Нижнекамскшина",
+    "ticker": "NKSH"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "Магнит",
+    "ticker": "MGNT"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "X5 | ИКС 5",
+    "ticker": "X5"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "OZON | ОЗОН",
+    "ticker": "OZON"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "Детский Мир",
+    "ticker": "DSKY"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "OR Group (Обувь России)",
+    "ticker": "ORUP"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "М.Видео-Эльдорадо",
+    "ticker": "MVID"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "НоваБев Групп (Белуга Групп)",
+    "ticker": "BELU"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "Лента",
+    "ticker": "LENT"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "ФИКС ПРАЙС",
+    "ticker": "FIXR"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "Аптечная сеть 36,6",
+    "ticker": "APTK"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "Henderson (Хэндерсон фэшн групп)",
+    "ticker": "HNFG"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "ВсеИнструменты.ру",
+    "ticker": "VSEH"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "Окей",
+    "ticker": "OKEY"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "ВинЛаб",
+    "ticker": "winelab"
+  },
+  {
+    "sector": "РИТЕЙЛ",
+    "company": "Меркурий Ритейл",
+    "ticker": "MRHL"
+  },
+  {
+    "sector": "ТЕЛЕКОМ",
+    "company": "МТС",
+    "ticker": "MTSS"
+  },
+  {
+    "sector": "ТЕЛЕКОМ",
+    "company": "Ростелеком",
+    "ticker": "RTKM"
+  },
+  {
+    "sector": "ТЕЛЕКОМ",
+    "company": "VEON",
+    "ticker": "VEON"
+  },
+  {
+    "sector": "ТЕЛЕКОМ",
+    "company": "МГТС",
+    "ticker": "MGTS"
+  },
+  {
+    "sector": "ТЕЛЕКОМ",
+    "company": "Таттелеком",
+    "ticker": "TTLK"
+  },
+  {
+    "sector": "ТЕЛЕКОМ",
+    "company": "Наука-Связь",
+    "ticker": "NSVZ"
+  },
+  {
+    "sector": "Фармацевтика",
+    "company": "Фармсинтез",
+    "ticker": "LIFE"
+  },
+  {
+    "sector": "Фармацевтика",
+    "company": "ОЗОН Фармацевтика",
+    "ticker": "OZPH"
+  },
+  {
+    "sector": "Фармацевтика",
+    "company": "Артген биотех (ИСКЧ)",
+    "ticker": "ABIO"
+  },
+  {
+    "sector": "Фармацевтика",
+    "company": "Промомед",
+    "ticker": "PRMD"
+  },
+  {
+    "sector": "Фармацевтика",
+    "company": "Генетико",
+    "ticker": "GECO"
+  },
+  {
+    "sector": "Фармацевтика",
+    "company": "Протек",
+    "ticker": "PRTK"
+  },
+  {
+    "sector": "Фармацевтика",
+    "company": "ДИОД",
+    "ticker": "DIOD"
+  },
+  {
+    "sector": "Фармацевтика",
+    "company": "Фармстандарт",
+    "ticker": "PHST"
+  },
+  {
+    "sector": "Фармацевтика",
+    "company": "Медскан",
+    "ticker": "Medskan"
+  },
+  {
+    "sector": "Фармацевтика",
+    "company": "ХимМед",
+    "ticker": "himmed"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "ОАК",
+    "ticker": "UNAC"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "ОВК",
+    "ticker": "UWGN"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Яковлев (Иркут)",
+    "ticker": "IRKT"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Соллерс",
+    "ticker": "SVAV"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "КАМАЗ",
+    "ticker": "KMAZ"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Звезда",
+    "ticker": "ZVEZ"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "АВТОВАЗ",
+    "ticker": "AVAZ"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "ЗИЛ",
+    "ticker": "ZILL"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "ГАЗ",
+    "ticker": "GAZA"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Нефтекамский автозавод (Нефаз)",
+    "ticker": "NFAZ"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Павловский автобус",
+    "ticker": "PAZA"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "ОМЗ",
+    "ticker": "OMZZ"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "КМЗ",
+    "ticker": "KMEZ"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Красный котельщик",
+    "ticker": "KRKO"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Вертолеты России",
+    "ticker": "VERR"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "ГМС Группа",
+    "ticker": "HMSG"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Выборгский судостроительный завод",
+    "ticker": "VSYD"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Нител",
+    "ticker": "NTZL"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "КЭМЗ | Ковровский электромеханический завод",
+    "ticker": "KEMZ"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "ЗИЛ ап",
+    "ticker": "ZILLP"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Ростсельмаш",
+    "ticker": "RTLM"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Подольский машиностроительный завод",
+    "ticker": "PDMS"
+  },
+  {
+    "sector": "МАШИНОСТРОЕНИЕ",
+    "company": "Агрегат",
+    "ticker": "AGRT"
+  },
+  {
+    "sector": "Financials",
+    "company": "ПКО Бустер",
+    "ticker": "pkobuster"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "Московская биржа",
+    "ticker": "MOEX"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "АФК Система",
+    "ticker": "AFKS"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "КИВИ (QIWI)",
+    "ticker": "QIWI"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "СПб Биржа (SPB)",
+    "ticker": "SPBE"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "SFI | ЭсЭфАй",
+    "ticker": "SFIN"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "Ренессанс Страхование",
+    "ticker": "RENI"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "МГКЛ (Мосгорломбард)",
+    "ticker": "MGKL"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "Европлан",
+    "ticker": "LEAS"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "Займер",
+    "ticker": "ZAYM"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "КарМани (СТГ)",
+    "ticker": "CARM"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "Росгосстрах",
+    "ticker": "RGSS"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "Арсагера",
+    "ticker": "ARSA"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "Джетленд | JetLend",
+    "ticker": "JetLend"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "АСКО",
+    "ticker": "ACKO"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "ОКС",
+    "ticker": "UCSS"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "B2B-РТС",
+    "ticker": "BTBR"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "ТрансФин-М",
+    "ticker": "TRFM"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "МЕРИДИАН",
+    "ticker": "MERF"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "Raven Property Group",
+    "ticker": "RAVN"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "НФК-Сбережения",
+    "ticker": "nfk-sberejenya"
+  },
+  {
+    "sector": "ДРАГ.МЕТАЛЛЫ",
+    "company": "Полиметалл",
+    "ticker": "POLY"
+  },
+  {
+    "sector": "ДРАГ.МЕТАЛЛЫ",
+    "company": "Полюс",
+    "ticker": "PLZL"
+  },
+  {
+    "sector": "ДРАГ.МЕТАЛЛЫ",
+    "company": "Южуралзолото | ЮГК",
+    "ticker": "UGLD"
+  },
+  {
+    "sector": "ДРАГ.МЕТАЛЛЫ",
+    "company": "Селигдар",
+    "ticker": "SELG"
+  },
+  {
+    "sector": "ДРАГ.МЕТАЛЛЫ",
+    "company": "Лензолото",
+    "ticker": "LNZL"
+  },
+  {
+    "sector": "ДРАГ.МЕТАЛЛЫ",
+    "company": "Бурятзолото",
+    "ticker": "BRZL"
+  },
+  {
+    "sector": "ДРАГ.МЕТАЛЛЫ",
+    "company": "Солидкор (Solidcore)",
+    "ticker": "CORE"
+  },
+  {
+    "sector": "ДРАГ.МЕТАЛЛЫ",
+    "company": "Nordgold",
+    "ticker": "NORD"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Русгидро",
+    "ticker": "HYDR"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "ИнтерРАО",
+    "ticker": "IRAO"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Юнипро",
+    "ticker": "UPRO"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Эл5 Энерго (Энел)",
+    "ticker": "ELFV"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "ОГК-2",
+    "ticker": "OGKB"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Мосэнерго",
+    "ticker": "MSNG"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "ТГК-1",
+    "ticker": "TGKA"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "En+",
+    "ticker": "ENPG"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "ТГК-14",
+    "ticker": "TGKN"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "ТГК-2",
+    "ticker": "TGKB"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Квадра",
+    "ticker": "TGKD"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Т Плюс",
+    "ticker": "VTGK"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Сахалинэнерго",
+    "ticker": "SLEN"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Якутскэнерго",
+    "ticker": "YKEN"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Курганская ГК",
+    "ticker": "KGKC"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Камчатскэнерго",
+    "ticker": "KCHE"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Мурманская ТЭЦ",
+    "ticker": "MUGS"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "РАО ЭС Востока",
+    "ticker": "VRAO"
+  },
+  {
+    "sector": "Э/ГЕНЕРАЦИЯ",
+    "company": "Красноярская ГЭС",
+    "ticker": "KRSG"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "ЕВРОТРАНС",
+    "ticker": "EUTR"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "Сибирский гостинец",
+    "ticker": "SIBG"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "ЕМС | ЮМГ",
+    "ticker": "GEMC"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "Мать и Дитя (MD)",
+    "ticker": "MDMG"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "ГИТ",
+    "ticker": "GRNT"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "КЛВЗ Кристалл",
+    "ticker": "KLVZ"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "Росинтер",
+    "ticker": "ROST"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "Отисифарм",
+    "ticker": "OTCP"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "Синтез ао",
+    "ticker": "KSIN"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "Синергия",
+    "ticker": "SYNG"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "РБТ ао",
+    "ticker": "RBTY"
+  },
+  {
+    "sector": "ПОТРЕБ",
+    "company": "Подорожник",
+    "ticker": "Подорожник"
+  },
+  {
+    "sector": "ИНТЕРНЕТ",
+    "company": "Яндекс",
+    "ticker": "YDEX"
+  },
+  {
+    "sector": "ИНТЕРНЕТ",
+    "company": "ВК | VK",
+    "ticker": "VKCO"
+  },
+  {
+    "sector": "ИНТЕРНЕТ",
+    "company": "HeadHunter (Хэдхантер)",
+    "ticker": "HEAD"
+  },
+  {
+    "sector": "ИНТЕРНЕТ",
+    "company": "ЦИАН (CIAN)",
+    "ticker": "CNRU"
+  },
+  {
+    "sector": "ИНТЕРНЕТ",
+    "company": "КИФА",
+    "ticker": "KIFA"
+  },
+  {
+    "sector": "ИНТЕРНЕТ",
+    "company": "АО Плюс",
+    "ticker": "PLUS"
+  },
+  {
+    "sector": "ИНТЕРНЕТ",
+    "company": "Суточно.ру",
+    "ticker": "sutochnoru"
+  },
+  {
+    "sector": "МЕДИА",
+    "company": "РБК",
+    "ticker": "RBCM"
+  },
+  {
+    "sector": "МЕДИА",
+    "company": "МедиаВиМ",
+    "ticker": "MGVM"
+  },
+  {
+    "sector": "МЕДИА",
+    "company": "Медиахолдинг",
+    "ticker": "ODVA"
+  },
+  {
+    "sector": "МЕДИА",
+    "company": "СТС Медиа",
+    "ticker": "CTCM"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "СМЗ",
+    "ticker": "MGNZ"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Центральный телеграф",
+    "ticker": "CNTL"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Тантал",
+    "ticker": "TANL"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "ЦМТ",
+    "ticker": "WTCMP"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "GTL",
+    "ticker": "GTLC"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Мультисистема",
+    "ticker": "MSST"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Славнефть-ЯНОС",
+    "ticker": "JNOS"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Северо-Западное Пароходство",
+    "ticker": "SZPR"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Газпром РнД  (Ростовоблгаз)",
+    "ticker": "RTGZ"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Вторресурсы",
+    "ticker": "Вторресурсы"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Газкон",
+    "ticker": "GAZC"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Газ-Тек",
+    "ticker": "GAZT"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Живой офис",
+    "ticker": "ZHIV"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Плазмек",
+    "ticker": "PLSM"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Сигнал завод",
+    "ticker": "Сигнал завод"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "ЕТС",
+    "ticker": "UTSY"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "Омскшина",
+    "ticker": "OMSH"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "ЗМЗ",
+    "ticker": "ЗМЗ"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "ГлавТоргПродукт",
+    "ticker": "GTPR"
+  },
+  {
+    "sector": "ТРЕТИЙ ЭШЕЛОН",
+    "company": "ВСЗ",
+    "ticker": "VSYD"
+  },
+  {
+    "sector": "Other",
+    "company": "Монополия",
+    "ticker": "Monopoly"
+  },
+  {
+    "sector": "Other",
+    "company": "КиберТех",
+    "ticker": "cybertech"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "ММК",
+    "ticker": "MAGN"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "НЛМК",
+    "ticker": "NLMK"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "Мечел",
+    "ticker": "MTLR"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "Северсталь",
+    "ticker": "CHMF"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "ТМК",
+    "ticker": "TRMK"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "Ашинский МЗ",
+    "ticker": "AMEZ"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "ЧМК",
+    "ticker": "CHMK"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "Евраз",
+    "ticker": "EVRZ"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "Электроцинк",
+    "ticker": "ELTZ"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "Ижсталь",
+    "ticker": "IGST"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "ЧКПЗ",
+    "ticker": "CHKZ"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "Косогорский МЗ",
+    "ticker": "KMTZ"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ черн.",
+    "company": "КОКС",
+    "ticker": "KSGR"
+  },
+  {
+    "sector": "ГОРНОДОБЫВАЮЩИЕ",
+    "company": "АЛРОСА",
+    "ticker": "ALRS"
+  },
+  {
+    "sector": "ГОРНОДОБЫВАЮЩИЕ",
+    "company": "Распадская",
+    "ticker": "RASP"
+  },
+  {
+    "sector": "ГОРНОДОБЫВАЮЩИЕ",
+    "company": "КТК",
+    "ticker": "KBTK"
+  },
+  {
+    "sector": "ГОРНОДОБЫВАЮЩИЕ",
+    "company": "Белон",
+    "ticker": "BLNG"
+  },
+  {
+    "sector": "ГОРНОДОБЫВАЮЩИЕ",
+    "company": "Алроса Нюрба",
+    "ticker": "ALNU"
+  },
+  {
+    "sector": "ГОРНОДОБЫВАЮЩИЕ",
+    "company": "Южный Кузбасс",
+    "ticker": "UKUZ"
+  },
+  {
+    "sector": "ГОРНОДОБЫВАЮЩИЕ",
+    "company": "Коршуновский ГОК",
+    "ticker": "KOGK"
+  },
+  {
+    "sector": "ГОРНОДОБЫВАЮЩИЕ",
+    "company": "Алмазы Арктики (АЛМАР)",
+    "ticker": "Алмазы Арктики (АЛМАР)"
+  },
+  {
+    "sector": "ГОРНОДОБЫВАЮЩИЕ",
+    "company": "Ураласбест",
+    "ticker": "URAG"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети (ФСК)",
+    "ticker": "FEES"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Ленэнерго",
+    "ticker": "LSNG"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Центр и Приволжье",
+    "ticker": "MRKP"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Волга",
+    "ticker": "MRKV"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Центр",
+    "ticker": "MRKC"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Урал",
+    "ticker": "MRKU"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети МР (МОЭСК)",
+    "ticker": "MSRS"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Юг",
+    "ticker": "MRKY"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Северо-Запад",
+    "ticker": "MRKZ"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Сибирь",
+    "ticker": "MRKS"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Кубань",
+    "ticker": "KUBE"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Томск (ТРК)",
+    "ticker": "TORS"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "Россети Северный Кавказ",
+    "ticker": "MRKK"
+  },
+  {
+    "sector": "ЭЛЕКТРОСЕТИ",
+    "company": "БЭСК ао",
+    "ticker": "BESK"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "Русагро (old: AGRO)",
+    "ticker": "RAGR"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "Черкизово",
+    "ticker": "GCHE"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "НКХП",
+    "ticker": "NKHP"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "Инарктика (Русская Аквакультура)",
+    "ticker": "AQUA"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "Абрау-Дюрсо",
+    "ticker": "ABRD"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "МКФ Красный Октябрь",
+    "ticker": "KROT"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "Русгрэйн",
+    "ticker": "RUGR"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "АгроМценск",
+    "ticker": "AFMC"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "Деликатесы",
+    "ticker": "BGDE"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "ОМПК",
+    "ticker": "OSMP"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "КВ Агро | Агрохолдинг Красный восток",
+    "ticker": "KRVA"
+  },
+  {
+    "sector": "Агропром и Пищепром",
+    "company": "АПК Белореченский",
+    "ticker": "BLRE"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "Светофор Групп",
+    "ticker": "SVET"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "Группа Элемент",
+    "ticker": "ELMT"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "Энергия РКК",
+    "ticker": "RKKE"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "НПО Наука",
+    "ticker": "NAUK"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "ММЦБ",
+    "ticker": "GEMA"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "Морион",
+    "ticker": "MORI"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "Селектел | Selectel",
+    "ticker": "Selectel"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "Рубитех",
+    "ticker": "RBTH"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "Телематика",
+    "ticker": "Telematika"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Аэрофлот",
+    "ticker": "AFLT"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Транснефть",
+    "ticker": "TRNFP"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "ДВМП",
+    "ticker": "FESH"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Совкомфлот",
+    "ticker": "FLOT"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "НМТП",
+    "ticker": "NMTP"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Вуш Холдинг | WHOOSH",
+    "ticker": "WUSH"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Globaltrans",
+    "ticker": "GLTR"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Globaltruck (ГТМ)",
+    "ticker": "GTRK"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Делимобиль (Каршеринг Руссия)",
+    "ticker": "DELI"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Ютэйр",
+    "ticker": "UTAR"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "ВолгаФлот",
+    "ticker": "VFLT"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Global Ports",
+    "ticker": "GLPR"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Трансаэро",
+    "ticker": "TAER"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "СЕВЕРНОЕ МОРСКОЕ ПАРОХОДСТВО | СМП",
+    "ticker": "SEMP"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Ванинский морской торговый порт (Ванино)",
+    "ticker": "MTPV"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "ПМП",
+    "ticker": "PRIM"
+  },
+  {
+    "sector": "ТРАНСПОРТ",
+    "company": "Совфрахт",
+    "ticker": "SVFR"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ПНК Рентал ЗПИФ",
+    "ticker": "ПНК Рентал ЗПИФ"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ТКСМ",
+    "ticker": "TUCH"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "РЖД",
+    "ticker": "RZHD"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Альфа-Банк",
+    "ticker": "alfa-bank"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Коми энергосбытовая компания",
+    "ticker": "KESK"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Роснано",
+    "ticker": "rosnano"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Новошип",
+    "ticker": "NOMP"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Кузбассэнергосбыт",
+    "ticker": "KZSB"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Владивостокский морской торговый порт (ВМТП)",
+    "ticker": "VMTP"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Еврохим",
+    "ticker": "Еврохим"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ВЭБ",
+    "ticker": "ВЭБ"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Ростех",
+    "ticker": "Ростех"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Металлоинвест",
+    "ticker": "Металлоинвест"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Азбука Вкуса",
+    "ticker": "Азбука Вкуса"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "GV GOLD",
+    "ticker": "GVGL"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Красное&amp;Белое",
+    "ticker": "Красное&Белое"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Goldman Group",
+    "ticker": "goldman-group"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Соль Руси",
+    "ticker": "SOLR"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Биннофарм Групп",
+    "ticker": "BNFG"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "НЗРМ",
+    "ticker": "НЗРМ"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Энергосбыт плюс",
+    "ticker": "SBPL"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Новорослесэкспорт (НЛЭ)",
+    "ticker": "NOLE"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Первая грузовая компания",
+    "ticker": "Первая грузовая компания"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Эконива",
+    "ticker": "Эконива"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "УралАвиа",
+    "ticker": "URAL"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Метровагонмаш",
+    "ticker": "MTVG"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Додо Пицца",
+    "ticker": "DODO"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Надеждинский металлургический завод (НМК)",
+    "ticker": "METZ"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ГР Ростов",
+    "ticker": "RTBGP"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Центрэнергохолдинг",
+    "ticker": "CENH"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Гайский горно-обогатительный комбинат",
+    "ticker": "GGOK"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ГР Смоленск",
+    "ticker": "SMOG"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Юлмарт",
+    "ticker": "Юлмарт"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Победит",
+    "ticker": "PBDT"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ГР Липецк",
+    "ticker": "LPOG"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Роснефть Мурманскнефтепродукт",
+    "ticker": "MYNT"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "IVI",
+    "ticker": "Ivi"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ГР Ленобласть",
+    "ticker": "LEOG"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Ленгазспецстрой",
+    "ticker": "LEGS"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ГР Екатеринбург",
+    "ticker": "SVOG"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Соликамскбумпром",
+    "ticker": "SKBP"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Кузбассразрезуголь",
+    "ticker": "KZRU"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ГР Владимир",
+    "ticker": "VLOG"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ГР Рязанская область",
+    "ticker": "RZOG"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Саратовгаз",
+    "ticker": "SGAZ"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ГР Великий Новгород",
+    "ticker": "NOVG"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ГР Тамбов",
+    "ticker": "TOGZ"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Омский аэропорт",
+    "ticker": "ARPO"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Электромагистраль",
+    "ticker": "EMGL"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Ютинет.ру",
+    "ticker": "Ютинет.ру"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "“Aktobe Metalware Plant” JSC",
+    "ticker": "AKZM"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ГИПРОСВЯЗЬ",
+    "ticker": "ГИПРОСВЯЗЬ"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Продимекс",
+    "ticker": "Продимекс"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Богучанская ГЭС",
+    "ticker": "BGES"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Красноярскнефтепродукт (КНП)",
+    "ticker": "KRNF"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Белгородский хладокомбинат",
+    "ticker": "BLGHP"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Дорисс",
+    "ticker": "DORS"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Мосэнергосетьстрой (МЭСС)",
+    "ticker": "MESS"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Тюменские моторостроители",
+    "ticker": "TUMN"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Северский трубный завод",
+    "ticker": "SVTZ"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Боровичский комбинат огнеупоров",
+    "ticker": "BKOG"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Динур (Первоуральский динасовый завод)",
+    "ticker": "PDNZ"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "ТМТП (Туапсинский морской торговый порт)",
+    "ticker": "TMTP"
+  },
+  {
+    "sector": "ETF",
+    "company": "FINEX CHINA UCITS ETF",
+    "ticker": "FXCN"
+  },
+  {
+    "sector": "ETF",
+    "company": "ПАРУС",
+    "ticker": "parus"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx Gold ETF USD",
+    "ticker": "FXGD"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ВТБ – Фонд Золото",
+    "ticker": "VTBG"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Сбербанк Индекс Мосбиржи",
+    "ticker": "SBMXA"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx USA UCITS ETF",
+    "ticker": "FXUS"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx Rus Eurobonds ETF FXRU",
+    "ticker": "FXRU"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Первая Ежемесячный доход",
+    "ticker": "SPAY"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-Банк iMOEX",
+    "ticker": "TMOS"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ВТБ Ликвидность",
+    "ticker": "VTBM"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ВТБ Акции компаний США",
+    "ticker": "VTBA"
+  },
+  {
+    "sector": "ETF",
+    "company": "ITI Funds Russia Equity ETF (RUSE)",
+    "ticker": "RUSE"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ВТБ Акции разв-ся рынков",
+    "ticker": "VTBE"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx RTS UCITS ETF USD",
+    "ticker": "FXRL"
+  },
+  {
+    "sector": "ETF",
+    "company": "Ликвидность. Юань",
+    "ticker": "CNYM"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Альфа Управляем Рос Акции",
+    "ticker": "AKME"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx FFIN KZT UCITS ETF",
+    "ticker": "FXKZ"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-БАНК ЗОЛОТО",
+    "ticker": "TGLDA"
+  },
+  {
+    "sector": "ETF",
+    "company": "Т-Банк | Тинькофф Инвестиции ДЕНЕЖНЫЙ РЫНОК",
+    "ticker": "TMON"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ВТБ-Индекс Мосбиржи",
+    "ticker": "VTBX"
+  },
+  {
+    "sector": "ETF",
+    "company": "СберРублевыеКорпОблигации",
+    "ticker": "SBRB"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ВТБ Еврооблигации в евро",
+    "ticker": "VTBYE"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Сбербанк - Эс энд Пи 500",
+    "ticker": "SBSP"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ДОХОДЪ Инд дивид акций РФ",
+    "ticker": "DIVD"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ВТБ Корпоративные облигации",
+    "ticker": "VTBB"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx CASH EQUIVALENTS ETF",
+    "ticker": "FXMM"
+  },
+  {
+    "sector": "ETF",
+    "company": "FINEX GERMANY UCITS ETF",
+    "ticker": "FXDE"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx Rus Eurobonds ETF FXRB",
+    "ticker": "FXRB"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Сбербанк Индекс Мосбиржи ОФЗ",
+    "ticker": "SBGB"
+  },
+  {
+    "sector": "ETF",
+    "company": "Т-БАНК ВАЛЮТНЫЕ ОБЛИГАЦИИ",
+    "ticker": "TLCB"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx USD GLOBAL EQUITY UC ETF",
+    "ticker": "FXWO"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ВТБ Корп облигации США",
+    "ticker": "VTBH"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-БАНК ВЕЧНЫЙ ПОРТФ РУБ",
+    "ticker": "TRUR"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ СберИндексЕврооблигаций",
+    "ticker": "SBCB"
+  },
+  {
+    "sector": "ETF",
+    "company": "АТОН – Накопительный в рублях",
+    "ticker": "AMNR"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-БАНК ВЕЧНЫЙ ПОРТФ США",
+    "ticker": "TUSDA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БКС Облигации повыш доход МСП",
+    "ticker": "BCSBA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Первая Облигации флоатеры (SBFR)",
+    "ticker": "SBFR"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-Банк | Тинькофф НАСДАК ТЕХНОЛОГИИ",
+    "ticker": "TECHA"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx USD CASH EQUIVALENTS ETF",
+    "ticker": "FXTB"
+  },
+  {
+    "sector": "ETF",
+    "company": "Фонд блокчейн экономика SBBE",
+    "ticker": "SBBE"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Сбер Ответственные инвест",
+    "ticker": "SBRIA"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx ESports UCITS ETF",
+    "ticker": "FXES"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Российские акции +",
+    "ticker": "AMREA"
+  },
+  {
+    "sector": "ETF",
+    "company": "INFL ETF",
+    "ticker": "INFL"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Первая Консерватив смарт",
+    "ticker": "SBCS"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФПервая Долгосроч.гособлиг.",
+    "ticker": "SBLB"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-БАНК ВЕЧНЫЙ ПОРТФ ЕВР",
+    "ticker": "TEURA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АЛЬФА_КАП ТЕХНОЛОГИИ 100",
+    "ticker": "AKNX"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ РАЙФФАЙЗЕН МОСБИРЖА 15",
+    "ticker": "RCMXA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Открытие – Всепогодный",
+    "ticker": "OPNWA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Альфа Китайские Акции",
+    "ticker": "AKCH"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Медицина и биотех",
+    "ticker": "AMHCA"
+  },
+  {
+    "sector": "ETF",
+    "company": "Сбер Смарт Консервативный",
+    "ticker": "SBCSA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ БСПБ ОФЗ 1000",
+    "ticker": "SPBFA"
+  },
+  {
+    "sector": "ETF",
+    "company": "FXRD ETF",
+    "ticker": "FXRD"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Российские облигации УК ВИМ",
+    "ticker": "OBLG"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Райффайзен - Золото",
+    "ticker": "RCGL"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Первая Акции ср.и мал.кап (SBSC)",
+    "ticker": "SBSC-SUR"
+  },
+  {
+    "sector": "ETF",
+    "company": "Т-БАНК ДИВИДЕНДНЫЕ АКЦИИ",
+    "ticker": "TDIV"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Облигации в юанях",
+    "ticker": "YUAN"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ РФИ ПСБ Денежный рынок",
+    "ticker": "PSMM"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Альфа Обл с перем купоном",
+    "ticker": "AKFB"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Альфа Денежный рынок Плюс",
+    "ticker": "AKMP"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Первая Голубые фишки",
+    "ticker": "SBBC"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ БКС Золото",
+    "ticker": "BCSG"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx RUB GLOBAL EQUITY UC ETF",
+    "ticker": "FXRW"
+  },
+  {
+    "sector": "ETF",
+    "company": "ITI FUNDS RUSSIA-FOCUSED USD",
+    "ticker": "RUSB"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ РСХБ-МосБиржа-РСПП Вектор",
+    "ticker": "ESGR"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ СИСТЕМА_КАП ИНФОРМАТИКА+",
+    "ticker": "SCIP"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx US TIPS UCITS ETF",
+    "ticker": "FXTP"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-БАНК ОБЛИГАЦИИ",
+    "ticker": "TBRUA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-БАНК ИНД ЭКО ЧИСТ ТЕХ",
+    "ticker": "TGRNA"
+  },
+  {
+    "sector": "ETF",
+    "company": "Т-Банк | Тинькофф ИНДЕКС ЕВРОЗОНЫ 50 | Т-БАНК Eurostocks 50",
+    "ticker": "TEUS"
+  },
+  {
+    "sector": "ETF",
+    "company": "Т-Банк | Тинькофф ИИ И РОБОТОТЕХНИКА | Т-БАНК AI-Robotics",
+    "ticker": "TRAI"
+  },
+  {
+    "sector": "ETF",
+    "company": "Т-Банк | Тинькофф ИНДЕКС BUY BACK | Т-БАНК BuyBack Leaders",
+    "ticker": "TBUY-USD"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-БАНК БИОТЕХ",
+    "ticker": "TBIO"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-БАНК ИНДЕКС АЙ ПИ О",
+    "ticker": "TIPO"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Фонд Инструменты в юанях",
+    "ticker": "SBBY"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Стратегии денежного рынка",
+    "ticker": "GOOD"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-Капитал Трендовые акции",
+    "ticker": "TRND"
+  },
+  {
+    "sector": "ETF",
+    "company": "ДОХОДЪ Облигации 2027.30.33",
+    "ticker": "BNDC"
+  },
+  {
+    "sector": "ETF",
+    "company": "ДОХОДЪ. Анализ акций",
+    "ticker": "WILD"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ВТБ Корп рос еврооблигац",
+    "ticker": "VTBU"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ГПБ корп облигации 4 годa",
+    "ticker": "GPBM"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АЛЬФА_КАП Эс энд Пи 500",
+    "ticker": "AMGMA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АЛЬФА_КАП ЕВРОПА 600",
+    "ticker": "AKEU"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Фридом-Лидеры технологий",
+    "ticker": "MTEK"
+  },
+  {
+    "sector": "ETF",
+    "company": "FINEX USA INF TECH UCITS ETF",
+    "ticker": "FXIM"
+  },
+  {
+    "sector": "ETF",
+    "company": "Finex Funds Icav",
+    "ticker": "FXDM"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx Fallen Angels UCITS ETF",
+    "ticker": "FXFA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Цифровое будущее",
+    "ticker": "AMSCA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ДОХОДЪ Инд акций роста РФ",
+    "ticker": "GRODA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Российские обл +",
+    "ticker": "AMRB-SUR"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ БСПБ Корп. облигации 1000",
+    "ticker": "SPBCA"
+  },
+  {
+    "sector": "ETF",
+    "company": "INEM ETF",
+    "ticker": "INEM"
+  },
+  {
+    "sector": "ETF",
+    "company": "INGO ETF",
+    "ticker": "INGO"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Первая Халяльные инвест",
+    "ticker": "SBHI"
+  },
+  {
+    "sector": "ETF",
+    "company": "Т-БАНК ИНДЕКС ФИНТЕХ RUB",
+    "ticker": "TFNX-RUB"
+  },
+  {
+    "sector": "ETF",
+    "company": "Т-БАНК ЕВРООБЛИГАЦИИ В ЕВРО",
+    "ticker": "TBEU-RUB"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Ингосстрах ЕМ облигации",
+    "ticker": "INEM-USD"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Т-БАНК ТЕХНОЛОГИИ",
+    "ticker": "TECH"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ РСХБ-Облигации ИЭсДжи",
+    "ticker": "PRIE"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ РСХБ Корп рос еврооблигац",
+    "ticker": "RSHU"
+  },
+  {
+    "sector": "ETF",
+    "company": "Альфа-Капитал Умный портфель",
+    "ticker": "AKUP"
+  },
+  {
+    "sector": "ETF",
+    "company": "ФИНСТАР Денежный рынок",
+    "ticker": "FINC"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ ГПБ корп облигации",
+    "ticker": "GPBS"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ РАЙФФАЙЗЕН ЕВРООБЛИГАЦИИ",
+    "ticker": "RCMB"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ МКБ – ОФЗ 1-3 г",
+    "ticker": "SUGB"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx RUB US TIPS UCITS ETF",
+    "ticker": "FXIP"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Див Аристократы США",
+    "ticker": "FMUSA"
+  },
+  {
+    "sector": "ETF",
+    "company": "Сбер Смарт Прогрессивный",
+    "ticker": "SBPSA"
+  },
+  {
+    "sector": "ETF",
+    "company": "Сбер Смарт Взвешенный",
+    "ticker": "SBWSA"
+  },
+  {
+    "sector": "ETF",
+    "company": "Сбер Смарт Динамичный",
+    "ticker": "SBDSA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Див Аристократы РФ",
+    "ticker": "FMRUA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Инновации",
+    "ticker": "AMINA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Генетич революция",
+    "ticker": "AMGRA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Дивиденды",
+    "ticker": "AMDGA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Недооцен комп США",
+    "ticker": "AMVFA"
+  },
+  {
+    "sector": "ETF",
+    "company": "Сбер Смарт Осторожный",
+    "ticker": "SBRSA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Облачные техн-гии",
+    "ticker": "AMCCA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Ставка на рост",
+    "ticker": "AMGFA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Альфа Медицина",
+    "ticker": "AKMDA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Рынки возможностей",
+    "ticker": "AMEMA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН - Надежные облигации",
+    "ticker": "AMIGA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Лидеры роста США",
+    "ticker": "AMMFA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН - Доходные обл Мира",
+    "ticker": "AMHYA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ АТОН – Тихая гавань",
+    "ticker": "AMLVA"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Альфа Упр Акции с доходом",
+    "ticker": "AKIE"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Антиинфляционный",
+    "ticker": "AKAI"
+  },
+  {
+    "sector": "ETF",
+    "company": "БПИФ Альфа Капитал ИТ Лидеры",
+    "ticker": "AKHT"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Saudi Arabian Oil Co (Aramco)",
+    "ticker": "Saudi_Aramco"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "PGNiG",
+    "ticker": "PGNiG"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "SK Telecom",
+    "ticker": "SKM"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "LG Display Co",
+    "ticker": "LPL"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "FibroGen",
+    "ticker": "FGEN"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Heron Therapeutics",
+    "ticker": "HRTX"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "EverQuote",
+    "ticker": "EVER"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "SINA Corporation",
+    "ticker": "SINA"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Badger Meter",
+    "ticker": "BMI"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Razer Inc",
+    "ticker": "RAZFF"
+  },
+  {
+    "sector": "НЕФТЕГАЗ",
+    "company": "Aston Martin",
+    "ticker": "AML"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "OpenAI",
+    "ticker": "OpenAI"
+  },
+  {
+    "sector": "HIGH TECH",
+    "company": "Anthropic",
+    "ticker": "anthropic"
+  },
+  {
+    "sector": "Utilities",
+    "company": "NextEra Energy",
+    "ticker": "NEE"
+  },
+  {
+    "sector": "Utilities",
+    "company": "PPL",
+    "ticker": "PPL"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Exelon",
+    "ticker": "EXC"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Duke Energy",
+    "ticker": "DUK"
+  },
+  {
+    "sector": "Utilities",
+    "company": "American Water Works",
+    "ticker": "AWK"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Consolidated Edison",
+    "ticker": "ED"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Brookfield Renewable Partners",
+    "ticker": "BEP"
+  },
+  {
+    "sector": "Utilities",
+    "company": "NRG Energy",
+    "ticker": "NRG"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Fortis inc",
+    "ticker": "fortis"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Atmos Energy",
+    "ticker": "ATO"
+  },
+  {
+    "sector": "Utilities",
+    "company": "DTE Energy",
+    "ticker": "DTE"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Xcel Energy",
+    "ticker": "XEL"
+  },
+  {
+    "sector": "Utilities",
+    "company": "AES",
+    "ticker": "AES"
+  },
+  {
+    "sector": "Utilities",
+    "company": "EDF",
+    "ticker": "EDF"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Southern",
+    "ticker": "SO"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Ameren Corporation",
+    "ticker": "AEE"
+  },
+  {
+    "sector": "Utilities",
+    "company": "CMS Energy",
+    "ticker": "CMS"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Sempra Energy",
+    "ticker": "SRE"
+  },
+  {
+    "sector": "Utilities",
+    "company": "FirstEnergy",
+    "ticker": "FE"
+  },
+  {
+    "sector": "Utilities",
+    "company": "American Electric Power",
+    "ticker": "AEP"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Edison International",
+    "ticker": "EIX"
+  },
+  {
+    "sector": "Utilities",
+    "company": "NiSource",
+    "ticker": "NI"
+  },
+  {
+    "sector": "Utilities",
+    "company": "CenterPoint Energy",
+    "ticker": "CNP"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Alliant Energy",
+    "ticker": "LNT"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Public Service Enterprise Group",
+    "ticker": "PEG"
+  },
+  {
+    "sector": "Utilities",
+    "company": "UGI Corporation",
+    "ticker": "UGI"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Patterson Companies",
+    "ticker": "PDCO"
+  },
+  {
+    "sector": "Utilities",
+    "company": "American States Water",
+    "ticker": "AWR"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Pinnacle West Capital",
+    "ticker": "PNW"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Southwest Gas Holdings",
+    "ticker": "SWX"
+  },
+  {
+    "sector": "Utilities",
+    "company": "New Jersey Resources",
+    "ticker": "NJR"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Eversource Energy",
+    "ticker": "ES"
+  },
+  {
+    "sector": "Utilities",
+    "company": "ALLETE",
+    "ticker": "ALE"
+  },
+  {
+    "sector": "Utilities",
+    "company": "E.ON SE",
+    "ticker": "EOAN-DE"
+  },
+  {
+    "sector": "Utilities",
+    "company": "South Jersey Industries",
+    "ticker": "SJI"
+  },
+  {
+    "sector": "Utilities",
+    "company": "PG&amp;E Corporation",
+    "ticker": "PCG"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Enel SpA",
+    "ticker": "ENEL"
+  },
+  {
+    "sector": "Utilities",
+    "company": "Avista Corporation",
+    "ticker": "AVA"
+  },
+  {
+    "sector": "Utilities",
+    "company": "California Water Service Group",
+    "ticker": "CWT"
+  },
+  {
+    "sector": "Utilities",
+    "company": "IDACORP",
+    "ticker": "IDA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Pfizer",
+    "ticker": "PFE"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Moderna",
+    "ticker": "MRNA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Merck &amp; Co",
+    "ticker": "MRK"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Johnson &amp; Johnson",
+    "ticker": "JNJ"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Vertex",
+    "ticker": "VRTX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "AbbVie",
+    "ticker": "ABBV"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Abbott",
+    "ticker": "ABT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Eli Lilly and Company",
+    "ticker": "LLY"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "UnitedHealth Group",
+    "ticker": "UNH"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Regeneron",
+    "ticker": "REGN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Gilead Sciences",
+    "ticker": "GILD"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Bristol-Myers",
+    "ticker": "BMY"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "GlaxoSmithKline",
+    "ticker": "GSK"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Amgen",
+    "ticker": "AMGN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "CVS Health Corporation",
+    "ticker": "CVS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Quidel",
+    "ticker": "QDEL"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Medtronic",
+    "ticker": "MDT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "HEXO",
+    "ticker": "HEXO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Danaher Corporation",
+    "ticker": "DHR"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Thermo Fisher Scientific",
+    "ticker": "TMO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Sanofi",
+    "ticker": "SNY"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "HCA Healthcare",
+    "ticker": "HCA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Viatris",
+    "ticker": "VTRS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Mallinckrodt public limited",
+    "ticker": "MNKKQ"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Cardinal Health",
+    "ticker": "CAH"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "AstraZeneca PLC",
+    "ticker": "AZN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Zoetis",
+    "ticker": "ZTS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "McKesson",
+    "ticker": "MCK"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Intuitive Surgical",
+    "ticker": "ISRG"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Takeda",
+    "ticker": "TAK"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Aurora Cannabis",
+    "ticker": "ACB"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Humana",
+    "ticker": "HUM"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Teladoc Health",
+    "ticker": "TDOC"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "PerkinElmer",
+    "ticker": "PKI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Ameriprise Financial",
+    "ticker": "AMP"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Endo International",
+    "ticker": "ENDP"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Novartis",
+    "ticker": "NVS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Bayer AG",
+    "ticker": "BAYN-DE"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "OrganiGram Holdings",
+    "ticker": "OGI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Incyte",
+    "ticker": "INCY"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Cigna Corporation",
+    "ticker": "CI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Stryker",
+    "ticker": "SYK"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Boston Scientific",
+    "ticker": "BSX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Zimmer Biomet Holdings",
+    "ticker": "ZBH"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Laboratory Corporation of America Holdings",
+    "ticker": "LH"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "G1 Therapeutics",
+    "ticker": "GTHX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Bluebird Bio",
+    "ticker": "BLUE"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Teleflex",
+    "ticker": "TFX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Illumina",
+    "ticker": "ILMN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "DENTSPLY SIRONA",
+    "ticker": "XRAY"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Perrigo",
+    "ticker": "PRGO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "ResMed",
+    "ticker": "RMD"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Agilent Technologies",
+    "ticker": "A"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Centene",
+    "ticker": "CNC"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Dr. Reddy&#039;s Laboratories",
+    "ticker": "RDY"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Edwards Lifesciences",
+    "ticker": "EW"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "UHS",
+    "ticker": "UHS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Hologic",
+    "ticker": "HOLX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "IDEXX",
+    "ticker": "IDXX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Teva Pharmaceutical Industries",
+    "ticker": "TEVA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Roche Holding",
+    "ticker": "RHHBY"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Zynerba Pharmaceuticals",
+    "ticker": "ZYNE"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Alexion",
+    "ticker": "ALXN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Anthem",
+    "ticker": "ANTM"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "InMode Ltd",
+    "ticker": "INMD"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "eHealth",
+    "ticker": "eHealth"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "ABIOMED",
+    "ticker": "ABMD"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "The Cooper Companies",
+    "ticker": "COO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Henry Schein",
+    "ticker": "HSIC"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Sarepta Therapeutics",
+    "ticker": "SRPT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Waters",
+    "ticker": "WAT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Allogene Therapeutics",
+    "ticker": "ALLO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Ionis Pharmaceuticals",
+    "ticker": "IONS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Align Technology",
+    "ticker": "ALGN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Editas Medicine",
+    "ticker": "EDITAS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Allakos",
+    "ticker": "ALLK"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Papa John&#039;s Internationa",
+    "ticker": "PZZA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Amarin",
+    "ticker": "AMRN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Exelixis",
+    "ticker": "EXEL"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Clover Health Investments",
+    "ticker": "CLOV"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "DaVita",
+    "ticker": "DVA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Veeva Systems",
+    "ticker": "VEEV"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Organon",
+    "ticker": "OGN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Atara Biotherapeutics",
+    "ticker": "ATRA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Seagen",
+    "ticker": "SGEN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Corcept Therapeutics Incorporated",
+    "ticker": "CORT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Zogenix",
+    "ticker": "ZGNX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Asensus Surgical",
+    "ticker": "ASXC"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "ACADIA",
+    "ticker": "ACA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Mettler-Toledo",
+    "ticker": "MTD"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Healthcare Services Group",
+    "ticker": "HCSG"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Zynex",
+    "ticker": "ZYXI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "REGENXBIO",
+    "ticker": "RGNX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Neurocrine Biosciences",
+    "ticker": "NBIX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Intercept Pharmaceuticals",
+    "ticker": "ICPT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "ImmunoGen",
+    "ticker": "IMGN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Viveve Medical",
+    "ticker": "VIVE"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Vanda Pharmaceuticals",
+    "ticker": "VNDA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Intellia Therapeutics",
+    "ticker": "NTLA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Nektar Therapeutics",
+    "ticker": "NKTR"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Aerie Pharmaceuticals",
+    "ticker": "AERI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "BioXcel",
+    "ticker": "BTAI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "uniQure",
+    "ticker": "QURE"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Cara Therapeutics",
+    "ticker": "CARA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Elanco Animal Health",
+    "ticker": "ELAN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Iovance Biotherapeutics",
+    "ticker": "IOVA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Intra-Cellular Therapies",
+    "ticker": "ITCI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Invitae Corporation",
+    "ticker": "NVTA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Affimed",
+    "ticker": "AFMD"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Alnylam Pharmaceuticals",
+    "ticker": "ALNY"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "OraSure Technologies",
+    "ticker": "OSUR"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "AnaptysBio",
+    "ticker": "ANAB"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Evolent Health",
+    "ticker": "EVH"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "AxoGen",
+    "ticker": "AXGN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Lantheus Holdings",
+    "ticker": "LNTH"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Adaptive Biotechnologies",
+    "ticker": "ADPT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Alector",
+    "ticker": "ALEC"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Gossamer Bio",
+    "ticker": "GOSS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Halozyme",
+    "ticker": "HALO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Agios Pharmaceuticals",
+    "ticker": "AGIO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "ChemoCentryx",
+    "ticker": "CCXI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Allergan",
+    "ticker": "AGN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Immunome",
+    "ticker": "IMNM"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "​Cassava Sciences Inc",
+    "ticker": "SAVA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Arcturus Therapeutics Holdings",
+    "ticker": "ARCT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Anika Therapeutics",
+    "ticker": "ANIK"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "DermTech",
+    "ticker": "DMTK"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Sino Biopharmaceutical Limited",
+    "ticker": "SBMFF"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "MERCK KgaA",
+    "ticker": "MRK-DE"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Addus HomeCare",
+    "ticker": "ADUS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Arvinas",
+    "ticker": "ARVN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Mylan",
+    "ticker": "MYL"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Ново Нордиск | Novo Nordisk",
+    "ticker": "NVO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Varian Medical",
+    "ticker": "VAR"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Celgene",
+    "ticker": "CELG"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "CSL Limited",
+    "ticker": "CSLLY"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Aspira Women&#039;s Health",
+    "ticker": "AWH"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Black Diamond Therapeutics",
+    "ticker": "BDTX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Bionano Genomics",
+    "ticker": "BNGO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Haemonetics Corporation",
+    "ticker": "HAE"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "LiveWire",
+    "ticker": "LVVV"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "China Biologic Products Holdings",
+    "ticker": "CBPO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Carl Zeiss Meditec AG",
+    "ticker": "AFX-DE"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Arrowhead Pharmaceuticals",
+    "ticker": "ARWR"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Bio-Rad Laboratories",
+    "ticker": "BIO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Deciphera Pharmaceuticals",
+    "ticker": "DCPH"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Cortexyme",
+    "ticker": "CRTX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Catalent",
+    "ticker": "CTLT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Global Blood Therapeutics",
+    "ticker": "GBT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Amylyx Pharmaceuticals",
+    "ticker": "AMLX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Keurig Green Mountain",
+    "ticker": "GMCR"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "WellCare",
+    "ticker": "WCG"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Immunomedics",
+    "ticker": "IMMU"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "AMN Healthcare Services",
+    "ticker": "AMN"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "ANI Pharmaceuticals",
+    "ticker": "ANIP"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Applied Therapeutics",
+    "ticker": "APLT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Arena Pharmaceuticals",
+    "ticker": "ARNA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Atrion",
+    "ticker": "ATRI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "CONMED",
+    "ticker": "CNMD"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Covetrus",
+    "ticker": "CVET"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Amicus Therapeutics",
+    "ticker": "FOLD"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Hill-Rom Holdings",
+    "ticker": "HRC"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Neurotrope",
+    "ticker": "NTRP"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "ALX Oncology Holdings",
+    "ticker": "ALXO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Amedisys",
+    "ticker": "AMED"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Applied Molecular Transport",
+    "ticker": "AMTI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Arcutis Biotherapeutics",
+    "ticker": "ARQT"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "AtriCure",
+    "ticker": "ATRC"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Avanos Medical",
+    "ticker": "AVNS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Axsome Therapeutics",
+    "ticker": "AXSM"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "BridgeBio",
+    "ticker": "BBIO"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Blueprint Medicines Corporation",
+    "ticker": "BPMC"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Bruker Corporation",
+    "ticker": "BRKR"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Cantel Medical",
+    "ticker": "CMD"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Constellation Pharmaceuticals",
+    "ticker": "CNST"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "CareDx",
+    "ticker": "CDNA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Chemed Corporation",
+    "ticker": "CHE"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Change Healthcare",
+    "ticker": "CHNG"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Charles River Laboratories International",
+    "ticker": "CRL"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Cardiovascular Systems",
+    "ticker": "CSII"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "CEL-SCI Corporation",
+    "ticker": "CVM"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Dicerna Pharmaceuticals",
+    "ticker": "DRNA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Denali Therapeutics",
+    "ticker": "DNLI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "GoodRx Holdings",
+    "ticker": "GDRX"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Guardant Health",
+    "ticker": "GH"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Glaukos Corporation",
+    "ticker": "GKOS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "HealthEquity",
+    "ticker": "HQY"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Globus Medical",
+    "ticker": "GMED"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Heska Corporation",
+    "ticker": "HSKA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Healthcare Trust of America",
+    "ticker": "HTA"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "Integra LifeSciences Holdings Corporation",
+    "ticker": "IART"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "ICU Medical",
+    "ticker": "ICUI"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "IGM Biosciences",
+    "ticker": "IGMS"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "LHC Group",
+    "ticker": "LHCG"
+  },
+  {
+    "sector": "Healthcare",
+    "company": "LifeStance Health Group",
+    "ticker": "LFST"
+  },
+  {
+    "sector": "Materials",
+    "company": "Alcoa",
+    "ticker": "AA"
+  },
+  {
+    "sector": "Materials",
+    "company": "Freeport-McMoRan Inc.",
+    "ticker": "FCX"
+  },
+  {
+    "sector": "Materials",
+    "company": "Nucor Corporation",
+    "ticker": "NUE"
+  },
+  {
+    "sector": "Materials",
+    "company": "ArcelorMittal",
+    "ticker": "MT"
+  },
+  {
+    "sector": "Materials",
+    "company": "United States Steel",
+    "ticker": "United States Steel"
+  },
+  {
+    "sector": "Materials",
+    "company": "Barrick Mining Corp (Barrick Gold )",
+    "ticker": "GOLD"
+  },
+  {
+    "sector": "Materials",
+    "company": "Newmont Mining",
+    "ticker": "NEM"
+  },
+  {
+    "sector": "Materials",
+    "company": "Mosaic Company",
+    "ticker": "MOS"
+  },
+  {
+    "sector": "Materials",
+    "company": "Albemarle",
+    "ticker": "ALB"
+  },
+  {
+    "sector": "Materials",
+    "company": "Dow Chemical",
+    "ticker": "DOW"
+  },
+  {
+    "sector": "Materials",
+    "company": "DuPont",
+    "ticker": "DD"
+  },
+  {
+    "sector": "Materials",
+    "company": "Linde",
+    "ticker": "LIN"
+  },
+  {
+    "sector": "Materials",
+    "company": "Aluminum Corp of China",
+    "ticker": "ACH"
+  },
+  {
+    "sector": "Materials",
+    "company": "LyondellBasell",
+    "ticker": "LYB"
+  },
+  {
+    "sector": "Materials",
+    "company": "Southern Copper Corporation",
+    "ticker": "SCCO"
+  },
+  {
+    "sector": "Materials",
+    "company": "Air Products &amp; Chemicals",
+    "ticker": "APD"
+  },
+  {
+    "sector": "Materials",
+    "company": "PPG",
+    "ticker": "PPG"
+  },
+  {
+    "sector": "Materials",
+    "company": "Kinross Gold",
+    "ticker": "KGC"
+  },
+  {
+    "sector": "Materials",
+    "company": "CF Industries",
+    "ticker": "CF"
+  },
+  {
+    "sector": "Materials",
+    "company": "Eastman",
+    "ticker": "EMN"
+  },
+  {
+    "sector": "Materials",
+    "company": "Sherwin-Williams",
+    "ticker": "SHW"
+  },
+  {
+    "sector": "Materials",
+    "company": "Cleveland-Cliffs",
+    "ticker": "CLF"
+  },
+  {
+    "sector": "Materials",
+    "company": "Martin Marietta Materials",
+    "ticker": "MLM"
+  },
+  {
+    "sector": "Materials",
+    "company": "Celanese",
+    "ticker": "CE"
+  },
+  {
+    "sector": "Materials",
+    "company": "WestRock",
+    "ticker": "WRK"
+  },
+  {
+    "sector": "Materials",
+    "company": "FMC",
+    "ticker": "FMC"
+  },
+  {
+    "sector": "Materials",
+    "company": "Vulcan Materials",
+    "ticker": "VMC"
+  },
+  {
+    "sector": "Materials",
+    "company": "Pan American Silver",
+    "ticker": "PAAS"
+  },
+  {
+    "sector": "Materials",
+    "company": "International Flavors &amp; Fragrances",
+    "ticker": "IFF"
+  },
+  {
+    "sector": "Materials",
+    "company": "UFP Industries",
+    "ticker": "UFPI"
+  },
+  {
+    "sector": "Materials",
+    "company": "Masco",
+    "ticker": "MAS"
+  },
+  {
+    "sector": "Materials",
+    "company": "Ecolab",
+    "ticker": "ECL"
+  },
+  {
+    "sector": "Materials",
+    "company": "Livent",
+    "ticker": "LTHM"
+  },
+  {
+    "sector": "Materials",
+    "company": "Royal Gold Inc",
+    "ticker": "RGLD"
+  },
+  {
+    "sector": "Materials",
+    "company": "Silvercorp Metals",
+    "ticker": "SVM"
+  },
+  {
+    "sector": "Materials",
+    "company": "Glencore",
+    "ticker": "GLEN"
+  },
+  {
+    "sector": "Materials",
+    "company": "Univar Solutions",
+    "ticker": "UNVR"
+  },
+  {
+    "sector": "Materials",
+    "company": "Kaiser Aluminium Corp",
+    "ticker": "KALU"
+  },
+  {
+    "sector": "Materials",
+    "company": "First Quantum Minerals Ltd",
+    "ticker": "FQVLF"
+  },
+  {
+    "sector": "Materials",
+    "company": "GEVO",
+    "ticker": "GEVO"
+  },
+  {
+    "sector": "Materials",
+    "company": "Avient",
+    "ticker": "AVNT"
+  },
+  {
+    "sector": "Materials",
+    "company": "Covestro AG",
+    "ticker": "1COV-DE"
+  },
+  {
+    "sector": "Materials",
+    "company": "The Chemours Company",
+    "ticker": "CC"
+  },
+  {
+    "sector": "Materials",
+    "company": "Corteva",
+    "ticker": "CTVA"
+  },
+  {
+    "sector": "Materials",
+    "company": "Bunker Hill Mining",
+    "ticker": "BHLL"
+  },
+  {
+    "sector": "Materials",
+    "company": "Avantor",
+    "ticker": "AVTR"
+  },
+  {
+    "sector": "Materials",
+    "company": "Ashland Global Holdings",
+    "ticker": "ASH"
+  },
+  {
+    "sector": "Materials",
+    "company": "AdvanSix",
+    "ticker": "ASIX"
+  },
+  {
+    "sector": "Materials",
+    "company": "Balchem",
+    "ticker": "BCPC"
+  },
+  {
+    "sector": "Materials",
+    "company": "Compass Minerals",
+    "ticker": "CMP"
+  },
+  {
+    "sector": "Materials",
+    "company": "Ferro Corporation",
+    "ticker": "FOE"
+  },
+  {
+    "sector": "Materials",
+    "company": "H.B. Fuller Company",
+    "ticker": "FUL"
+  },
+  {
+    "sector": "Materials",
+    "company": "W. R. Grace &amp; Co",
+    "ticker": "GRA"
+  },
+  {
+    "sector": "Other",
+    "company": "MGP Ingredients",
+    "ticker": "MGPI"
+  },
+  {
+    "sector": "Other",
+    "company": "WH Group",
+    "ticker": "WHGLY"
+  },
+  {
+    "sector": "Other",
+    "company": "Roblox",
+    "ticker": "RBLX"
+  },
+  {
+    "sector": "Other",
+    "company": "Koninklijke Ahold Delhaize N.V.",
+    "ticker": "ADRNY"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Банк Астаны",
+    "ticker": "ABBN"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Kaspi Bank",
+    "ticker": "KSPI"
+  },
+  {
+    "sector": "БАНКИ",
+    "company": "Halyk Bank",
+    "ticker": "HSBK"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Telegram",
+    "ticker": "Telegram"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "SpaceX",
+    "ticker": "SpaceX"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "iShares Gold Trust",
+    "ticker": "IAU"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "StarLink",
+    "ticker": "StarLink"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Similarweb",
+    "ticker": "SMWB"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "Playboy",
+    "ticker": "Playboy"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "iHerb",
+    "ticker": "iHerb"
+  },
+  {
+    "sector": "НЕПУБЛИЧНЫЕ",
+    "company": "АО БАСТ",
+    "ticker": "BAST"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Amazon",
+    "ticker": "AMZN"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Ford Motor Company",
+    "ticker": "F"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Walt Disney",
+    "ticker": "DIS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "GameStop",
+    "ticker": "GME"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "The Coca-Cola Company",
+    "ticker": "KO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Toyota Motor Corporation",
+    "ticker": "TM"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "NIO Limited",
+    "ticker": "NIO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "AMC Entertainment Holdings",
+    "ticker": "AMC"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Peloton Interactive",
+    "ticker": "PTON"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Lucid Motors",
+    "ticker": "LCID"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Kohl&#039;s Corporation",
+    "ticker": "KSS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Nikola Corporation",
+    "ticker": "NKLA"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Roku",
+    "ticker": "ROKU"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Crocs",
+    "ticker": "CROX"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Royal Caribbean Cruises",
+    "ticker": "RCL"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "eBay",
+    "ticker": "EBAY"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Bed Bath &amp; Beyond",
+    "ticker": "BBBY"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Tata Motors",
+    "ticker": "TTM"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Lennar Corporation",
+    "ticker": "LEN"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Levi Strauss &amp; Co.",
+    "ticker": "LEVI"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Pinterest",
+    "ticker": "PINS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Lowe&#039;s",
+    "ticker": "LOW"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Signet Jewelers Limited",
+    "ticker": "SIG"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Vipshop Holdings",
+    "ticker": "VIPS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "D.R. Horton",
+    "ticker": "DHI"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "The Gap",
+    "ticker": "GPS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Hasbro",
+    "ticker": "HAS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Lululemon Athletica",
+    "ticker": "LULU"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "CarMax",
+    "ticker": "KMX"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Harley Davidson",
+    "ticker": "HOG"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Discovery",
+    "ticker": "DISCA"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Chewy",
+    "ticker": "CHWY"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Marriott International",
+    "ticker": "MAR"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Darden Restaurants",
+    "ticker": "DRI"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "H&amp;R Block",
+    "ticker": "HRB"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Conagra Brands",
+    "ticker": "CAG"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "PulteGroup",
+    "ticker": "PHM"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "LVMH Moët Hennessy Louis Vuitton",
+    "ticker": "LVMHF"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "KB Home",
+    "ticker": "KBH"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "TJX",
+    "ticker": "TJX"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Domino’s Pizza Inc",
+    "ticker": "DPZ"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Dillard&#039;s",
+    "ticker": "DDS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "V.F. Corporation",
+    "ticker": "VFC"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Toll Brothers",
+    "ticker": "TOL"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Wynn Resorts",
+    "ticker": "WYNN"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "International Paper Company",
+    "ticker": "IP"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Tapestry",
+    "ticker": "TPR"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Leggett &amp; Platt",
+    "ticker": "LEG"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Whirlpool",
+    "ticker": "WHR"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "MGM",
+    "ticker": "MGM"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Nordstrom",
+    "ticker": "JWN"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Foot Locker",
+    "ticker": "FL"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "YUM! Brands",
+    "ticker": "YUM"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "BorgWarner",
+    "ticker": "BWA"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Las Vegas Sands",
+    "ticker": "LVS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "PVH",
+    "ticker": "PVH"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Genuine Parts",
+    "ticker": "GPC"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Hilton Worldwide",
+    "ticker": "HLT"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "ContextLogic",
+    "ticker": "WISH"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Chipotle Mexican Grill",
+    "ticker": "CMG"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Packaging Corporation of America",
+    "ticker": "PKG"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "The Goodyear Tire &amp; Rubber Company",
+    "ticker": "GT"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Sonoco Products Company",
+    "ticker": "SON"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "ETSY",
+    "ticker": "ETSY"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Columbia Sportswear",
+    "ticker": "COLM"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Sealed Air",
+    "ticker": "SEE"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Ross Stores",
+    "ticker": "Ross_Stores"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Thor Industries",
+    "ticker": "THO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "American Eagle Outfitters",
+    "ticker": "AEO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Aramark",
+    "ticker": "ARMK"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Melco Resorts &amp; Entertainment Limited",
+    "ticker": "MLCO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "MercadoLibre",
+    "ticker": "MELI"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Manchester United",
+    "ticker": "MANU"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Tempur Sealy International",
+    "ticker": "TPX"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Polaris",
+    "ticker": "PII"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Tiffany &amp; Co",
+    "ticker": "TIF"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "MDC Holdings",
+    "ticker": "MDC"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Omnicom Group",
+    "ticker": "OMC"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Hanesbrands",
+    "ticker": "HBI"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "L Brands",
+    "ticker": "LB"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Under Armour",
+    "ticker": "UAA"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Camping World Holdings",
+    "ticker": "CWH"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "New York Times Company",
+    "ticker": "NYT"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "LKQ Corporation",
+    "ticker": "LKQ"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Mattel",
+    "ticker": "MAT"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Zillow",
+    "ticker": "Z"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Norwegian Cruise Line",
+    "ticker": "NCLH"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Fortune Brands",
+    "ticker": "FBHS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Ball Corporation",
+    "ticker": "BLL"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Service Corporation International",
+    "ticker": "SCI"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Blink Charging",
+    "ticker": "BLNK"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Viacom",
+    "ticker": "VIAB"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Huazhu Group Limited",
+    "ticker": "HTHT"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Autoliv",
+    "ticker": "ALV"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "AutoZone",
+    "ticker": "AZO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Expedia Group",
+    "ticker": "EXPE"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Qurate Retail",
+    "ticker": "QRTEA"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Farfetch Limited",
+    "ticker": "FTCH"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Allison Transmission",
+    "ticker": "ALSN"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "RELX",
+    "ticker": "REL"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Ulta Beauty",
+    "ticker": "ULTA"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "World Wrestling Entertainment",
+    "ticker": "WWE"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Copart",
+    "ticker": "CPRT"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Churchill Downs",
+    "ticker": "CHDN"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Red Robin Gourmet Burgers",
+    "ticker": "RRGB"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "1-800-FLOWERS",
+    "ticker": "FLWS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Albany International",
+    "ticker": "AIN"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Sleep Number",
+    "ticker": "SNBR"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "adidas AG",
+    "ticker": "ADS-DE"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Porsche",
+    "ticker": "PAH3-DE"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "TripAdvisor",
+    "ticker": "TRIP"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "O&#039;Reilly Automotive",
+    "ticker": "ORLY"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Dave &amp; Buster&#039;s Entertainment",
+    "ticker": "PLAY"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Frontier Communications",
+    "ticker": "FTR"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Mohawk Industries",
+    "ticker": "MHK"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Volta",
+    "ticker": "VLTA"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Hugo Boss",
+    "ticker": "BOSS-DE"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "PUMA",
+    "ticker": "PUM-DE"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "LGI Homes",
+    "ticker": "LGIH"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Carvana",
+    "ticker": "CVNA"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Weber",
+    "ticker": "WEBR"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "D-market",
+    "ticker": "HEPS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "News Corporation",
+    "ticker": "NWS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Hyliion Holdings",
+    "ticker": "HYLN"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "DraftKings",
+    "ticker": "DKNG"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Borussia Dortmund",
+    "ticker": "BVB-DE"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Abercrombie &amp; Fitch Co",
+    "ticker": "ANF"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Coupang",
+    "ticker": "CPNG"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Academy Sports and Outdoors",
+    "ticker": "ASO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "DICK&#039;S Sporting Goods",
+    "ticker": "DKS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Hennes &amp; Mauritz",
+    "ticker": "Hennes & Mauritz"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Brunswick",
+    "ticker": "BC"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Deckers Outdoor Corporation",
+    "ticker": "DECK"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Cracker Barrel Old Country Store",
+    "ticker": "CBRL"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Crown Holdings",
+    "ticker": "CCK"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Carter&#039;s",
+    "ticker": "CRI"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Hyatt Hotels Corporation",
+    "ticker": "H"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Taylor Morrison",
+    "ticker": "TMHC"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "AutoNation",
+    "ticker": "AN"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "American Outdoor Brands",
+    "ticker": "AOUT"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Biglari Holdings",
+    "ticker": "BH"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Choice Hotels International",
+    "ticker": "CHH"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Fox Factory Holding",
+    "ticker": "FOXF"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Greif",
+    "ticker": "GEF"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Group 1 Automotive",
+    "ticker": "GPI"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Asbury Automotive Group",
+    "ticker": "ABG"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "American Woodmark Corporation",
+    "ticker": "AMWD"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "AptarGroup",
+    "ticker": "ATR"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Berry Global",
+    "ticker": "BERY"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Boot Barn Holdings",
+    "ticker": "BOOT"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "BJ&#039;s Restaurants",
+    "ticker": "BJRI"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Bloomin&#039; Brands",
+    "ticker": "BLMN"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Burlington Stores",
+    "ticker": "BURL"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Delivery Hero SE",
+    "ticker": "DHER-DE"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Cooper-Standard Holdings",
+    "ticker": "CPS"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "America&#039;s Car-Mart",
+    "ticker": "CRMT"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Cavco Industries",
+    "ticker": "CVCO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Duluth Holdings",
+    "ticker": "DLTH"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Dorman Products",
+    "ticker": "DORM"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Flowers Foods",
+    "ticker": "FLO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Floor &amp; Decor Holdings",
+    "ticker": "FND"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Funko",
+    "ticker": "FNKO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "frontdoor",
+    "ticker": "FTDR"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Genesco",
+    "ticker": "GCO"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Gentex Corporation",
+    "ticker": "GNTX"
+  },
+  {
+    "sector": "Consumer Discretionary",
+    "company": "Global-E Online",
+    "ticker": "GLBE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Tesla",
+    "ticker": "TSLA"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Boeing",
+    "ticker": "BA"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Virgin Galactic",
+    "ticker": "SPCE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Deutsche Lufthansa",
+    "ticker": "LHA-DE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Delta Air Lines",
+    "ticker": "DAL"
+  },
+  {
+    "sector": "Industrials",
+    "company": "General Electric",
+    "ticker": "GE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Lockheed Martin",
+    "ticker": "LMT"
+  },
+  {
+    "sector": "Industrials",
+    "company": "American Airlines",
+    "ticker": "AAL"
+  },
+  {
+    "sector": "Industrials",
+    "company": "FedEx",
+    "ticker": "FDX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Volkswagen",
+    "ticker": "VOW3-DE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Caterpillar",
+    "ticker": "CAT"
+  },
+  {
+    "sector": "Industrials",
+    "company": "3M Company",
+    "ticker": "MMM"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Airbus SE",
+    "ticker": "EADSF"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Deere &amp; Company",
+    "ticker": "DE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Raytheon",
+    "ticker": "RTX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Honeywell",
+    "ticker": "HON"
+  },
+  {
+    "sector": "Industrials",
+    "company": "General Dynamics Corporation",
+    "ticker": "GD"
+  },
+  {
+    "sector": "Industrials",
+    "company": "UPS",
+    "ticker": "UPS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Union Pacific",
+    "ticker": "UNP"
+  },
+  {
+    "sector": "Industrials",
+    "company": "BMW",
+    "ticker": "BMW-DE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Cummins",
+    "ticker": "CMI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Fastenal Company",
+    "ticker": "FAST"
+  },
+  {
+    "sector": "Industrials",
+    "company": "CSX",
+    "ticker": "CSX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Snap-on",
+    "ticker": "SNA"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Waste Management",
+    "ticker": "WM"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Paychex",
+    "ticker": "PAYX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Emerson Electric",
+    "ticker": "EMR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Daimler",
+    "ticker": "DAID"
+  },
+  {
+    "sector": "Industrials",
+    "company": "A. O. Smith",
+    "ticker": "AOS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "JetBlue Airways Corporation",
+    "ticker": "JBLU"
+  },
+  {
+    "sector": "Industrials",
+    "company": "BHP",
+    "ticker": "BHP"
+  },
+  {
+    "sector": "Industrials",
+    "company": "AMETEK",
+    "ticker": "AME"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Norfolk Southern",
+    "ticker": "NSC"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Textron",
+    "ticker": "TXT"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Huntington Ingalls Industries",
+    "ticker": "HII"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Equifax",
+    "ticker": "EFX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Johnson Controls",
+    "ticker": "JCI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Old Dominion Freight Line",
+    "ticker": "ODFL"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Avery Dennison",
+    "ticker": "AVY"
+  },
+  {
+    "sector": "Industrials",
+    "company": "C.H. Robinson Worldwide",
+    "ticker": "CHRW"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Pentair",
+    "ticker": "PNR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Global Payments",
+    "ticker": "GPN"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Li auto",
+    "ticker": "LI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Cintas",
+    "ticker": "CTAS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "PACCAR",
+    "ticker": "PCAR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Cboe Global Markets",
+    "ticker": "CBOE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Rollins",
+    "ticker": "ROL"
+  },
+  {
+    "sector": "Industrials",
+    "company": "MSC Industrial Direct",
+    "ticker": "MSM"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Dover Corporation",
+    "ticker": "DOV"
+  },
+  {
+    "sector": "Industrials",
+    "company": "China Eastern Airlines",
+    "ticker": "CEA"
+  },
+  {
+    "sector": "Industrials",
+    "company": "JB Hunt Transport Services Inc",
+    "ticker": "JBHT"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Ryanair",
+    "ticker": "RYAL"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Broadridge Financial Solutions",
+    "ticker": "BR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "W.W. Grainger",
+    "ticker": "GWW"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Booz Allen Hamilton",
+    "ticker": "BAH"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Smith &amp; Wesson Brands",
+    "ticker": "SWBI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Fidelity National Information Services",
+    "ticker": "FIS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Robert Half",
+    "ticker": "RHI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Trane Technologies plc",
+    "ticker": "TT"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Xylem",
+    "ticker": "XYL"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Nielsen Holdings",
+    "ticker": "NLSN"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Ryder System",
+    "ticker": "R"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Astra Space",
+    "ticker": "ASTR-US"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Alaska Air",
+    "ticker": "ALK"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Roper",
+    "ticker": "ROP"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Donaldson Company",
+    "ticker": "DCI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "AGCO",
+    "ticker": "AGCO"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Verisk",
+    "ticker": "VRSK"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Rockwell",
+    "ticker": "ROK"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Parker-Hannifin",
+    "ticker": "PH"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Pitney Bowes",
+    "ticker": "PBI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "thyssenkrupp AG",
+    "ticker": "TKA"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Wabtec",
+    "ticker": "WAB"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Illinois Tool Works",
+    "ticker": "ITW"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Korn Ferry",
+    "ticker": "KFY"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Quanta",
+    "ticker": "PWR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "ZIM Integrated Shipping Services",
+    "ticker": "ZIM"
+  },
+  {
+    "sector": "Industrials",
+    "company": "IHS Markit",
+    "ticker": "INFO"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Spirit Airlines",
+    "ticker": "SAVE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "TransDigm",
+    "ticker": "TDG"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Republic Services",
+    "ticker": "RSG"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Aaron&#039;s",
+    "ticker": "AAN"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Carpenter Technology Corporation",
+    "ticker": "CRS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Flowserve",
+    "ticker": "FLS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Expeditors",
+    "ticker": "EXPD"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Worthington",
+    "ticker": "WOR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "AECOM",
+    "ticker": "ACM"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Applied Industrial",
+    "ticker": "AIT"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Advanced Energy Industries",
+    "ticker": "AEIS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "United Rentals",
+    "ticker": "URI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Fiserv",
+    "ticker": "FISV"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Alamo Group",
+    "ticker": "ALG"
+  },
+  {
+    "sector": "Industrials",
+    "company": "AAR",
+    "ticker": "AIR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Arconic",
+    "ticker": "ARNC"
+  },
+  {
+    "sector": "Industrials",
+    "company": "TPI Composites",
+    "ticker": "TPIC"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Air France-KLM Group",
+    "ticker": "AFP"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Astronics Corporation",
+    "ticker": "ATRO"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Allegiant Travel",
+    "ticker": "ALGT"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Eastman Kodak",
+    "ticker": "KODK"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Kratos Defense &amp; Security Solutions",
+    "ticker": "KTOS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "China Southern Airlines Company",
+    "ticker": "ZNH"
+  },
+  {
+    "sector": "Industrials",
+    "company": "National Presto",
+    "ticker": "NPK"
+  },
+  {
+    "sector": "Industrials",
+    "company": "AAON",
+    "ticker": "AAON"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Lincoln Electric",
+    "ticker": "LECO"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Kansas City",
+    "ticker": "KSU"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Trex",
+    "ticker": "TREX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Generac Holdings",
+    "ticker": "GNRC"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Rolls-Royce",
+    "ticker": "RYCEY"
+  },
+  {
+    "sector": "Industrials",
+    "company": "NCI Building Systems",
+    "ticker": "CNR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "ABB Ltd",
+    "ticker": "ABB"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Fluor",
+    "ticker": "FLR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Chart Industries",
+    "ticker": "GTLS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "United Technologies Corporation",
+    "ticker": "UTX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Proto Labs",
+    "ticker": "PRLB"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Dycom Industries",
+    "ticker": "DY"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Jacobs Engineering",
+    "ticker": "JEC"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Aerojet Rocketdyne Holdings",
+    "ticker": "AJRD"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Rheinmetall",
+    "ticker": "RHM-DE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Grupo Aeroportuario del Centro Norte SAB de CV",
+    "ticker": "OMAB"
+  },
+  {
+    "sector": "Industrials",
+    "company": "FleetCor Technologies",
+    "ticker": "FLT"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Upwork",
+    "ticker": "UPWK"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Rent-A-Center",
+    "ticker": "RCII"
+  },
+  {
+    "sector": "Industrials",
+    "company": "CK Hutchison",
+    "ticker": "CKHUY"
+  },
+  {
+    "sector": "Industrials",
+    "company": "HOCHTIEF Aktiengesellschaft",
+    "ticker": "HOT.DE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "AeroVironment",
+    "ticker": "AVAV"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Howmet Aerospace",
+    "ticker": "HWM"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Odyssey Marine Exploration",
+    "ticker": "OMEX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "The Middleby Corporation",
+    "ticker": "MIDD"
+  },
+  {
+    "sector": "Industrials",
+    "company": "HeidelbergCement AG",
+    "ticker": "HEI-DE"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Acuity Brands",
+    "ticker": "AYI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "SPX FLOW",
+    "ticker": "FLOW"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Guangshen Railway Company",
+    "ticker": "GSH"
+  },
+  {
+    "sector": "Industrials",
+    "company": "gr",
+    "ticker": "gr"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Axon Enterprise",
+    "ticker": "AXON"
+  },
+  {
+    "sector": "Industrials",
+    "company": "The Greenbrier Companies",
+    "ticker": "GBX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Graco",
+    "ticker": "GGG"
+  },
+  {
+    "sector": "Industrials",
+    "company": "GMS",
+    "ticker": "GMS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "HEICO",
+    "ticker": "HEI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "LPL Financial Holdings",
+    "ticker": "LPLA"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Hapag-Lloyd",
+    "ticker": "HLAG"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Atkore",
+    "ticker": "ATKR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Belden",
+    "ticker": "BDC"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Builders FirstSource",
+    "ticker": "BLDR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Columbus McKinnon Corporation",
+    "ticker": "CMCO"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Forward Air Corporation",
+    "ticker": "FWRD"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Hubbell Incorporated",
+    "ticker": "HUBB"
+  },
+  {
+    "sector": "Industrials",
+    "company": "IAA",
+    "ticker": "IAA"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Hawaiian Holdings",
+    "ticker": "HA"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Installed Building Products",
+    "ticker": "IBP"
+  },
+  {
+    "sector": "Industrials",
+    "company": "IDEX Corporation",
+    "ticker": "IEX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Sky Solar Holdings",
+    "ticker": "SKYS"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Armstrong World Industries",
+    "ticker": "AWI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Barrett Business",
+    "ticker": "BBSI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "The Brink&#039;s Company",
+    "ticker": "BCO"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Beacon Roofing Supply",
+    "ticker": "BECN"
+  },
+  {
+    "sector": "Industrials",
+    "company": "TopBuild",
+    "ticker": "BLD"
+  },
+  {
+    "sector": "Industrials",
+    "company": "BWX Technologies",
+    "ticker": "BWXT"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Colfax Corporation",
+    "ticker": "CFX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "CoreLogic",
+    "ticker": "CLGX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Clean Harbors",
+    "ticker": "CLH"
+  },
+  {
+    "sector": "Industrials",
+    "company": "CSW Industrials",
+    "ticker": "CSWI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Curtiss-Wright Corporation",
+    "ticker": "CW"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Casella Waste Systems",
+    "ticker": "CWST"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Forrester Research",
+    "ticker": "FORR"
+  },
+  {
+    "sector": "Industrials",
+    "company": "GATX",
+    "ticker": "GATX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Harsco Corporation",
+    "ticker": "HSC"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Hub Group",
+    "ticker": "HUBG"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Huron Consulting Group",
+    "ticker": "HURN"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Hexcel Corporation",
+    "ticker": "HXL"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Granite Construction Incorporated",
+    "ticker": "GVA"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Heritage-Crystal Clean",
+    "ticker": "HCCI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "ICF International",
+    "ticker": "ICFI"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Lennox International",
+    "ticker": "LII"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Lindsay Corporation",
+    "ticker": "LNN"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Louisiana-Pacific Corporation",
+    "ticker": "LPX"
+  },
+  {
+    "sector": "Industrials",
+    "company": "Landstar System",
+    "ticker": "LSTR"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Evergrande",
+    "ticker": "Evergrande"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Realty Income",
+    "ticker": "O"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Simon Property",
+    "ticker": "SPG"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "SL Green Realty",
+    "ticker": "SLG"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Iron Mountain",
+    "ticker": "IRM"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "STAG Industrial",
+    "ticker": "STAG"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Prologis",
+    "ticker": "PLD"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Macerich",
+    "ticker": "MAC"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Weyerhaeuser",
+    "ticker": "WY"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Kimco Realty Corporation",
+    "ticker": "KIM"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "American Tower Corporation",
+    "ticker": "AMT"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Digital Realty",
+    "ticker": "DLR"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Public Storage",
+    "ticker": "PSA"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Omega Healthcare Investors",
+    "ticker": "OHI"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Boston Properties",
+    "ticker": "BXP"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Crown Castle International",
+    "ticker": "CCI"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Welltower",
+    "ticker": "WELL"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "AvalonBay",
+    "ticker": "AVB"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Essex Property Trust",
+    "ticker": "ESS"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Federal Realty Investment Trust",
+    "ticker": "FRT"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Ventas",
+    "ticker": "VTR"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Vornado",
+    "ticker": "VNO"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Orchid Island Capital",
+    "ticker": "ORC"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Alexandria Real Estate",
+    "ticker": "ARE"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Equity Residential",
+    "ticker": "EQR"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Mid-America",
+    "ticker": "MAA"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Extra Space",
+    "ticker": "EXR"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Sabra Health Care",
+    "ticker": "SBRA"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "UDR",
+    "ticker": "UDR"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Global Net Lease",
+    "ticker": "GNL"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Regency Centers",
+    "ticker": "REG"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Kite Realty Group Trust",
+    "ticker": "KRG"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "AIMCO",
+    "ticker": "AIV"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Jones Lang LaSalle Incorporated (JLL)",
+    "ticker": "JLL"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "SBA",
+    "ticker": "SBAC"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Host Hotels &amp; Resorts",
+    "ticker": "HST"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "CBRE",
+    "ticker": "CBRE"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "CorEnergy Infrastructure Trust",
+    "ticker": "CORR"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Ladder Capital",
+    "ticker": "LADR"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Apartment Income",
+    "ticker": "AIRC"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Country Garden Holdings",
+    "ticker": "CTRYF"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "CoreCivic",
+    "ticker": "CXW"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "QTS Realty Trust",
+    "ticker": "QTS"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "CK Asset Holdings",
+    "ticker": "CHKGF"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "HCP",
+    "ticker": "HCP"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "CyrusOne",
+    "ticker": "CONE"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Americold Realty Trust",
+    "ticker": "COLD"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Brixmor Property Group",
+    "ticker": "BRX"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Chatham Lodging Trust",
+    "ticker": "CLDT"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "CoStar Group",
+    "ticker": "CSGP"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "FRP Holdings",
+    "ticker": "FRPH"
+  },
+  {
+    "sector": "Real Estate",
+    "company": "Gaming and Leisure Properties",
+    "ticker": "GLPI"
+  },
+  {
+    "sector": "ETF",
+    "company": "FinEx USA IT UCITS ETF",
+    "ticker": "FXIT"
+  },
+  {
+    "sector": "ETF",
+    "company": "SPDR S&amp;P Biotech ETF",
+    "ticker": "XBI"
+  },
+  {
+    "sector": "ETF",
+    "company": "ARK Innovation ETF",
+    "ticker": "ARKK"
+  },
+  {
+    "sector": "ETF",
+    "company": "Invesco Solar ETF",
+    "ticker": "TAN"
+  },
+  {
+    "sector": "ETF",
+    "company": "iShares S&amp;P500 Value ETF",
+    "ticker": "IVE"
+  },
+  {
+    "sector": "ETF",
+    "company": "ISHARES CORE S&amp;P 500 ETF",
+    "ticker": "IVV"
+  },
+  {
+    "sector": "ETF",
+    "company": "Schwab U.S. Large-Cap Value ETF",
+    "ticker": "SCHV"
+  },
+  {
+    "sector": "ETF",
+    "company": "VanEck Vectors Russia ETF",
+    "ticker": "RSX"
+  },
+  {
+    "sector": "ETF",
+    "company": "iShares India 50 ETF",
+    "ticker": "iShares India 50 ETF"
+  },
+  {
+    "sector": "ФИНАНСЫ",
+    "company": "Freedom Holding",
+    "ticker": "FRHC"
+  },
+  {
+    "sector": "ДРУГОЕ",
+    "company": "Collectors Universe",
+    "ticker": "CLCT"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Alibaba Group",
+    "ticker": "BABA"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Netflix",
+    "ticker": "NFLX"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Macy&#039;s",
+    "ticker": "M"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Walmart",
+    "ticker": "WMT"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Nike",
+    "ticker": "NKE"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Mcdonalds",
+    "ticker": "MCD"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "British American Tobacco",
+    "ticker": "BTI"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Altria Group",
+    "ticker": "MO"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Walgreens Boots Alliance",
+    "ticker": "WBA"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Beyond Meat",
+    "ticker": "BYND"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Costco Wholesale",
+    "ticker": "COST"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "JD.com",
+    "ticker": "JD"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Philip Morris International",
+    "ticker": "PM"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Procter &amp; Gamble",
+    "ticker": "PG"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "PepsiCo",
+    "ticker": "PEP"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Kroger",
+    "ticker": "KR"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Home Depot",
+    "ticker": "HD"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Target",
+    "ticker": "TGT"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Tyson Foods",
+    "ticker": "TSN"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "General Mills",
+    "ticker": "GIS"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Constellation Brands",
+    "ticker": "STZ"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Archer-Daniels-Midland",
+    "ticker": "ADM"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Estee Lauder",
+    "ticker": "EL"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Mondelez International",
+    "ticker": "MDLZ"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Hormel Foods",
+    "ticker": "HRL"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "McCormick &amp; Company",
+    "ticker": "MKC"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Best Buy",
+    "ticker": "BBY"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Dollar Tree",
+    "ticker": "DLTR"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Colgate-Palmolive Company",
+    "ticker": "CL"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Ralph Lauren Corporation",
+    "ticker": "RL"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Kimberly-Clark Corporation",
+    "ticker": "KMB"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Hershey Company",
+    "ticker": "HSY"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Clorox",
+    "ticker": "CLX"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "TESCO",
+    "ticker": "TSCO"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Kellogg Company",
+    "ticker": "K"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Sysco",
+    "ticker": "SYY"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Brown-Forman",
+    "ticker": "BFA"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Church &amp; Dwight",
+    "ticker": "CHD"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Campbell Soup",
+    "ticker": "CPB"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Lamb Weston Holdings",
+    "ticker": "LW"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "The J. M. Smucker",
+    "ticker": "SJM"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Coty",
+    "ticker": "COTY"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Big Lots",
+    "ticker": "BIG"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Newell Brands",
+    "ticker": "NWL"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "B&amp;G Foods",
+    "ticker": "BGS"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Ambev S.A.",
+    "ticker": "ABEV"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Molson Coors",
+    "ticker": "TAP"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Capri Holdings",
+    "ticker": "CPRI"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "The Andersons",
+    "ticker": "ANDE"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Ingredion",
+    "ticker": "INGR"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Aptiv",
+    "ticker": "APTV"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Cinemark",
+    "ticker": "CNK"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "The Hain Celestial",
+    "ticker": "HAIN"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Nu Skin Enterprises",
+    "ticker": "NUS"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Nestle",
+    "ticker": "NESN"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Stride",
+    "ticker": "LRN"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Fox Corporation",
+    "ticker": "FOX"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Anheuser-Busch InBev",
+    "ticker": "BUD"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Sprouts Farmers Market",
+    "ticker": "SFM"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Strategic Education",
+    "ticker": "STRA"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Wayfair Inc",
+    "ticker": "W"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "GSX",
+    "ticker": "GSX"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "USANA Health Sciences",
+    "ticker": "USNA"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "The Chefs&#039; Warehouse",
+    "ticker": "CHEF"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Henkel AG &amp; Co. KGaA",
+    "ticker": "HEN3-DE"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Coca-Cola Consolidated, Inc",
+    "ticker": "COKE"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Natura &amp;Co Holding",
+    "ticker": "NTCO"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Garrett Motion inc",
+    "ticker": "GTX"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "American Public Education",
+    "ticker": "APEI"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Coursera",
+    "ticker": "COUR"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Cars.com",
+    "ticker": "CARS"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Tractor",
+    "ticker": "TSCO.OQ"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Calavo Growers",
+    "ticker": "CVGW"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Freshpet",
+    "ticker": "FRPT"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Ctrip.com International Ltd.",
+    "ticker": "CTRP"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "AppHarvest",
+    "ticker": "APPH"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Chegg",
+    "ticker": "CHGG"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Avon",
+    "ticker": "AVP"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Darling Ingredients",
+    "ticker": "DAR"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Grand Canyon Education",
+    "ticker": "LOPE"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Ceconomy AG",
+    "ticker": "CEC.DE"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "BJ&#039;s Wholesale Club",
+    "ticker": "BJ"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Cal-Maine Foods",
+    "ticker": "CALM"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Casey&#039;s General Stores",
+    "ticker": "CASY"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Central Garden &amp; Pet Company",
+    "ticker": "CENT"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "National Beverage",
+    "ticker": "FIZZ"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Graham Holdings Company",
+    "ticker": "GHC"
+  },
+  {
+    "sector": "Consumer Staples",
+    "company": "Grocery Outlet Holding",
+    "ticker": "Grocery"
+  },
+  {
+    "sector": "Technology",
+    "company": "Apple",
+    "ticker": "AAPL"
+  },
+  {
+    "sector": "Technology",
+    "company": "Intel",
+    "ticker": "INTC"
+  },
+  {
+    "sector": "Technology",
+    "company": "Meta (Facebook)",
+    "ticker": "FB"
+  },
+  {
+    "sector": "Technology",
+    "company": "NVIDIA",
+    "ticker": "NVDA"
+  },
+  {
+    "sector": "Technology",
+    "company": "Google Alphabet",
+    "ticker": "GOOG"
+  },
+  {
+    "sector": "Technology",
+    "company": "Microsoft",
+    "ticker": "MSFT"
+  },
+  {
+    "sector": "Technology",
+    "company": "AMD",
+    "ticker": "AMD"
+  },
+  {
+    "sector": "Technology",
+    "company": "Twitter",
+    "ticker": "TWTR"
+  },
+  {
+    "sector": "Technology",
+    "company": "Uber",
+    "ticker": "Uber"
+  },
+  {
+    "sector": "Technology",
+    "company": "IBM",
+    "ticker": "IBM"
+  },
+  {
+    "sector": "Technology",
+    "company": "Activision Blizzard",
+    "ticker": "ATVI"
+  },
+  {
+    "sector": "Technology",
+    "company": "Micron Technology",
+    "ticker": "MU"
+  },
+  {
+    "sector": "Technology",
+    "company": "Taiwan Semiconductor Manufacturing Company",
+    "ticker": "TSM"
+  },
+  {
+    "sector": "Technology",
+    "company": "QUALCOMM",
+    "ticker": "QCOM"
+  },
+  {
+    "sector": "Technology",
+    "company": "Oracle",
+    "ticker": "ORCL"
+  },
+  {
+    "sector": "Technology",
+    "company": "Adobe",
+    "ticker": "ADBE"
+  },
+  {
+    "sector": "Technology",
+    "company": "Cisco",
+    "ticker": "CSCO"
+  },
+  {
+    "sector": "Technology",
+    "company": "NOKIA",
+    "ticker": "NOK"
+  },
+  {
+    "sector": "Technology",
+    "company": "Broadcom",
+    "ticker": "AVGO"
+  },
+  {
+    "sector": "Technology",
+    "company": "Palantir",
+    "ticker": "PLTR"
+  },
+  {
+    "sector": "Technology",
+    "company": "Energy Transfer LP",
+    "ticker": "ET"
+  },
+  {
+    "sector": "Technology",
+    "company": "Salesforce",
+    "ticker": "CRM"
+  },
+  {
+    "sector": "Technology",
+    "company": "Huawei Technologies",
+    "ticker": "Huawei"
+  },
+  {
+    "sector": "Technology",
+    "company": "Samsung",
+    "ticker": "SSNLF"
+  },
+  {
+    "sector": "Technology",
+    "company": "Strategy",
+    "ticker": "MSTR"
+  },
+  {
+    "sector": "Technology",
+    "company": "Applied Materials",
+    "ticker": "AMAT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Accenture plc",
+    "ticker": "ACN"
+  },
+  {
+    "sector": "Technology",
+    "company": "Electronic Arts",
+    "ticker": "EA"
+  },
+  {
+    "sector": "Technology",
+    "company": "Lam Research Corporation",
+    "ticker": "LRCX"
+  },
+  {
+    "sector": "Technology",
+    "company": "Robinhood Markets",
+    "ticker": "HOOD"
+  },
+  {
+    "sector": "Technology",
+    "company": "ASML Holding N.V",
+    "ticker": "ASML"
+  },
+  {
+    "sector": "Technology",
+    "company": "LYFT",
+    "ticker": "LYFT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Shopify",
+    "ticker": "SHOP"
+  },
+  {
+    "sector": "Technology",
+    "company": "CrowdStrike Holdings",
+    "ticker": "CRWD"
+  },
+  {
+    "sector": "Technology",
+    "company": "Take-Two",
+    "ticker": "TTWO"
+  },
+  {
+    "sector": "Technology",
+    "company": "Seagate",
+    "ticker": "STX"
+  },
+  {
+    "sector": "Technology",
+    "company": "Texas Instruments",
+    "ticker": "TXN"
+  },
+  {
+    "sector": "Technology",
+    "company": "DiDi Global",
+    "ticker": "DIDI"
+  },
+  {
+    "sector": "Technology",
+    "company": "Automatic Data Processing",
+    "ticker": "ADP"
+  },
+  {
+    "sector": "Technology",
+    "company": "Palo Alto Networks",
+    "ticker": "PANW"
+  },
+  {
+    "sector": "Technology",
+    "company": "NXP Semiconductors N.V.",
+    "ticker": "NXPI"
+  },
+  {
+    "sector": "Technology",
+    "company": "Infosys",
+    "ticker": "INFY"
+  },
+  {
+    "sector": "Technology",
+    "company": "L3Harris",
+    "ticker": "LHX"
+  },
+  {
+    "sector": "Technology",
+    "company": "Hewlett Packard Enterprise",
+    "ticker": "HPE"
+  },
+  {
+    "sector": "Technology",
+    "company": "Analog Devices",
+    "ticker": "ADI"
+  },
+  {
+    "sector": "Technology",
+    "company": "Intuit",
+    "ticker": "INTU"
+  },
+  {
+    "sector": "Technology",
+    "company": "Enphase Energy",
+    "ticker": "ENPH"
+  },
+  {
+    "sector": "Technology",
+    "company": "Western Digital",
+    "ticker": "WDC"
+  },
+  {
+    "sector": "Technology",
+    "company": "KLA",
+    "ticker": "KLAC"
+  },
+  {
+    "sector": "Technology",
+    "company": "Hewlett-Packard",
+    "ticker": "HPQ"
+  },
+  {
+    "sector": "Technology",
+    "company": "Dell Technologies",
+    "ticker": "DELL"
+  },
+  {
+    "sector": "Technology",
+    "company": "Xerox",
+    "ticker": "XRX"
+  },
+  {
+    "sector": "Technology",
+    "company": "Sony Corporation",
+    "ticker": "SNE"
+  },
+  {
+    "sector": "Technology",
+    "company": "Cloudflare",
+    "ticker": "NET"
+  },
+  {
+    "sector": "Technology",
+    "company": "Corning Incorporated",
+    "ticker": "GLW"
+  },
+  {
+    "sector": "Technology",
+    "company": "Cerner",
+    "ticker": "CERN"
+  },
+  {
+    "sector": "Technology",
+    "company": "Cognizant Technology",
+    "ticker": "CTSH"
+  },
+  {
+    "sector": "Technology",
+    "company": "Garmin Ltd",
+    "ticker": "GRMN"
+  },
+  {
+    "sector": "Technology",
+    "company": "Microchip Technology",
+    "ticker": "MCHP"
+  },
+  {
+    "sector": "Technology",
+    "company": "Logitech",
+    "ticker": "LOGI"
+  },
+  {
+    "sector": "Technology",
+    "company": "Skyworks",
+    "ticker": "SWKS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Teradyne",
+    "ticker": "TER"
+  },
+  {
+    "sector": "Technology",
+    "company": "SYNNEX",
+    "ticker": "SNX"
+  },
+  {
+    "sector": "Technology",
+    "company": "Autodesk",
+    "ticker": "ADSK"
+  },
+  {
+    "sector": "Technology",
+    "company": "Weibo",
+    "ticker": "WB"
+  },
+  {
+    "sector": "Technology",
+    "company": "TE Connectivity",
+    "ticker": "TEL"
+  },
+  {
+    "sector": "Technology",
+    "company": "Citrix Systems",
+    "ticker": "CTXS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Motorola Solutions",
+    "ticker": "MSI"
+  },
+  {
+    "sector": "Technology",
+    "company": "Alteryx",
+    "ticker": "AYX"
+  },
+  {
+    "sector": "Technology",
+    "company": "Marvel Technology",
+    "ticker": "MRVL"
+  },
+  {
+    "sector": "Technology",
+    "company": "Ciena Corporation",
+    "ticker": "CIEN"
+  },
+  {
+    "sector": "Technology",
+    "company": "Datadog",
+    "ticker": "DDOG"
+  },
+  {
+    "sector": "Technology",
+    "company": "Siemens",
+    "ticker": "SIE-DE"
+  },
+  {
+    "sector": "Technology",
+    "company": "Juniper Networks",
+    "ticker": "JNPR"
+  },
+  {
+    "sector": "Technology",
+    "company": "Check Point Software",
+    "ticker": "CHKP"
+  },
+  {
+    "sector": "Technology",
+    "company": "ServiceNow",
+    "ticker": "NOW"
+  },
+  {
+    "sector": "Technology",
+    "company": "NetApp",
+    "ticker": "NTAP"
+  },
+  {
+    "sector": "Technology",
+    "company": "Arista Networks",
+    "ticker": "ANET"
+  },
+  {
+    "sector": "Technology",
+    "company": "Fortive Corporation",
+    "ticker": "FTV"
+  },
+  {
+    "sector": "Technology",
+    "company": "Science Applications",
+    "ticker": "SAIC"
+  },
+  {
+    "sector": "Technology",
+    "company": "F5 Networks",
+    "ticker": "FFIV"
+  },
+  {
+    "sector": "Technology",
+    "company": "Splunk",
+    "ticker": "SPLK"
+  },
+  {
+    "sector": "Technology",
+    "company": "II-VI Incorporated",
+    "ticker": "IIVI"
+  },
+  {
+    "sector": "Technology",
+    "company": "Daqo New Energy",
+    "ticker": "DQ"
+  },
+  {
+    "sector": "Technology",
+    "company": "Entegris",
+    "ticker": "ENTG"
+  },
+  {
+    "sector": "Technology",
+    "company": "Lumentum Holdings",
+    "ticker": "LITE"
+  },
+  {
+    "sector": "Technology",
+    "company": "Cognex Corporation",
+    "ticker": "CGNX"
+  },
+  {
+    "sector": "Technology",
+    "company": "JinkoSolar Holding",
+    "ticker": "JKS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Xilinx",
+    "ticker": "XLNX"
+  },
+  {
+    "sector": "Technology",
+    "company": "VMWare",
+    "ticker": "VMW"
+  },
+  {
+    "sector": "Technology",
+    "company": "Keysight Technologies",
+    "ticker": "KEYS"
+  },
+  {
+    "sector": "Technology",
+    "company": "GoPro",
+    "ticker": "GPRO"
+  },
+  {
+    "sector": "Technology",
+    "company": "Power Integrations",
+    "ticker": "POWI"
+  },
+  {
+    "sector": "Technology",
+    "company": "SAP",
+    "ticker": "SAP"
+  },
+  {
+    "sector": "Technology",
+    "company": "Cadence Design Systems",
+    "ticker": "CDNS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Qorvo",
+    "ticker": "QRVO"
+  },
+  {
+    "sector": "Technology",
+    "company": "Micro Focus",
+    "ticker": "MFGP"
+  },
+  {
+    "sector": "Technology",
+    "company": "NortonLifeLock",
+    "ticker": "NLOK"
+  },
+  {
+    "sector": "Technology",
+    "company": "SS&amp;C Technologies Holdings",
+    "ticker": "SSNC"
+  },
+  {
+    "sector": "Technology",
+    "company": "Synopsys",
+    "ticker": "SNPS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Fastly",
+    "ticker": "FSLY"
+  },
+  {
+    "sector": "Technology",
+    "company": "Vontier",
+    "ticker": "VNT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Sunrun",
+    "ticker": "RUN"
+  },
+  {
+    "sector": "Technology",
+    "company": "Dropbox",
+    "ticker": "DBX"
+  },
+  {
+    "sector": "Technology",
+    "company": "Aspen",
+    "ticker": "AZPN"
+  },
+  {
+    "sector": "Technology",
+    "company": "iRobot Corporation",
+    "ticker": "IRBT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Epam",
+    "ticker": "EPAM"
+  },
+  {
+    "sector": "Technology",
+    "company": "SolarWinds",
+    "ticker": "SWI"
+  },
+  {
+    "sector": "Technology",
+    "company": "PTC",
+    "ticker": "PTC"
+  },
+  {
+    "sector": "Technology",
+    "company": "Appian",
+    "ticker": "APPN"
+  },
+  {
+    "sector": "Technology",
+    "company": "Zebra Technologies Corporation",
+    "ticker": "ZBRA"
+  },
+  {
+    "sector": "Technology",
+    "company": "Mimecast Limited",
+    "ticker": "MIME"
+  },
+  {
+    "sector": "Technology",
+    "company": "Akamai Technologies",
+    "ticker": "AKAM"
+  },
+  {
+    "sector": "Technology",
+    "company": "Qualys",
+    "ticker": "QLYS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Pure Storage",
+    "ticker": "PSTG"
+  },
+  {
+    "sector": "Technology",
+    "company": "3D Systems Corporation",
+    "ticker": "DDD"
+  },
+  {
+    "sector": "Technology",
+    "company": "Plexus",
+    "ticker": "PLXS"
+  },
+  {
+    "sector": "Technology",
+    "company": "DXC Technology",
+    "ticker": "DXC"
+  },
+  {
+    "sector": "Technology",
+    "company": "YEXT",
+    "ticker": "YEXT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Infineon Technologies AG",
+    "ticker": "IFX-DE"
+  },
+  {
+    "sector": "Technology",
+    "company": "SunPower Corporation",
+    "ticker": "SPWR"
+  },
+  {
+    "sector": "Technology",
+    "company": "Five9",
+    "ticker": "FIVN"
+  },
+  {
+    "sector": "Technology",
+    "company": "Nutanix",
+    "ticker": "NTNX"
+  },
+  {
+    "sector": "Technology",
+    "company": "Switch",
+    "ticker": "SWCH"
+  },
+  {
+    "sector": "Technology",
+    "company": "Everbridge",
+    "ticker": "EVBG"
+  },
+  {
+    "sector": "Technology",
+    "company": "ACM Research",
+    "ticker": "ACMR"
+  },
+  {
+    "sector": "Technology",
+    "company": "Alarm.com",
+    "ticker": "ALRM"
+  },
+  {
+    "sector": "Technology",
+    "company": "Tenable Holdings",
+    "ticker": "TENB"
+  },
+  {
+    "sector": "Technology",
+    "company": "ANSYS",
+    "ticker": "ANSS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Altair Engineering",
+    "ticker": "ALTR"
+  },
+  {
+    "sector": "Technology",
+    "company": "IPG Photonics",
+    "ticker": "IPGP"
+  },
+  {
+    "sector": "Technology",
+    "company": "Digital Turbine",
+    "ticker": "APPS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Onto Innovation",
+    "ticker": "ONTO"
+  },
+  {
+    "sector": "Technology",
+    "company": "Wirecard",
+    "ticker": "wirecard"
+  },
+  {
+    "sector": "Technology",
+    "company": "Teradata",
+    "ticker": "TDC"
+  },
+  {
+    "sector": "Technology",
+    "company": "Velodyne",
+    "ticker": "VLDR"
+  },
+  {
+    "sector": "Technology",
+    "company": "FLIR Systems",
+    "ticker": "FLIR"
+  },
+  {
+    "sector": "Technology",
+    "company": "8x8",
+    "ticker": "EGHT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Maxim Integrated Products",
+    "ticker": "MXIM"
+  },
+  {
+    "sector": "Technology",
+    "company": "Ubiquiti",
+    "ticker": "UI"
+  },
+  {
+    "sector": "Technology",
+    "company": "GreenSky",
+    "ticker": "GSKY"
+  },
+  {
+    "sector": "Technology",
+    "company": "j2 Global Inc",
+    "ticker": "JCOM"
+  },
+  {
+    "sector": "Technology",
+    "company": "ePlus",
+    "ticker": "EPLUS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Trimble",
+    "ticker": "TRMB"
+  },
+  {
+    "sector": "Technology",
+    "company": "CommScope",
+    "ticker": "COMM"
+  },
+  {
+    "sector": "Technology",
+    "company": "United Microelectronics Corporation",
+    "ticker": "UMC"
+  },
+  {
+    "sector": "Technology",
+    "company": "VeriSign",
+    "ticker": "VRSN"
+  },
+  {
+    "sector": "Technology",
+    "company": "DocuSign",
+    "ticker": "DOCU"
+  },
+  {
+    "sector": "Technology",
+    "company": "Vicor",
+    "ticker": "VICR"
+  },
+  {
+    "sector": "Technology",
+    "company": "PubMatic",
+    "ticker": "PUBM"
+  },
+  {
+    "sector": "Technology",
+    "company": "The Trade Desk",
+    "ticker": "TTD"
+  },
+  {
+    "sector": "Technology",
+    "company": "ACI Worldwide",
+    "ticker": "ACIW"
+  },
+  {
+    "sector": "Technology",
+    "company": "Diodes",
+    "ticker": "DIODES"
+  },
+  {
+    "sector": "Technology",
+    "company": "MTS Systems",
+    "ticker": "MTSC"
+  },
+  {
+    "sector": "Technology",
+    "company": "FTC Solar",
+    "ticker": "FTCI"
+  },
+  {
+    "sector": "Technology",
+    "company": "Contemporary Amperex Technology",
+    "ticker": "CATL"
+  },
+  {
+    "sector": "Technology",
+    "company": "Kia Motors Corp.",
+    "ticker": "KIMTF"
+  },
+  {
+    "sector": "Technology",
+    "company": "Corsair Gaming Inc",
+    "ticker": "CRSR"
+  },
+  {
+    "sector": "Technology",
+    "company": "Symantec",
+    "ticker": "SYMC"
+  },
+  {
+    "sector": "Technology",
+    "company": "Samsara inc",
+    "ticker": "IOT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Clearfield",
+    "ticker": "CLFD"
+  },
+  {
+    "sector": "Technology",
+    "company": "Synaptics",
+    "ticker": "SYNA"
+  },
+  {
+    "sector": "Technology",
+    "company": "Sunny Optical Technology",
+    "ticker": "SOTGY"
+  },
+  {
+    "sector": "Technology",
+    "company": "LivePerson",
+    "ticker": "LPSN"
+  },
+  {
+    "sector": "Technology",
+    "company": "LogMeIn",
+    "ticker": "LOGM"
+  },
+  {
+    "sector": "Technology",
+    "company": "Bill.com",
+    "ticker": "BILL"
+  },
+  {
+    "sector": "Technology",
+    "company": "Black Knight",
+    "ticker": "BKI"
+  },
+  {
+    "sector": "Technology",
+    "company": "CleanSpark",
+    "ticker": "CLSK"
+  },
+  {
+    "sector": "Technology",
+    "company": "HubSpot",
+    "ticker": "HUBS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Arrow Electronics",
+    "ticker": "ARW"
+  },
+  {
+    "sector": "Technology",
+    "company": "Concentrix",
+    "ticker": "CNXC"
+  },
+  {
+    "sector": "Technology",
+    "company": "Cirrus Logic",
+    "ticker": "CRUS"
+  },
+  {
+    "sector": "Technology",
+    "company": "CSG Systems International",
+    "ticker": "CSGS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Dolby Laboratories",
+    "ticker": "DLB"
+  },
+  {
+    "sector": "Technology",
+    "company": "Allot",
+    "ticker": "ALLT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Red Hat",
+    "ticker": "RHT"
+  },
+  {
+    "sector": "Technology",
+    "company": "AppFolio",
+    "ticker": "APPF"
+  },
+  {
+    "sector": "Technology",
+    "company": "Avalara",
+    "ticker": "AVLR"
+  },
+  {
+    "sector": "Technology",
+    "company": "Avnet",
+    "ticker": "AVT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Bandwidth",
+    "ticker": "BAND"
+  },
+  {
+    "sector": "Technology",
+    "company": "BlackLine",
+    "ticker": "BL"
+  },
+  {
+    "sector": "Technology",
+    "company": "Blackbaud",
+    "ticker": "BLKB"
+  },
+  {
+    "sector": "Technology",
+    "company": "BOX",
+    "ticker": "BOX"
+  },
+  {
+    "sector": "Technology",
+    "company": "Brooks Automation",
+    "ticker": "BRKS"
+  },
+  {
+    "sector": "Technology",
+    "company": "Coherent",
+    "ticker": "COHR"
+  },
+  {
+    "sector": "Technology",
+    "company": "CMC Materials",
+    "ticker": "CCMP"
+  },
+  {
+    "sector": "Technology",
+    "company": "CDK Global",
+    "ticker": "CDK"
+  },
+  {
+    "sector": "Technology",
+    "company": "CDW Corporation",
+    "ticker": "CDW"
+  },
+  {
+    "sector": "Technology",
+    "company": "CEVA",
+    "ticker": "CEVA"
+  },
+  {
+    "sector": "Technology",
+    "company": "Cognyte Software",
+    "ticker": "CGNT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Cloudera",
+    "ticker": "CLDR"
+  },
+  {
+    "sector": "Technology",
+    "company": "CREE",
+    "ticker": "CREE"
+  },
+  {
+    "sector": "Technology",
+    "company": "Cornerstone OnDemand",
+    "ticker": "CSOD"
+  },
+  {
+    "sector": "Technology",
+    "company": "Commvault Systems",
+    "ticker": "CVLT"
+  },
+  {
+    "sector": "Technology",
+    "company": "Dynatrace",
+    "ticker": "DT"
+  },
+  {
+    "sector": "Technology",
+    "company": "FormFactor",
+    "ticker": "FORM"
+  },
+  {
+    "sector": "Technology",
+    "company": "GCP Applied Technologies",
+    "ticker": "GCP"
+  },
+  {
+    "sector": "Technology",
+    "company": "GoDaddy",
+    "ticker": "GDDY"
+  },
+  {
+    "sector": "Technology",
+    "company": "Guidewire Software",
+    "ticker": "GWRE"
+  },
+  {
+    "sector": "Technology",
+    "company": "Turtle Beach Corporation",
+    "ticker": "HEAR"
+  },
+  {
+    "sector": "Technology",
+    "company": "Lattice Semiconductor Corporation",
+    "ticker": "LSCC"
+  },
+  {
+    "sector": "Consumer Cyclical",
+    "company": "Pandora",
+    "ticker": "0NQC"
+  },
+  {
+    "sector": "Consumer Cyclical",
+    "company": "LCI Industries",
+    "ticker": "LCII"
+  },
+  {
+    "sector": "Consumer Cyclical",
+    "company": "XPeng Inc.",
+    "ticker": "XPEV"
+  },
+  {
+    "sector": "Consumer Cyclical",
+    "company": "Meituan",
+    "ticker": "MPNGY"
+  },
+  {
+    "sector": "Consumer Cyclical",
+    "company": "Hibbett",
+    "ticker": "HIBB"
+  },
+  {
+    "sector": "Consumer Cyclical",
+    "company": "Polestar Automotive",
+    "ticker": "PSNY"
+  },
+  {
+    "sector": "Consumer Cyclical",
+    "company": "Malibu Boats",
+    "ticker": "MBUU"
+  },
+  {
+    "sector": "Consumer Cyclical",
+    "company": "Sands China Ltd",
+    "ticker": "SCHYY"
+  },
+  {
+    "sector": "Consumer Cyclical",
+    "company": "Victoria&#039;s Secret &amp;Co",
+    "ticker": "VSCO"
+  },
+  {
+    "sector": "МЕТАЛЛУРГИЯ разное",
+    "company": "КазАтомПром",
+    "ticker": "KAP"
+  },
+  {
+    "sector": "Financials",
+    "company": "Nasdaq",
+    "ticker": "NDAQ"
+  },
+  {
+    "sector": "Financials",
+    "company": "JPMorgan Chase",
+    "ticker": "JPM"
+  },
+  {
+    "sector": "Financials",
+    "company": "Goldman Sachs",
+    "ticker": "GS"
+  },
+  {
+    "sector": "Financials",
+    "company": "Bank of America",
+    "ticker": "BAC"
+  },
+  {
+    "sector": "Financials",
+    "company": "Citigroup",
+    "ticker": "C"
+  },
+  {
+    "sector": "Financials",
+    "company": "Berkshire Hathaway",
+    "ticker": "BRKA"
+  },
+  {
+    "sector": "Financials",
+    "company": "Visa",
+    "ticker": "V"
+  },
+  {
+    "sector": "Financials",
+    "company": "PayPal Holdings",
+    "ticker": "PYPL"
+  },
+  {
+    "sector": "Financials",
+    "company": "Morgan Stanley",
+    "ticker": "MS"
+  },
+  {
+    "sector": "Financials",
+    "company": "BlackRock",
+    "ticker": "BLK"
+  },
+  {
+    "sector": "Financials",
+    "company": "Mastercard",
+    "ticker": "MA"
+  },
+  {
+    "sector": "Financials",
+    "company": "Coinbase Global",
+    "ticker": "COIN"
+  },
+  {
+    "sector": "Financials",
+    "company": "Starbucks",
+    "ticker": "SBUX"
+  },
+  {
+    "sector": "Financials",
+    "company": "Baidu",
+    "ticker": "BIDU"
+  },
+  {
+    "sector": "Financials",
+    "company": "Deutsche Bank AG",
+    "ticker": "DB"
+  },
+  {
+    "sector": "Financials",
+    "company": "Credit Suisse Group AG",
+    "ticker": "CS"
+  },
+  {
+    "sector": "Financials",
+    "company": "American Express",
+    "ticker": "AXP"
+  },
+  {
+    "sector": "Financials",
+    "company": "ARK Invest",
+    "ticker": "ARK Invest"
+  },
+  {
+    "sector": "Financials",
+    "company": "SVB",
+    "ticker": "SIVB"
+  },
+  {
+    "sector": "Financials",
+    "company": "The Bank of New York Mellon",
+    "ticker": "BK"
+  },
+  {
+    "sector": "Financials",
+    "company": "HSBC",
+    "ticker": "HSBC"
+  },
+  {
+    "sector": "Financials",
+    "company": "Square",
+    "ticker": "SQ"
+  },
+  {
+    "sector": "Financials",
+    "company": "Charles Schwab",
+    "ticker": "SCHW"
+  },
+  {
+    "sector": "Financials",
+    "company": "UBS Group AG",
+    "ticker": "UBSG"
+  },
+  {
+    "sector": "Financials",
+    "company": "First Republic Bank",
+    "ticker": "FRC"
+  },
+  {
+    "sector": "Financials",
+    "company": "Eni SpA",
+    "ticker": "E"
+  },
+  {
+    "sector": "Financials",
+    "company": "Franklin Resources",
+    "ticker": "BEN"
+  },
+  {
+    "sector": "Financials",
+    "company": "CME",
+    "ticker": "CME"
+  },
+  {
+    "sector": "Financials",
+    "company": "Invesco",
+    "ticker": "IVZ"
+  },
+  {
+    "sector": "Financials",
+    "company": "Moody&#039;s Corporation",
+    "ticker": "MCO"
+  },
+  {
+    "sector": "Financials",
+    "company": "Arthur J. Gallagher",
+    "ticker": "AJG"
+  },
+  {
+    "sector": "Financials",
+    "company": "Blackstone Group",
+    "ticker": "BX"
+  },
+  {
+    "sector": "Financials",
+    "company": "State Street",
+    "ticker": "STT"
+  },
+  {
+    "sector": "Financials",
+    "company": "Horizon Technology",
+    "ticker": "HRZN"
+  },
+  {
+    "sector": "Financials",
+    "company": "Mitsubishi UFJ Financial Group",
+    "ticker": "MUFG"
+  },
+  {
+    "sector": "Financials",
+    "company": "PNC Financial Services Group",
+    "ticker": "PNC"
+  },
+  {
+    "sector": "Financials",
+    "company": "Quest Diagnostics Incorporated",
+    "ticker": "DGX"
+  },
+  {
+    "sector": "Financials",
+    "company": "Discover Financial Services",
+    "ticker": "DFS"
+  },
+  {
+    "sector": "Financials",
+    "company": "Capital One Financial",
+    "ticker": "COF"
+  },
+  {
+    "sector": "Financials",
+    "company": "Huntington Bancshares Incorporated",
+    "ticker": "HBAN"
+  },
+  {
+    "sector": "Financials",
+    "company": "Dominion Energy",
+    "ticker": "D"
+  },
+  {
+    "sector": "Financials",
+    "company": "Lloyds Banking Group",
+    "ticker": "LYG"
+  },
+  {
+    "sector": "Financials",
+    "company": "Western Union",
+    "ticker": "WU"
+  },
+  {
+    "sector": "Financials",
+    "company": "Aflac",
+    "ticker": "AFL"
+  },
+  {
+    "sector": "Financials",
+    "company": "Amphenol",
+    "ticker": "APH"
+  },
+  {
+    "sector": "Financials",
+    "company": "T. Rowe Price",
+    "ticker": "TROW"
+  },
+  {
+    "sector": "Financials",
+    "company": "Marsh &amp; McLennan",
+    "ticker": "MMC"
+  },
+  {
+    "sector": "Financials",
+    "company": "ING Groep N.V.",
+    "ticker": "ING"
+  },
+  {
+    "sector": "Financials",
+    "company": "Progressive",
+    "ticker": "PGR"
+  },
+  {
+    "sector": "Financials",
+    "company": "Synchrony Financial",
+    "ticker": "SYF"
+  },
+  {
+    "sector": "Financials",
+    "company": "MetLife",
+    "ticker": "MET"
+  },
+  {
+    "sector": "Financials",
+    "company": "MSCI Inc.",
+    "ticker": "MSCI"
+  },
+  {
+    "sector": "Financials",
+    "company": "Citizens",
+    "ticker": "CFG"
+  },
+  {
+    "sector": "Financials",
+    "company": "Cincinnati",
+    "ticker": "CINF"
+  },
+  {
+    "sector": "Financials",
+    "company": "Ares Capital",
+    "ticker": "ARCC"
+  },
+  {
+    "sector": "Financials",
+    "company": "Eaton",
+    "ticker": "ETN"
+  },
+  {
+    "sector": "Financials",
+    "company": "KeyCorp",
+    "ticker": "KEY"
+  },
+  {
+    "sector": "Financials",
+    "company": "U.S. Bancorp",
+    "ticker": "USB"
+  },
+  {
+    "sector": "Financials",
+    "company": "The Travelers",
+    "ticker": "TRV"
+  },
+  {
+    "sector": "Financials",
+    "company": "Unum",
+    "ticker": "UNM"
+  },
+  {
+    "sector": "Financials",
+    "company": "M&amp;T Bank",
+    "ticker": "MTB"
+  },
+  {
+    "sector": "Financials",
+    "company": "Navient",
+    "ticker": "NAVI"
+  },
+  {
+    "sector": "Financials",
+    "company": "American Financial",
+    "ticker": "AFG"
+  },
+  {
+    "sector": "Financials",
+    "company": "Regions",
+    "ticker": "RF"
+  },
+  {
+    "sector": "Financials",
+    "company": "Prudential Financial",
+    "ticker": "PRU"
+  },
+  {
+    "sector": "Financials",
+    "company": "ICICI Bank",
+    "ticker": "IBN"
+  },
+  {
+    "sector": "Financials",
+    "company": "Ally Financial",
+    "ticker": "ALLY"
+  },
+  {
+    "sector": "Financials",
+    "company": "Allegion",
+    "ticker": "ALLE"
+  },
+  {
+    "sector": "Financials",
+    "company": "Hartford Financial Services",
+    "ticker": "HIG"
+  },
+  {
+    "sector": "Financials",
+    "company": "Comerica Incorporated",
+    "ticker": "CMA"
+  },
+  {
+    "sector": "Financials",
+    "company": "Northern Trust Corporation",
+    "ticker": "NTRS"
+  },
+  {
+    "sector": "Financials",
+    "company": "Assurant",
+    "ticker": "AIZ"
+  },
+  {
+    "sector": "Financials",
+    "company": "Booking Holdings",
+    "ticker": "BKNG"
+  },
+  {
+    "sector": "Financials",
+    "company": "Chubb Limited",
+    "ticker": "CB"
+  },
+  {
+    "sector": "Financials",
+    "company": "CBS",
+    "ticker": "VIAC"
+  },
+  {
+    "sector": "Financials",
+    "company": "Allstate",
+    "ticker": "ALL"
+  },
+  {
+    "sector": "Financials",
+    "company": "Raymond James Financial",
+    "ticker": "RJF"
+  },
+  {
+    "sector": "Financials",
+    "company": "Zions Bancorporation",
+    "ticker": "ZION"
+  },
+  {
+    "sector": "Financials",
+    "company": "Brown &amp; Brown",
+    "ticker": "BRO"
+  },
+  {
+    "sector": "Financials",
+    "company": "Bank of Hawaii",
+    "ticker": "BOH"
+  },
+  {
+    "sector": "Financials",
+    "company": "FactSet Research Systems",
+    "ticker": "FDS"
+  },
+  {
+    "sector": "Financials",
+    "company": "Lincoln National",
+    "ticker": "LNC"
+  },
+  {
+    "sector": "Financials",
+    "company": "Truist Financial",
+    "ticker": "TFC"
+  },
+  {
+    "sector": "Financials",
+    "company": "Barclays",
+    "ticker": "BARC"
+  },
+  {
+    "sector": "Financials",
+    "company": "Loews Corporation",
+    "ticker": "L"
+  },
+  {
+    "sector": "Financials",
+    "company": "Principal Financial Group",
+    "ticker": "PFG"
+  },
+  {
+    "sector": "Financials",
+    "company": "MarketAxess Holdings",
+    "ticker": "MKTX"
+  },
+  {
+    "sector": "Financials",
+    "company": "Affiliated Managers",
+    "ticker": "AMG"
+  },
+  {
+    "sector": "Financials",
+    "company": "NEW YORK COMMUNITY BANCORP",
+    "ticker": "NYCB"
+  },
+  {
+    "sector": "Financials",
+    "company": "Cadence Bancorporation",
+    "ticker": "CADE"
+  },
+  {
+    "sector": "Financials",
+    "company": "Fifth Third Bancorp",
+    "ticker": "FITB"
+  },
+  {
+    "sector": "Financials",
+    "company": "China Life Insurance Company",
+    "ticker": "LFC"
+  },
+  {
+    "sector": "Financials",
+    "company": "Houlihan Lokey",
+    "ticker": "HLI"
+  },
+  {
+    "sector": "Financials",
+    "company": "MGIC Investment Corporation",
+    "ticker": "MTG"
+  },
+  {
+    "sector": "Financials",
+    "company": "Willis Towers Watson",
+    "ticker": "WLTW"
+  },
+  {
+    "sector": "Financials",
+    "company": "Evercore",
+    "ticker": "EVR-US"
+  },
+  {
+    "sector": "Financials",
+    "company": "Duke Realty",
+    "ticker": "DRE"
+  },
+  {
+    "sector": "Financials",
+    "company": "Everest Re Group",
+    "ticker": "RE"
+  },
+  {
+    "sector": "Financials",
+    "company": "People&#039;s United Financial",
+    "ticker": "PBCT"
+  },
+  {
+    "sector": "Financials",
+    "company": "Piper Sandler Companies",
+    "ticker": "PIPR"
+  },
+  {
+    "sector": "Financials",
+    "company": "AMERISAFE",
+    "ticker": "AMSF"
+  },
+  {
+    "sector": "Financials",
+    "company": "Raiffeisen Bank",
+    "ticker": "RAW"
+  },
+  {
+    "sector": "Financials",
+    "company": "Deutsche Boerse AG",
+    "ticker": "DB1-DE"
+  },
+  {
+    "sector": "Financials",
+    "company": "Alliance Data",
+    "ticker": "ADS"
+  },
+  {
+    "sector": "Financials",
+    "company": "Moneygram",
+    "ticker": "MGI"
+  },
+  {
+    "sector": "Financials",
+    "company": "The Vanguard Group, Inc.",
+    "ticker": "AVD"
+  },
+  {
+    "sector": "Financials",
+    "company": "Medallion Financial",
+    "ticker": "MFIN"
+  },
+  {
+    "sector": "Financials",
+    "company": "Interactive Brokers Group",
+    "ticker": "IBKR"
+  },
+  {
+    "sector": "Financials",
+    "company": "Brighthouse",
+    "ticker": "BHF"
+  },
+  {
+    "sector": "Financials",
+    "company": "Commerzbank AG",
+    "ticker": "CRZBY"
+  },
+  {
+    "sector": "Financials",
+    "company": "Encore Capital Group",
+    "ticker": "ECPG"
+  },
+  {
+    "sector": "Financials",
+    "company": "Credit acceptance",
+    "ticker": "CACC"
+  },
+  {
+    "sector": "Financials",
+    "company": "LENDINGTREE",
+    "ticker": "TREE"
+  },
+  {
+    "sector": "Financials",
+    "company": "Intercontinental Exchange",
+    "ticker": "ICE"
+  },
+  {
+    "sector": "Financials",
+    "company": "London Stock Exchange",
+    "ticker": "LSE"
+  },
+  {
+    "sector": "Financials",
+    "company": "Munich Re Group",
+    "ticker": "MUV2-DE"
+  },
+  {
+    "sector": "Financials",
+    "company": "SunTrust",
+    "ticker": "STI"
+  },
+  {
+    "sector": "Financials",
+    "company": "Cohen &amp; Steers",
+    "ticker": "CNS"
+  },
+  {
+    "sector": "Financials",
+    "company": "Globe Life",
+    "ticker": "GL"
+  },
+  {
+    "sector": "Financials",
+    "company": "Danske Bank",
+    "ticker": "DNKEY"
+  },
+  {
+    "sector": "Financials",
+    "company": "BB&amp;T",
+    "ticker": "BBT"
+  },
+  {
+    "sector": "Financials",
+    "company": "Altaba",
+    "ticker": "AABA"
+  },
+  {
+    "sector": "Financials",
+    "company": "E*TRADE",
+    "ticker": "ETFC"
+  },
+  {
+    "sector": "Financials",
+    "company": "BOK Financial Corporation",
+    "ticker": "BOKF"
+  },
+  {
+    "sector": "Financials",
+    "company": "ChoiceOne",
+    "ticker": "COFS"
+  },
+  {
+    "sector": "Financials",
+    "company": "Commerce Bancshares",
+    "ticker": "CBSH"
+  },
+  {
+    "sector": "Financials",
+    "company": "Community Bank System",
+    "ticker": "CBU"
+  },
+  {
+    "sector": "Financials",
+    "company": "City Holding Company",
+    "ticker": "CHCO"
+  },
+  {
+    "sector": "Financials",
+    "company": "Fidelity National Financial",
+    "ticker": "FNF"
+  },
+  {
+    "sector": "Financials",
+    "company": "Saudi Tadawul Group Holding Company",
+    "ticker": "1111"
+  },
+  {
+    "sector": "Financials",
+    "company": "Federated Investors",
+    "ticker": "FII"
+  },
+  {
+    "sector": "Financials",
+    "company": "The Royal Bank of Scotland Group",
+    "ticker": "RBS"
+  },
+  {
+    "sector": "Financials",
+    "company": "Torchmark",
+    "ticker": "TMK"
+  },
+  {
+    "sector": "Financials",
+    "company": "UNIQA",
+    "ticker": "UQA"
+  },
+  {
+    "sector": "Financials",
+    "company": "Axos Financial",
+    "ticker": "AX"
+  },
+  {
+    "sector": "Financials",
+    "company": "BankUnited",
+    "ticker": "BKU"
+  },
+  {
+    "sector": "Financials",
+    "company": "Cullen Frost Bankers",
+    "ticker": "CFR"
+  },
+  {
+    "sector": "Financials",
+    "company": "Cowen",
+    "ticker": "COWN"
+  },
+  {
+    "sector": "Financials",
+    "company": "CorVel Corporation",
+    "ticker": "CRVL"
+  },
+  {
+    "sector": "Financials",
+    "company": "Community Trust Bancorp",
+    "ticker": "CTB"
+  },
+  {
+    "sector": "Financials",
+    "company": "Focus Financial Partners",
+    "ticker": "FOCS"
+  },
+  {
+    "sector": "Financials",
+    "company": "Glacier Bancorp",
+    "ticker": "GBCI"
+  },
+  {
+    "sector": "Financials",
+    "company": "Independent Bank Group",
+    "ticker": "IBTX"
+  },
+  {
+    "sector": "Energy",
+    "company": "Exxon Mobil",
+    "ticker": "XOM"
+  },
+  {
+    "sector": "Energy",
+    "company": "Chevron",
+    "ticker": "CVX"
+  },
+  {
+    "sector": "Energy",
+    "company": "Equinor ASA",
+    "ticker": "EQNR"
+  },
+  {
+    "sector": "Energy",
+    "company": "Royal Dutch Shell plc",
+    "ticker": "SHELL"
+  },
+  {
+    "sector": "Energy",
+    "company": "Occidental Petroleum",
+    "ticker": "OXY"
+  },
+  {
+    "sector": "Energy",
+    "company": "Baker Hughes",
+    "ticker": "BKR"
+  },
+  {
+    "sector": "Energy",
+    "company": "ConocoPhillips",
+    "ticker": "COP"
+  },
+  {
+    "sector": "Energy",
+    "company": "Schlumberger",
+    "ticker": "SLB"
+  },
+  {
+    "sector": "Energy",
+    "company": "Halliburton",
+    "ticker": "HAL"
+  },
+  {
+    "sector": "Energy",
+    "company": "Kinder Morgan",
+    "ticker": "KMI"
+  },
+  {
+    "sector": "Energy",
+    "company": "Chesapeake Energy",
+    "ticker": "CHK"
+  },
+  {
+    "sector": "Energy",
+    "company": "Valero Energy",
+    "ticker": "VLO"
+  },
+  {
+    "sector": "Energy",
+    "company": "PetroChina",
+    "ticker": "PTR"
+  },
+  {
+    "sector": "Energy",
+    "company": "Phillips 66",
+    "ticker": "PSX"
+  },
+  {
+    "sector": "Energy",
+    "company": "ONEOK",
+    "ticker": "OKE"
+  },
+  {
+    "sector": "Energy",
+    "company": "Transocean Ltd",
+    "ticker": "RIG"
+  },
+  {
+    "sector": "Energy",
+    "company": "Petróleo Brasileiro S.A. – Petrobras",
+    "ticker": "PBR"
+  },
+  {
+    "sector": "Energy",
+    "company": "Marathon Petroleum Corporation",
+    "ticker": "MPC"
+  },
+  {
+    "sector": "Energy",
+    "company": "Peabody Energy Corporation",
+    "ticker": "BTU"
+  },
+  {
+    "sector": "Energy",
+    "company": "Sinopec",
+    "ticker": "SHI"
+  },
+  {
+    "sector": "Energy",
+    "company": "Apache",
+    "ticker": "APA"
+  },
+  {
+    "sector": "Energy",
+    "company": "EOG Resources",
+    "ticker": "EOG"
+  },
+  {
+    "sector": "Energy",
+    "company": "Devon Energy",
+    "ticker": "DVN"
+  },
+  {
+    "sector": "Energy",
+    "company": "Hess",
+    "ticker": "HES"
+  },
+  {
+    "sector": "Energy",
+    "company": "Diamondback",
+    "ticker": "FANG"
+  },
+  {
+    "sector": "Energy",
+    "company": "Williams",
+    "ticker": "WMB"
+  },
+  {
+    "sector": "Energy",
+    "company": "Southwestern Energy",
+    "ticker": "SWN"
+  },
+  {
+    "sector": "Energy",
+    "company": "Marathon Oil Corporation",
+    "ticker": "MRO"
+  },
+  {
+    "sector": "Energy",
+    "company": "Helmerich &amp; Payne",
+    "ticker": "HP"
+  },
+  {
+    "sector": "Energy",
+    "company": "Range Resources",
+    "ticker": "RRC"
+  },
+  {
+    "sector": "Energy",
+    "company": "Pioneer",
+    "ticker": "PXD"
+  },
+  {
+    "sector": "Energy",
+    "company": "Equitrans Midstream",
+    "ticker": "ETRN"
+  },
+  {
+    "sector": "Energy",
+    "company": "TechnipFMC",
+    "ticker": "FTI"
+  },
+  {
+    "sector": "Energy",
+    "company": "National Fuel Gas Company",
+    "ticker": "NFG"
+  },
+  {
+    "sector": "Energy",
+    "company": "VALEO",
+    "ticker": "FR"
+  },
+  {
+    "sector": "Energy",
+    "company": "PBF Energy",
+    "ticker": "PBF"
+  },
+  {
+    "sector": "Energy",
+    "company": "Cheniere Energy",
+    "ticker": "LNG"
+  },
+  {
+    "sector": "Energy",
+    "company": "National Oilwell Varco",
+    "ticker": "NOV"
+  },
+  {
+    "sector": "Energy",
+    "company": "Cabot Oil &amp; Gas",
+    "ticker": "COG"
+  },
+  {
+    "sector": "Energy",
+    "company": "Renewable Energy",
+    "ticker": "REGI"
+  },
+  {
+    "sector": "Energy",
+    "company": "HollyFrontier",
+    "ticker": "HFC"
+  },
+  {
+    "sector": "Energy",
+    "company": "Select Energy Services",
+    "ticker": "WTTR"
+  },
+  {
+    "sector": "Energy",
+    "company": "Alliance Resource Partners",
+    "ticker": "ARLP"
+  },
+  {
+    "sector": "Energy",
+    "company": "Delek",
+    "ticker": "DK"
+  },
+  {
+    "sector": "Energy",
+    "company": "Cimarex Energy",
+    "ticker": "XEC"
+  },
+  {
+    "sector": "Energy",
+    "company": "Oil States International",
+    "ticker": "OIS"
+  },
+  {
+    "sector": "Energy",
+    "company": "Anadarko Petroleum",
+    "ticker": "APC"
+  },
+  {
+    "sector": "Energy",
+    "company": "China Shenhua Group",
+    "ticker": "CSUAY"
+  },
+  {
+    "sector": "Energy",
+    "company": "Noble Energy",
+    "ticker": "NBL"
+  },
+  {
+    "sector": "Energy",
+    "company": "Hallador Energy",
+    "ticker": "HNGR"
+  },
+  {
+    "sector": "Energy",
+    "company": "Concho Resources",
+    "ticker": "CXO"
+  },
+  {
+    "sector": "Energy",
+    "company": "Diamond Offshore Drilling",
+    "ticker": "DO"
+  },
+  {
+    "sector": "Energy",
+    "company": "ChampionX",
+    "ticker": "CHX"
+  },
+  {
+    "sector": "Energy",
+    "company": "CNX Resources",
+    "ticker": "CNX"
+  },
+  {
+    "sector": "Energy",
+    "company": "Continental Resources",
+    "ticker": "CLR"
+  },
+  {
+    "sector": "Energy",
+    "company": "Dril-Quip",
+    "ticker": "DRQ"
+  },
+  {
+    "sector": "Telecom",
+    "company": "AT&amp;T",
+    "ticker": "ATT"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Verizon",
+    "ticker": "VZ"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Zoom",
+    "ticker": "ZM"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Airbnb",
+    "ticker": "ABNB"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Momo",
+    "ticker": "MOMO"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Spotify Technology S.A.",
+    "ticker": "SPOT"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Tencent",
+    "ticker": "TCEHY"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Comcast Corporation",
+    "ticker": "CMCSA"
+  },
+  {
+    "sector": "Telecom",
+    "company": "NetEase",
+    "ticker": "NTES"
+  },
+  {
+    "sector": "Telecom",
+    "company": "JOYY",
+    "ticker": "YY"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Lumen Technologies",
+    "ticker": "LUMN"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Vodafone",
+    "ticker": "VOD"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Match Group",
+    "ticker": "MTCH"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Bilibili Inc",
+    "ticker": "BILI"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Fortinet",
+    "ticker": "FTNT"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Sinclair Broadcast",
+    "ticker": "SBGI"
+  },
+  {
+    "sector": "Telecom",
+    "company": "AMC Networks",
+    "ticker": "AMCX"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Interpublic Group of Companies",
+    "ticker": "IPG"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Charter",
+    "ticker": "CHTR"
+  },
+  {
+    "sector": "Telecom",
+    "company": "SoftBank Group Corp.",
+    "ticker": "SFTBY"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Nexstar Media Group",
+    "ticker": "NXST"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Cable One",
+    "ticker": "CABO"
+  },
+  {
+    "sector": "Telecom",
+    "company": "CenturyLink",
+    "ticker": "CTL"
+  },
+  {
+    "sector": "Telecom",
+    "company": "DISH Network",
+    "ticker": "DISH"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Grey Television",
+    "ticker": "GTN"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Telephone &amp; Data Systems",
+    "ticker": "TDS"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Iridium Communications",
+    "ticker": "IRDM"
+  },
+  {
+    "sector": "Telecom",
+    "company": "ANGI Homeservices",
+    "ticker": "ANGI"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Sohu.com",
+    "ticker": "SOHU"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Deutsche Telekom AG",
+    "ticker": "DTE-DE"
+  },
+  {
+    "sector": "Telecom",
+    "company": "CD Projekt",
+    "ticker": "OTGLY"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Chicken Soup for the Soul Entertainment",
+    "ticker": "CSSE"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Anterix",
+    "ticker": "ATEX"
+  },
+  {
+    "sector": "Telecom",
+    "company": "DoorDash",
+    "ticker": "DASH"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Sprint Corporation",
+    "ticker": "S"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Altice USA",
+    "ticker": "ATUS"
+  },
+  {
+    "sector": "Telecom",
+    "company": "CarGurus",
+    "ticker": "CARG"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Deluxe Corporation",
+    "ticker": "DLX"
+  },
+  {
+    "sector": "Telecom",
+    "company": "AST SpaceMobile",
+    "ticker": "ASTS"
+  },
+  {
+    "sector": "Telecom",
+    "company": "ATN International",
+    "ticker": "ATNI"
+  },
+  {
+    "sector": "Telecom",
+    "company": "PC Connection",
+    "ticker": "CNXN"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Cogent Communications Holdings",
+    "ticker": "CCOI"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Cardlytics",
+    "ticker": "CDLX"
+  },
+  {
+    "sector": "Telecom",
+    "company": "IAC",
+    "ticker": "IAC"
+  },
+  {
+    "sector": "Telecom",
+    "company": "InterDigital",
+    "ticker": "IDCC"
+  },
+  {
+    "sector": "Telecom",
+    "company": "Live Nation Entertainment",
+    "ticker": "LYV"
+  },
+  {
+    "sector": "Communication Services",
+    "company": "Tegna inc",
+    "ticker": "TGNA"
+  },
+  {
+    "sector": "Communication Services",
+    "company": "Nintendo",
+    "ticker": "NTDOY"
+  },
+  {
+    "sector": "Communication Services",
+    "company": "Zynga",
+    "ticker": "ZNGA"
+  },
+  {
+    "sector": "Communication Services",
+    "company": "Kuaishou Technology",
+    "ticker": "1024"
+  },
+  {
+    "sector": "Communication Services",
+    "company": "Все компании",
+    "ticker": "sectors/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Поступление дивидендов",
+    "ticker": "Поступление дивидендов/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "+ добавить компанию",
+    "ticker": "add/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "А",
+    "ticker": "letter/А/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Б",
+    "ticker": "letter/Б/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "В",
+    "ticker": "letter/В/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Г",
+    "ticker": "letter/Г/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Д",
+    "ticker": "letter/Д/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Е",
+    "ticker": "letter/Е/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Ж",
+    "ticker": "letter/Ж/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "З",
+    "ticker": "letter/З/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "И",
+    "ticker": "letter/И/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "К",
+    "ticker": "letter/К/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Л",
+    "ticker": "letter/Л/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "М",
+    "ticker": "letter/М/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Н",
+    "ticker": "letter/Н/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "О",
+    "ticker": "letter/О/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "П",
+    "ticker": "letter/П/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Р",
+    "ticker": "letter/Р/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "С",
+    "ticker": "letter/С/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Т",
+    "ticker": "letter/Т/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "У",
+    "ticker": "letter/У/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Ф",
+    "ticker": "letter/Ф/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Х",
+    "ticker": "letter/Х/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Ц",
+    "ticker": "letter/Ц/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Ч",
+    "ticker": "letter/Ч/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Ш",
+    "ticker": "letter/Ш/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Щ",
+    "ticker": "letter/Щ/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Э",
+    "ticker": "letter/Э/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Ю",
+    "ticker": "letter/Ю/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Я",
+    "ticker": "letter/Я/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "A",
+    "ticker": "letter/A/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "B",
+    "ticker": "letter/B/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "C",
+    "ticker": "letter/C/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "D",
+    "ticker": "letter/D/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "E",
+    "ticker": "letter/E/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "F",
+    "ticker": "letter/F/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "G",
+    "ticker": "letter/G/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "H",
+    "ticker": "letter/H/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "I",
+    "ticker": "letter/I/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "J",
+    "ticker": "letter/J/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "K",
+    "ticker": "letter/K/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "L",
+    "ticker": "letter/L/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "M",
+    "ticker": "letter/M/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "N",
+    "ticker": "letter/N/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "O",
+    "ticker": "letter/O/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "P",
+    "ticker": "letter/P/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Q",
+    "ticker": "letter/Q/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "R",
+    "ticker": "letter/R/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "S",
+    "ticker": "letter/S/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "T",
+    "ticker": "letter/T/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "U",
+    "ticker": "letter/U/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "V",
+    "ticker": "letter/V/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "W",
+    "ticker": "letter/W/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "X",
+    "ticker": "letter/X/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Y",
+    "ticker": "letter/Y/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "Z",
+    "ticker": "letter/Z/"
+  },
+  {
+    "sector": "Акции Мосбиржа",
+    "company": "....",
+    "ticker": "last/"
+  }
+]
