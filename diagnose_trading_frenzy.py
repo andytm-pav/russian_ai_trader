@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-ГЛУБОКАЯ ДИАГНОСТИКА ТОРГОВОЙ СИСТЕМЫ (v4)
-Проверяет через РЕАЛЬНЫЕ вызовы Risk Manager и Portfolio Manager.
+ГЛУБОКАЯ ДИАГНОСТИКА ТОРГОВОЙ СИСТЕМЫ (v5)
+Проверяет через РЕАЛЬНЫЕ вызовы ВСЕХ компонентов системы.
 Использует изолированный тестовый портфель (test_portfolio.json).
 """
 
@@ -23,6 +23,8 @@ from core.risk_manager import RiskManager
 from core.core_technical_trader import TechnicalTraderCore
 from utils.portfolio_manager import PortfolioManager
 from utils.logger import get_logger
+from fetchers.moex_fetcher import MoexFetcher
+from fetchers.news_fetcher import OptimizedNewsFetcher
 
 logger = get_logger("DEEP_DIAG")
 
@@ -34,6 +36,8 @@ class DeepDiagnostics:
         self.model = trader_model_instance
         self.risk_manager = RiskManager()
         self.technical_core = TechnicalTraderCore()
+        self.moex = MoexFetcher()
+        self.news_fetcher = OptimizedNewsFetcher("config/rss_sources.json")
 
         # Загружаем training_wheels
         self.tw = self._load_training_wheels()
@@ -59,26 +63,16 @@ class DeepDiagnostics:
         self.portfolio.initial_capital = 10000.0
         self.portfolio.max_positions = self.risk_manager.config.get('max_positions', 10)
 
-        # Тестовые тикеры
-        self.test_tickers = {
-            'SBER': {'lot': 10, 'step': 0.01, 'sector': 'финансы'},
-            'GAZP': {'lot': 10, 'step': 0.01, 'sector': 'нефтегаз'},
-            'LKOH': {'lot': 1, 'step': 0.5, 'sector': 'нефтегаз'},
-            'ROSN': {'lot': 10, 'step': 0.01, 'sector': 'нефтегаз'},
-            'VTBR': {'lot': 10000, 'step': 0.0001, 'sector': 'финансы'},
-            'GMKN': {'lot': 1, 'step': 2.0, 'sector': 'металлы'},
-            'NVTK': {'lot': 10, 'step': 0.5, 'sector': 'нефтегаз'},
-            'YNDX': {'lot': 1, 'step': 2.0, 'sector': 'телеком'},
-            'TATN': {'lot': 10, 'step': 0.5, 'sector': 'нефтегаз'},
-            'PLZL': {'lot': 1, 'step': 10.0, 'sector': 'металлы'},
-        }
+        # Загружаем реальные тикеры и их параметры с MOEX
+        print("Загрузка реальных данных с MOEX...")
+        self.securities = self.moex.get_all_securities()
 
-        self.base_prices = {
-            'SBER': 280.0, 'GAZP': 165.0, 'LKOH': 7200.0,
-            'ROSN': 580.0, 'VTBR': 0.02, 'GMKN': 14500.0,
-            'NVTK': 1100.0, 'YNDX': 4200.0, 'TATN': 680.0,
-            'PLZL': 15000.0
-        }
+        # Применяем фильтр ликвидности для получения списка тикеров
+        liquidity_filter_config = self._load_settings().get('liquidity_filter', {})
+        self.tickers = self._filter_tickers(liquidity_filter_config)
+
+        self.prices = {}
+        self._update_prices()
 
         self.cycles = 0
         self.real_trades = 0
@@ -92,9 +86,16 @@ class DeepDiagnostics:
         self.portfolio_values = []
 
         print("\n" + "=" * 80)
-        print("🔬 ГЛУБОКАЯ ДИАГНОСТИКА ТОРГОВОЙ СИСТЕМЫ (v4)")
+        print("🔬 ГЛУБОКАЯ ДИАГНОСТИКА ТОРГОВОЙ СИСТЕМЫ (v5)")
         print("=" * 80)
         self._print_system_info()
+
+    def _load_settings(self) -> Dict:
+        try:
+            with open("config/settings.json", "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
 
     def _load_training_wheels(self) -> Dict:
         try:
@@ -102,6 +103,47 @@ class DeepDiagnostics:
                 return json.load(f)
         except:
             return {}
+
+    def _filter_tickers(self, filter_config: Dict) -> list:
+        """Применяет фильтр ликвидности к списку ценных бумаг"""
+        if not filter_config.get('enabled', False):
+            return list(self.securities.keys())
+
+        tickers = []
+        for ticker, sec in self.securities.items():
+            if not sec.get('price') or sec['price'] <= 0:
+                continue
+
+            # Проверка boardid
+            allowed_boards = filter_config.get('allowed_boards', [])
+            if allowed_boards and sec.get('boardid') not in allowed_boards:
+                continue
+
+            # Проверка минимальной цены
+            if sec['price'] < filter_config.get('min_price', 0):
+                continue
+
+            # Проверка объема
+            if sec.get('volume', 0) < filter_config.get('min_daily_volume_rub', 0):
+                continue
+
+            # Проверка количества сделок
+            if sec.get('num_trades', 0) < filter_config.get('min_daily_trades', 0):
+                continue
+
+            # Проверка спреда
+            spread_pct = sec.get('spread_pct', 0)
+            if spread_pct > filter_config.get('max_spread_percent', 100):
+                continue
+
+            tickers.append(ticker)
+
+        return tickers
+
+    def _update_prices(self):
+        """Обновляет цены для отфильтрованных тикеров"""
+        prices = self.moex.get_prices_batch(self.tickers[:50])  # Берем первые 50 для скорости
+        self.prices = {t: p for t, p in prices.items() if p and p > 0}
 
     def _get_commission(self, amount: float) -> float:
         """Расчёт комиссии через публичный интерфейс"""
@@ -113,7 +155,8 @@ class DeepDiagnostics:
         print(f"   Память модели: {len(self.model.memory)} опытов")
         print(f"   Exploration rate: {self.model.exploration_rate:.4f}")
         print(f"   Action dim: {self.model.action_dim}")
-        print(f"   Действий BUY: {len(self.buy_actions)}, HOLD: {len(self.hold_actions)}, SELL: {len(self.sell_actions)}")
+        print(
+            f"   Действий BUY: {len(self.buy_actions)}, HOLD: {len(self.hold_actions)}, SELL: {len(self.sell_actions)}")
 
         print(f"\n   action_mapping:")
         for idx in sorted(self.action_mapping.keys(), key=int):
@@ -144,7 +187,7 @@ class DeepDiagnostics:
         print(f"   strategy_exploration: {init_rate}")
         print(f"   action_exploration: {action_rate}")
         effective = init_rate * action_rate
-        print(f"   ЭФФЕКТИВНЫЙ exploration (strategy × action): {effective:.4f} = {effective*100:.2f}%")
+        print(f"   ЭФФЕКТИВНЫЙ exploration (strategy × action): {effective:.4f} = {effective * 100:.2f}%")
         if effective < 0.01:
             print(f"   🔴 КРИТИЧНО: эффективный exploration < 1% — модель застрянет")
         elif effective < 0.05:
@@ -160,68 +203,93 @@ class DeepDiagnostics:
               f"(> {rew.get('max_positions_before_penalty', 3)})")
 
     def _create_state(self, ticker: str, price: float) -> torch.Tensor:
-        security_info = {
-            'lot_size': self.test_tickers[ticker]['lot'],
-            'min_step': self.test_tickers[ticker]['step'],
-            'sector': self.test_tickers[ticker]['sector'],
-            'momentum': random.uniform(-0.02, 0.02),
-            'volume': random.randint(100000, 10000000),
-            'spread': 0.001,
-            'market_cap': 1e11
-        }
+        """Создание состояния с использованием реальных данных MOEX"""
+        security_info = self.securities.get(ticker, {})
 
+        # Обновляем данные в техническом анализаторе
         self.technical_core.update_price_data(ticker, price)
         indicators = self.technical_core.calculate_indicators(ticker)
-        if not indicators:
-            indicators = {
-                'rsi': 50, 'atr': price * 0.02, 'sma_10': price, 'sma_20': price,
-                'bb_position': 0.5, 'volume_ratio': 1.0
-            }
 
-        news_features = self.model.encode_news(['тестовая новость'])
-        if news_features is None or news_features.numel() == 0:
-            news_features = torch.zeros(1, self.model.news_encoded_dim).to(self.model.device)
+        # Получаем реальные новости
+        news_items = self.news_fetcher.search_news(ticker=ticker, limit=3)
+        if not news_items:
+            news_items = self.news_fetcher.get_last_news(limit=3)
+
+        news_texts = [n.get('title', '') + ' ' + n.get('summary', '') for n in news_items]
+        news_features = self.model.encode_news(news_texts)
+
+        # Получаем реальные макро-данные
+        macro_data = self.moex.get_macro_data()
+
+        # Рассчитываем сентимент
+        sentiment = 0.0
+        if news_items:
+            analyzed = self.news_fetcher.analyze_sentiment_batch(news_items)
+            sentiments = [n.get('sentiment', 0.0) for n in analyzed]
+            sentiment = sum(sentiments) / len(sentiments) if sentiments else 0.0
 
         market_data = {
-            'volume': security_info['volume'],
-            'spread': security_info['spread'],
+            'volume': security_info.get('volume', 0),
+            'spread': security_info.get('spread', 0.01),
             'rsi': indicators.get('rsi', 50),
             'atr': indicators.get('atr', price * 0.02),
             'sma_10_ratio': indicators.get('sma_10', price) / price if price > 0 else 1.0,
             'sma_20_ratio': indicators.get('sma_20', price) / price if price > 0 else 1.0,
             'bb_position': indicators.get('bb_position', 0.5),
             'volume_ratio': indicators.get('volume_ratio', 1.0),
-            'market_cap': security_info['market_cap'],
-            'lot_size': security_info['lot_size'],
-            'min_step': security_info['min_step'],
-            'sector': security_info['sector'],
-            'momentum': security_info['momentum'],
-            'imoex': 3000.0, 'imoex_change': 0.0, 'rtsi': 1000.0, 'rtsi_change': 0.0,
-            'rvi': 20.0, 'rvi_change': 0.0, 'moexog': 0, 'moexfn': 0,
-            'brent': 80.0, 'brent_change': 0.0,
-            'market_liquidity_ratio': 0.5, 'market_activity_score': 0.5,
-            'market_mood': 0.0, 'shares_turnover': 0,
-            'rvi_normalized': 0.2, 'imoex_normalized': 0.75, 'market_cap_total': 0.5,
-            'liquidity_ratio': 0.5, 'cbr_rate_normalized': 0.5, 'usd_rub': 0.8,
-            'moexog_normalized': 0.0, 'spread_pct': 0.0001,
-            'market_regime': 0,
+            'market_cap': security_info.get('market_cap', 0),
+            'lot_size': security_info.get('lot_size', 1),
+            'min_step': security_info.get('min_step', 0.01),
+            'sector': security_info.get('sector', 'other'),
+            'momentum': security_info.get('momentum', 0.0),
+            'imoex': macro_data.get('imoex', 0),
+            'imoex_change': macro_data.get('imoex_change', 0),
+            'rtsi': macro_data.get('rtsi', 0),
+            'rtsi_change': macro_data.get('rtsi_change', 0),
+            'rvi': macro_data.get('rvi', 0),
+            'rvi_change': macro_data.get('rvi_change', 0),
+            'moexog': macro_data.get('moexog', 0),
+            'moexfn': macro_data.get('moexfn', 0),
+            'brent': macro_data.get('brent', 0),
+            'brent_change': macro_data.get('brent_change', 0),
+            'market_liquidity_ratio': macro_data.get('market_liquidity_ratio', 0),
+            'market_activity_score': macro_data.get('market_activity_score', 0),
+            'market_mood': macro_data.get('market_mood', 0),
+            'shares_turnover': macro_data.get('shares_turnover', 0),
+            'rvi_normalized': macro_data.get('rvi', 0) / 100.0,
+            'imoex_normalized': macro_data.get('imoex', 0) / 4000.0,
+            'market_cap_total': macro_data.get('market_cap', 0) / 1e14,
+            'liquidity_ratio': macro_data.get('market_liquidity_ratio', 0),
+            'cbr_rate_normalized': macro_data.get('cbr_rate', 0) / 20.0,
+            'vix': macro_data.get('vix', 0) / 50.0,
+            'moexog_normalized': macro_data.get('moexog', 0) / 10000.0,
+            'spread_pct': security_info.get('spread', 0) / price if price > 0 else 0,
+            'market_regime': self.technical_core.get_market_regime(
+                macro_data.get('imoex', 0),
+                macro_data.get('imoex_change', 0)
+            ),
         }
 
         return self.model.build_state_vector(
             ticker=ticker, price=price,
-            momentum=security_info['momentum'], sentiment=0.0,
-            news_features=news_features, market_data=market_data,
+            momentum=security_info.get('momentum', 0),
+            sentiment=sentiment,
+            news_features=news_features,
+            market_data=market_data,
             market_sentiment=self.model.market_sentiment,
             portfolio=self.portfolio
         )
 
     def _try_real_trade(self, ticker: str, price: float, action_str: str,
                         strategy: str, confidence: float) -> Dict:
-        """Попытка сделки через РЕАЛЬНЫЙ Risk Manager"""
+        """Попытка сделки через РЕАЛЬНЫЙ Risk Manager с реальными параметрами"""
         result = {'executed': False, 'rejected_reason': None, 'quantity': 0, 'cost': 0.0}
 
-        lot = self.test_tickers[ticker]['lot']
-        step = self.test_tickers[ticker]['step']
+        security_info = self.securities.get(ticker, {})
+        lot = security_info.get('lot_size', 1)
+        step = security_info.get('min_step', 0.01)
+        atr = security_info.get('atr')  # Может быть None, если не рассчитан
+
         if step > 0:
             price = round(price / step) * step
 
@@ -237,10 +305,12 @@ class DeepDiagnostics:
             return result
 
         if action_str.startswith('BUY'):
+            # Используем реальные параметры из MOEX
             quantity, actual_risk = self.risk_manager.calculate_position_size(
                 ticker=ticker, price=price, stop_loss=None,
-                atr=None, confidence=confidence,
-                adv=10000000, sector=self.test_tickers[ticker]['sector'],
+                atr=atr, confidence=confidence,
+                adv=security_info.get('volume', 10000000),
+                sector=security_info.get('sector'),
                 lot_size=lot
             )
 
@@ -350,19 +420,20 @@ class DeepDiagnostics:
         print(f"   По категориям:")
         for cat in ['BUY', 'HOLD', 'SELL']:
             count = categories_in_memory.get(cat, 0)
-            print(f"     {cat:6s}: {count:5d} ({count/total*100:5.1f}%)")
+            print(f"     {cat:6s}: {count:5d} ({count / total * 100:5.1f}%)")
 
         print(f"\n   По действиям:")
         for action_idx in sorted(actions_in_memory.keys()):
             count = actions_in_memory[action_idx]
             action_name = self.action_mapping.get(str(action_idx), f'UNKNOWN_{action_idx}')
-            print(f"     [{self._classify_action(action_idx):6s}] {action_name:15s}: {count:5d} ({count/total*100:5.1f}%)")
+            print(
+                f"     [{self._classify_action(action_idx):6s}] {action_name:15s}: {count:5d} ({count / total * 100:5.1f}%)")
 
         print(f"\n   Rewards: mean={np.mean(rewards_in_memory):.4f}, "
               f"median={np.median(rewards_in_memory):.4f}, "
               f"min={np.min(rewards_in_memory):.4f}, max={np.max(rewards_in_memory):.4f}")
         print(f"   Positive: {sum(1 for r in rewards_in_memory if r > 0)}/{total}")
-        print(f"   Done ratio: {sum(dones_in_memory)/total:.1%}")
+        print(f"   Done ratio: {sum(dones_in_memory) / total:.1%}")
 
     def analyze_action_choice(self, num_samples: int = 100):
         print(f"\n🎯 АНАЛИЗ ВЫБОРА ДЕЙСТВИЙ ({num_samples} сэмплов):")
@@ -373,9 +444,14 @@ class DeepDiagnostics:
         categories = Counter()
         errors = 0
 
+        tickers_pool = list(self.prices.keys())[:20]
+        if not tickers_pool:
+            print("   ❌ Нет доступных тикеров для анализа.")
+            return
+
         for i in range(num_samples):
-            ticker = random.choice(list(self.test_tickers.keys()))
-            price = self.base_prices[ticker] * random.uniform(0.98, 1.02)
+            ticker = random.choice(tickers_pool)
+            price = self.prices[ticker]
             try:
                 state = self._create_state(ticker, price)
             except Exception as e:
@@ -445,13 +521,11 @@ class DeepDiagnostics:
         print("-" * 80)
 
         for cycle in range(cycles):
-            for ticker in self.test_tickers:
-                old = self.base_prices[ticker]
-                self.base_prices[ticker] = old * (1 + random.uniform(-0.005, 0.005))
-                self.technical_core.update_price_data(ticker, self.base_prices[ticker])
+            # Обновляем цены перед каждым циклом
+            self._update_prices()
 
-            for ticker in list(self.test_tickers.keys())[:5]:
-                price = self.base_prices[ticker]
+            for ticker in random.sample(list(self.prices.keys()), min(5, len(self.prices))):
+                price = self.prices[ticker]
                 try:
                     state = self._create_state(ticker, price)
                 except:
@@ -493,10 +567,10 @@ class DeepDiagnostics:
                     self.rejection_reasons[result.get('rejected_reason', 'unknown')] += 1
 
             self.cycles += 1
-            self.portfolio_values.append(self.portfolio.get_total_value(self.base_prices))
+            self.portfolio_values.append(self.portfolio.get_total_value(self.prices))
 
             if (cycle + 1) % 10 == 0:
-                print(f"\n   Цикл {cycle+1}/{cycles}: портфель={self.portfolio_values[-1]:,.0f}₽, "
+                print(f"\n   Цикл {cycle + 1}/{cycles}: портфель={self.portfolio_values[-1]:,.0f}₽, "
                       f"сделок={self.real_trades}, отклонено={self.rejected_trades}")
 
     def print_final_report(self):
@@ -512,12 +586,12 @@ class DeepDiagnostics:
         print(f"\n💹 ТОРГОВЛЯ:")
         print(f"   Циклов: {self.cycles}, сигналов: {total_signals}")
         if total_signals > 0:
-            print(f"   BUY: {buy_total} ({buy_total/total_signals*100:.1f}%)")
-            print(f"   HOLD: {hold_total} ({hold_total/total_signals*100:.1f}%)")
-            print(f"   SELL: {sell_total} ({sell_total/total_signals*100:.1f}%)")
+            print(f"   BUY: {buy_total} ({buy_total / total_signals * 100:.1f}%)")
+            print(f"   HOLD: {hold_total} ({hold_total / total_signals * 100:.1f}%)")
+            print(f"   SELL: {sell_total} ({sell_total / total_signals * 100:.1f}%)")
         print(f"   Исполнено: {self.real_trades}, отклонено: {self.rejected_trades}")
         if self.real_trades + self.rejected_trades > 0:
-            print(f"   Процент исполнения: {self.real_trades/(self.real_trades+self.rejected_trades)*100:.1f}%")
+            print(f"   Процент исполнения: {self.real_trades / (self.real_trades + self.rejected_trades) * 100:.1f}%")
 
         if self.rejection_reasons:
             print(f"\n   Причины отклонений:")
@@ -538,12 +612,12 @@ class DeepDiagnostics:
         for name in sorted(self.actions_distribution.keys()):
             count = self.actions_distribution[name]
             pct = count / total_signals * 100 if total_signals > 0 else 0
-            print(f"   {name:15s}: {count:4d} ({pct:5.1f}%) {'█' * int(pct/2)}")
+            print(f"   {name:15s}: {count:4d} ({pct:5.1f}%) {'█' * int(pct / 2)}")
 
         if self.portfolio_values:
             start, end = self.portfolio_values[0], self.portfolio_values[-1]
             change = end - start
-            print(f"\n📈 ПОРТФЕЛЬ: {start:,.0f}₽ → {end:,.0f}₽ ({change:+,.0f}₽ / {change/start*100:+.2f}%)")
+            print(f"\n📈 ПОРТФЕЛЬ: {start:,.0f}₽ → {end:,.0f}₽ ({change:+,.0f}₽ / {change / start * 100:+.2f}%)")
 
         print(f"\n⚠ КЛЮЧЕВЫЕ МЕТРИКИ:")
         if total_signals > 0:

@@ -1267,11 +1267,11 @@
       "last_trade": null
     },
     "MOEX": {
-      "total_trades": 0,
-      "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_trades": 3,
+      "profitable_trades": 2,
+      "total_pnl": -32.91499999999973,
+      "avg_hold_time": 0.9392216593910145,
+      "success_rate": 0.6666666666666666,
       "last_trade": null
     },
     "SNGS": {
@@ -1387,11 +1387,11 @@
       "last_trade": null
     },
     "BELU": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_pnl": -27.248181818181816,
+      "avg_hold_time": 11.83965759270721,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "NMTP": {
@@ -1979,11 +1979,11 @@
       "last_trade": null
     },
     "ENPG": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_hold_time": 0.0,
-      "success_rate": 0.5,
+      "total_pnl": -23.132222222222314,
+      "avg_hold_time": 12.267990359730192,
+      "success_rate": 0.0,
       "last_trade": null
     },
     "CNYM": {
@@ -2355,14 +2355,14 @@
       "last_trade": null
     }
   },
-  "market_sentiment": -0.1345493283618525,
+  "market_sentiment": -0.14201811921249238,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
-      "total_trades": 2,
+      "total_trades": 4,
       "profitable_trades": 0,
-      "total_pnl": -2.3900000000002954,
-      "avg_pnl": -1.1950000000001477,
+      "total_pnl": -79.38000000000025,
+      "avg_pnl": -19.845000000000063,
       "win_rate": 0.0
     },
     "tech_conservative": {
@@ -2373,11 +2373,11 @@
       "win_rate": 0.5
     },
     "momentum": {
-      "total_trades": 22,
+      "total_trades": 33,
       "profitable_trades": 6,
-      "total_pnl": -49.74738461538465,
-      "avg_pnl": -2.2612447552447565,
-      "win_rate": 0.2727272727272727
+      "total_pnl": -323.965162393163,
+      "avg_pnl": -9.817126133126152,
+      "win_rate": 0.18181818181818182
     },
     "swing": {
       "total_trades": 2,
@@ -2387,11 +2387,11 @@
       "win_rate": 0.0
     },
     "mean_reversion": {
-      "total_trades": 2,
-      "profitable_trades": 0,
-      "total_pnl": -16.770000000000184,
-      "avg_pnl": -8.385000000000092,
-      "win_rate": 0.0
+      "total_trades": 4,
+      "profitable_trades": 1,
+      "total_pnl": -21.010000000000183,
+      "avg_pnl": -5.252500000000046,
+      "win_rate": 0.25
     },
     "breakout": {
       "total_trades": 0,
@@ -2567,5 +2567,5 @@
       }
     }
   },
-  "save_time": "2026-06-24T00:47:52.754883"
+  "save_time": "2026-06-24T15:46:16.013492"
 }
