@@ -1,35 +1,23 @@
 #!/usr/bin/env python3
 """
-Проверка: есть ли BOARDID в ответе MOEX ISS при запросе списка бумаг
+Тест: получение актуальных макро-данных через MoexFetcher
 """
+import sys
+sys.path.insert(0, '.')
+from fetchers.moex_fetcher import MoexFetcher
 
-import requests
+moex = MoexFetcher()
+macro = moex.get_macro_data()
 
-URL = "https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json"
-PARAMS = {
-    'iss.meta': 'off',
-    'iss.only': 'securities',
-    'securities.columns': 'SECID,SHORTNAME,BOARDID',
-    'limit': 10
-}
-
-try:
-    resp = requests.get(URL, params=PARAMS, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-except Exception as e:
-    print(f"Ошибка запроса: {e}")
-    exit()
-
-cols = data['securities']['columns']
-rows = data['securities']['data']
-
-print(f"Колонки: {cols}")
-print(f"Первые 5 строк:")
-for row in rows[:5]:
-    print(f"  {row}")
-
-if 'BOARDID' in cols:
-    print("\n✅ BOARDID присутствует в ответе API")
-else:
-    print("\n❌ BOARDID отсутствует в ответе API")
+print("=" * 60)
+print("АКТУАЛЬНЫЕ МАКРО-ДАННЫЕ С MOEX")
+print("=" * 60)
+print(f"IMOEX:      {macro.get('imoex', 0):.2f}")
+print(f"RTSI:       {macro.get('rtsi', 0):.2f}")
+print(f"RVI:        {macro.get('rvi', 0):.2f}")
+print(f"Brent:      {macro.get('brent', 0):.2f}")
+print(f"USD/RUB:    {macro.get('usd_rub', 0):.2f}")
+print(f"ЦБ ставка:  {macro.get('cbr_rate', 0):.2f}")
+print(f"VIX:        {macro.get('vix', 0):.2f}")
+print(f"MOEXOG:     {macro.get('moexog', 0):.2f}")
+print(f"MOEXFN:     {macro.get('moexfn', 0):.2f}")

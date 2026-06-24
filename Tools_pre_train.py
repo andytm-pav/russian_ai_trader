@@ -13,8 +13,13 @@ from core.core_technical_trader import TechnicalTraderCore
 from fetchers.moex_fetcher import MoexFetcher
 from utils.portfolio_manager import PortfolioManager
 from utils.logger import get_logger
+import logging
 
 logger = get_logger("PRE_TRAIN")
+
+file_handler = logging.FileHandler('logs/pre_train.log', encoding='utf-8')
+file_handler.setFormatter(logging.Formatter('%(asctime)s | %(name)-15s | %(levelname)-8s | %(message)s'))
+logger.logger.addHandler(file_handler)
 
 # ============================================================
 # КОНФИГУРАЦИЯ
@@ -22,18 +27,32 @@ logger = get_logger("PRE_TRAIN")
 with open("config/settings.json", "r", encoding="utf-8") as f:
     settings = json.load(f)
 
-# 14 тикеров, отобранных брокером
+# 37 тикеров, отобранных брокером
 TICKERS = [
-    "SBER", "LKOH", "NVTK", "TATN", "CHMF", "MTSS", "MGNT",
-    "PLZL", "RUAL", "PHOR",
-    "OZON", "YNDX",
-    "MOEX", "SNGS"
+    # Нефть и газ (6)
+    "GAZP", "LKOH", "ROSN", "SNGS", "TATN", "NVTK",
+    # Финансы (5)
+    "SBER", "MOEX", "TCSG", "BSPB", "RENI",
+    # Металлургия и горнодобыча (6)
+    "GMKN", "CHMF", "MAGN", "NLMK", "PLZL", "ALRS",
+    # Телеком и технологии (4)
+    "MTSS", "RTKM", "YNDX", "VKCO",
+    # Потребительский сектор и ритейл (5)
+    "MGNT", "DSKY", "AFLT", "FESH", "BELU",
+    # Энергетика (4)
+    "IRAO", "HYDR", "FEES", "UPRO",
+    # Химия и фармацевтика (2)
+    "PHOR", "LIFE",
+    # Транспорт и промышленность (3)
+    "TRNFP", "NMTP", "DELI",
+    # ОПК и смежные (2)
+    "UNAC", "KMAZ"
 ]
 
-TRAIN_START = "2025-03-01"
-TRAIN_END = "2026-03-01"
-VAL_START = "2026-03-02"
-VAL_END = "2026-06-20"
+TRAIN_START = "2025-06-01"
+TRAIN_END   = "2026-06-23"   #
+VAL_START   = "2025-03-01"
+VAL_END     = "2025-05-31"   # последние 3 дня — валидация
 
 print("=" * 70)
 print("🧠 ПРЕДОБУЧЕНИЕ МОДЕЛИ (v2 — все улучшения)")
@@ -108,59 +127,9 @@ def create_base_state(ticker="SBER", price=300, rsi=50, bb_pos=0.5, momentum=0,
     )
     return state
 
-# 48 seed-опытов
-seeds = [
-    {"action": 3, "reward": 3.0, "desc": "Перепроданность на растущем"},
-    {"action": 5, "reward": 5.0, "desc": "Перекупленность + прибыль"},
-    {"action": 1, "reward": 0.3, "desc": "Боковик"},
-    {"action": 4, "reward": 4.0, "desc": "Идеальный вход"},
-    {"action": 6, "reward": 6.0, "desc": "Сильная перекупленность"},
-    {"action": 1, "reward": 0.5, "desc": "Падение ускоряется"},
-    {"action": 3, "reward": 2.0, "desc": "Начало тренда"},
-    {"action": 1, "reward": 1.0, "desc": "Высокая волатильность"},
-    {"action": 2, "reward": 0.5, "desc": "Сжатие перед движением"},
-    {"action": 4, "reward": 3.5, "desc": "Всплеск объёма"},
-    {"action": 1, "reward": 0.5, "desc": "Низкий объём при падении"},
-    {"action": 3, "reward": 2.5, "desc": "Золотой крест SMA"},
-    {"action": 4, "reward": 4.0, "desc": "Сильный позитив"},
-    {"action": 6, "reward": -1.0, "desc": "Негатив + позиция в плюсе"},
-    {"action": 1, "reward": 0.5, "desc": "Разнонаправленные новости"},
-    {"action": 3, "reward": 2.5, "desc": "Инсайдерская покупка"},
-    {"action": 5, "reward": 4.5, "desc": "Покупка на слухах"},
-    {"action": 5, "reward": 2.0, "desc": "Негатив по сектору"},
-    {"action": 4, "reward": 5.0, "desc": "Дивидендные новости"},
-    {"action": 6, "reward": -2.0, "desc": "Санкции"},
-    {"action": 3, "reward": 3.0, "desc": "Рынок растёт, нефть растёт"},
-    {"action": 1, "reward": 1.0, "desc": "Рынок падает, нефть падает"},
-    {"action": 1, "reward": 0.3, "desc": "Боковик, нефть стабильна"},
-    {"action": 4, "reward": 4.0, "desc": "Рубль слабеет, рынок растёт"},
-    {"action": 5, "reward": 1.5, "desc": "RVI>30"},
-    {"action": 2, "reward": 0.5, "desc": "RVI<20"},
-    {"action": 3, "reward": 2.0, "desc": "Нефть растёт"},
-    {"action": 6, "reward": -1.5, "desc": "Рынок падает, RVI высокий"},
-    {"action": 3, "reward": 2.0, "desc": "Пустой портфель"},
-    {"action": 6, "reward": -1.0, "desc": "Портфель заполнен"},
-    {"action": 5, "reward": 1.5, "desc": "Концентрация в секторе"},
-    {"action": 3, "reward": 2.5, "desc": "Есть кэш, рынок растёт"},
-    {"action": 5, "reward": 4.0, "desc": "Все в плюсе"},
-    {"action": 2, "reward": -0.5, "desc": "Все в минусе"},
-    {"action": 5, "reward": 1.0, "desc": "Кэш кончается"},
-    {"action": 1, "reward": 0.5, "desc": "Портфель сбалансирован"},
-    {"action": 1, "reward": -2.0, "desc": "Высокая частота сделок"},
-    {"action": 2, "reward": 1.0, "desc": "Низкая частота сделок"},
-    {"action": 1, "reward": -1.5, "desc": "Комиссия съела прибыль"},
-    {"action": 3, "reward": 2.0, "desc": "Комиссия минимальна"},
-    {"action": 6, "reward": -3.0, "desc": "Геополитический шок"},
-    {"action": 4, "reward": 5.0, "desc": "Отскок после паники"},
-    {"action": 1, "reward": 0.5, "desc": "Затяжной боковик"},
-    {"action": 3, "reward": 2.0, "desc": "Утро"},
-    {"action": 1, "reward": 0.5, "desc": "Вечер"},
-    {"action": 2, "reward": 1.5, "desc": "Позиция 1 час"},
-    {"action": 0, "reward": 0.8, "desc": "Дневной горизонт"},
-    {"action": 2, "reward": 2.0, "desc": "Недельный горизонт"},
-    {"action": 5, "reward": -2.0, "desc": "SELL без позиции — ошибка"},
-    {"action": 1, "reward": 0.5, "desc": "HOLD при пустом портфеле — терпение"},
-]
+# Загружаем seed-опыты из конфига
+with open("config/seed_experiences.json", "r", encoding="utf-8") as f:
+    seeds = json.load(f)
 
 seed_params = {
     "Перепроданность на растущем": {"rsi": 25, "bb_pos": 0.1, "imoex_change": 1.5, "market_regime": 1},
@@ -334,9 +303,15 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
         print(f"  Загружено {len(candles)} свечей")
 
         portfolio = PortfolioManager()
-        portfolio.initial_capital = settings.get("initial_capital_rub", 10000)
+        # Сброс портфеля после загрузки из файла — каждый тикер стартует с чистым портфелем
+        portfolio.positions.clear()
+        portfolio.trade_history.clear()
+        portfolio.cash = settings.get("initial_capital_rub", 10000)
+        portfolio.initial_capital = portfolio.cash
+        portfolio.reserved_cash = 0
+        portfolio.total_commission = 0
+        portfolio.commission_spent_today = 0
         portfolio.max_positions = settings.get("max_positions", 10)
-        portfolio.cash = portfolio.initial_capital
         portfolio.max_trades_per_hour = 999999
         portfolio.daily_commission_limit = 999999
         portfolio.settings = {
@@ -367,17 +342,30 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
 
             indicators = tech_core.calculate_indicators(ticker)
 
-            # Используем исторические макро-данные или fallback-значения
+            # Используем исторические макро-данные или получаем актуальные из MOEX
             day_macro = macro_history.get(current_date, {})
-            default_imoex = 2500.0
-            default_rtsi = 1100.0
-            default_rvi = 25.0
-            default_brent = 80.0
-            default_usd_rub = 72.0
-            default_cbr_rate = 13.5
-            default_vix = 16.0
-            default_moexog = 4500.0
-            default_moexfn = 8000.0
+            if not day_macro:
+                # Получаем актуальные макро-данные как fallback
+                live_macro = moex.get_macro_data()
+                default_imoex = live_macro.get('imoex', 2500.0)
+                default_rtsi = live_macro.get('rtsi', 1100.0)
+                default_rvi = live_macro.get('rvi', 25.0)
+                default_brent = live_macro.get('brent', 80.0)
+                default_usd_rub = live_macro.get('usd_rub', 72.0)
+                default_cbr_rate = live_macro.get('cbr_rate', 13.5)
+                default_vix = live_macro.get('vix', 16.0)
+                default_moexog = live_macro.get('moexog', 4500.0)
+                default_moexfn = live_macro.get('moexfn', 8000.0)
+            else:
+                default_imoex = 2500.0
+                default_rtsi = 1100.0
+                default_rvi = 25.0
+                default_brent = 80.0
+                default_usd_rub = 72.0
+                default_cbr_rate = 13.5
+                default_vix = 16.0
+                default_moexog = 4500.0
+                default_moexfn = 8000.0
 
             imoex_val = day_macro.get('IMOEX', default_imoex)
             rtsi_val = day_macro.get('RTSI', default_rtsi)
@@ -484,16 +472,27 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
                     else:
                         reward = price_change * 50
                     reward -= 0.003  # комиссия 0.3%
-                elif action in [5, 6]:  # SELL
-                    if market_regime == 1:
-                        reward = -price_change * 150
-                    elif market_regime == 2:
-                        reward = -price_change * 100
+                elif action in [5, 6] and ticker in portfolio.positions:
+                    entry_price = portfolio.positions[ticker]['avg_price']
+                    if entry_price > 0:
+                        pnl_pct = (price - entry_price) / entry_price
+                        reward = pnl_pct * 100
                     else:
-                        reward = -price_change * 50
-                    reward -= 0.003  # комиссия 0.3%
+                        reward = 0
+                    reward -= 0.003
+                elif action in [5, 6]:
+                    reward = -1.0
                 else:  # HOLD
-                    reward = -abs(price_change) * 20
+                    if ticker in portfolio.positions:
+                        pos = portfolio.positions[ticker]
+                        entry_price = pos['avg_price']
+                        if entry_price > 0:
+                            pnl_pct = (price - entry_price) / entry_price
+                            reward = pnl_pct * 10
+                        else:
+                            reward = 0
+                    else:
+                        reward = -0.1
 
                 reward = max(-5.0, min(5.0, reward))
             else:
@@ -566,7 +565,11 @@ print(f"Загружено макро-данных за {len(val_macro_history)}
 
 val_steps, val_reward, val_value = train_on_period(TICKERS, VAL_START, VAL_END, val_macro_history, learn=False)
 
-print(f"\nВалидация завершена: {val_steps} шагов, средний reward={val_reward/val_steps:+.4f}")
+print(f"\nВалидация завершена: {val_steps} шагов", end="")
+if val_steps > 0:
+    print(f", средний reward={val_reward/val_steps:+.4f}")
+else:
+    print()
 print(f"Финальная стоимость портфеля: {val_value:,.0f}₽")
 print(f"PnL за валидацию: {val_value - 10000:+,.0f}₽")
 

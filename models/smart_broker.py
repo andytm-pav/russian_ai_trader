@@ -243,6 +243,35 @@ class SmartPortfolioBroker:
             logger.warning(f"Не удалось загрузить ticker_sectors.json: {e}")
             return {}
 
+    def _reinforce_seed_experiences(self):
+        """Периодически добавляет seed-опыты в приоритетный буфер"""
+        try:
+            with open("config/seed_experiences.json", "r", encoding="utf-8") as f:
+                seeds = json.load(f)
+        except Exception as e:
+            logger.warning(f"Не удалось загрузить seed_experiences.json: {e}")
+            return
+
+        for seed in seeds:
+            state = self._create_seed_state(seed["desc"])
+            if state is None:
+                continue
+            strategy_params = list(self.model.strategies.values())[0] if self.model.strategies else {}
+            full_state = self.model._create_strategy_state(state, strategy_params)
+            experience = {
+                'state': full_state.cpu(),
+                'action': seed["action"],
+                'reward': seed["reward"],
+                'next_state': full_state.cpu(),
+                'done': True,
+                'pnl_rub': seed["reward"] * 100,
+                'timestamp': datetime.now().isoformat()
+            }
+            if hasattr(self.model, 'prioritized_buffer'):
+                self.model.prioritized_buffer.add(experience, td_error=2.0)
+
+        logger.debug("Seed-опыты добавлены в приоритетный буфер")
+
     def _get_ticker_sentiment(self, ticker: str) -> float:
         """Получение сентимента для тикера из оптимизированного фетчера"""
         try:
@@ -1159,8 +1188,13 @@ class SmartPortfolioBroker:
             if hasattr(self.model, 'prioritized_buffer'):
                 logger.debug(f"   prioritized_buffer size: {self.model.prioritized_buffer.size}")
 
-            # ✅ ИСПРАВЛЕНО: определяем переменную!
+
+            #  Определяем переменную!
             enable_extreme = self.profit_config.get("enable_extreme_learning", True)
+
+            # Усиление seed-опытов каждые 100 циклов
+            if self.cycle_count % 100 == 0 and self.cycle_count > 0:
+                self._reinforce_seed_experiences()
 
             # 1. ПРИОРИТЕТНОЕ ОБУЧЕНИЕ
             if hasattr(self.model, 'learn_from_prioritized'):

@@ -716,7 +716,7 @@ class MoexFetcher:
         cached = self._get_from_cache(cache_key)
 
         if cached is not None:
-            logger.debug(f"📊 МАКРО ИЗ КЭША: IMOEX={cached.get('IMOEX')}")
+            # logger.debug(f"📊 МАКРО ИЗ КЭША: IMOEX={cached.get('IMOEX')}")
             return cached
 
         result = {}
