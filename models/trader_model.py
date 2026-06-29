@@ -187,7 +187,7 @@ class TradingPolicyNetwork(nn.Module):
         )
 
         self.action_net = nn.Sequential(
-            nn.Linear(DEFAULT_CONFIG["policy_hidden_dim_3"], DEFAULT_CONFIG["policy_hidden_dim_4"]),
+            nn.Linear(DEFAULT_CONFIG["policy_hidden_dim_3"] + 3, DEFAULT_CONFIG["policy_hidden_dim_4"]),
             nn.ReLU(),
             nn.Linear(DEFAULT_CONFIG["policy_hidden_dim_4"], action_dim),
             nn.Softmax(dim=-1)
@@ -208,9 +208,16 @@ class TradingPolicyNetwork(nn.Module):
     def forward(self, state, news_features=None):
         state_features = self.state_net(state)
 
-        action_probs = self.action_net(state_features)
-        state_value = self.value_net(state_features)
+        # Предсказание движения цены
         price_pred = self.predictor(state_features)
+        price_pred_probs = torch.softmax(price_pred, dim=-1)
+
+        # Конкатенация признаков состояния с прогнозом
+        combined = torch.cat([state_features, price_pred_probs], dim=-1)
+
+        # action_net получает на вход объединённый вектор
+        action_probs = self.action_net(combined)
+        state_value = self.value_net(state_features)
 
         return action_probs, state_value, price_pred
 

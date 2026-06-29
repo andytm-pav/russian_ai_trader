@@ -49,17 +49,35 @@ TICKERS = [
     "UNAC", "KMAZ"
 ]
 
-TRAIN_START = "2025-06-01"
-TRAIN_END   = "2026-06-23"   #
-VAL_START   = "2025-03-01"
-VAL_END     = "2025-05-31"   # последние 3 дня — валидация
+# Этап 1: Принудительное обучение с учителем
+TRAIN_START = "2023-06-01"
+TRAIN_END   = "2024-05-31"
+
+# Этап 2: Самостоятельная торговля (другие данные!)
+TRAIN2_START = "2024-06-01"
+TRAIN2_END   = "2025-05-31"
+
+# Валидация (out-of-sample)
+VAL_START   = "2025-06-01"
+VAL_END     = "2026-06-23"
+
+# Стресс-тест: СВО
+STRESS_SVO_START = "2022-01-15"
+STRESS_SVO_END   = "2022-04-15"
+
+# Стресс-тест: Ковид
+STRESS_COVID_START = "2020-02-01"
+STRESS_COVID_END   = "2020-04-30"
 
 print("=" * 70)
 print("🧠 ПРЕДОБУЧЕНИЕ МОДЕЛИ (v2 — все улучшения)")
 print("=" * 70)
 print(f"Тикеров: {len(TICKERS)}")
-print(f"Обучение: {TRAIN_START} → {TRAIN_END}")
+print(f"Этап 1 (учитель): {TRAIN_START} → {TRAIN_END}")
+print(f"Этап 2 (самостоятельно): {TRAIN2_START} → {TRAIN2_END}")
 print(f"Валидация: {VAL_START} → {VAL_END}")
+print(f"Стресс-тест СВО: {STRESS_SVO_START} → {STRESS_SVO_END}")
+print(f"Стресс-тест Ковид: {STRESS_COVID_START} → {STRESS_COVID_END}")
 
 # ============================================================
 # ИНИЦИАЛИЗАЦИЯ
@@ -71,10 +89,10 @@ tech_core = TechnicalTraderCore()
 print(f"Память до: {len(model.memory)} опытов")
 
 # ============================================================
-# ЭТАП 1: SEED EXPERIENCES (48 опытов)
+# ЭТАП 0: SEED EXPERIENCES (48 опытов)
 # ============================================================
 print("\n" + "=" * 70)
-print("ЭТАП 1: SEED EXPERIENCES (48 опытов)")
+print("ЭТАП 0: SEED EXPERIENCES")
 print("=" * 70)
 
 def create_base_state(ticker="SBER", price=300, rsi=50, bb_pos=0.5, momentum=0,
@@ -131,62 +149,8 @@ def create_base_state(ticker="SBER", price=300, rsi=50, bb_pos=0.5, momentum=0,
 with open("config/seed_experiences.json", "r", encoding="utf-8") as f:
     seeds = json.load(f)
 
-seed_params = {
-    "Перепроданность на растущем": {"rsi": 25, "bb_pos": 0.1, "imoex_change": 1.5, "market_regime": 1},
-    "Перекупленность + прибыль": {"rsi": 78, "bb_pos": 0.9, "has_position": True, "pnl_pct": 4.2},
-    "Боковик": {"rsi": 50, "bb_pos": 0.5},
-    "Идеальный вход": {"rsi": 22, "bb_pos": 0.05, "momentum": -3, "imoex_change": 2.5, "market_regime": 1},
-    "Сильная перекупленность": {"rsi": 85, "bb_pos": 1.0, "has_position": True, "pnl_pct": 8},
-    "Падение ускоряется": {"rsi": 28, "momentum": -3},
-    "Начало тренда": {"rsi": 55, "bb_pos": 0.6, "momentum": 2},
-    "Высокая волатильность": {"rsi": 48, "imoex_change": -2, "market_regime": 2, "volume": 5e7},
-    "Сжатие перед движением": {"rsi": 50, "bb_pos": 0.5, "volume": 5e7},
-    "Всплеск объёма": {"rsi": 55, "volume": 3e9},
-    "Низкий объём при падении": {"rsi": 45, "momentum": -1, "volume": 2e8},
-    "Золотой крест SMA": {"rsi": 55, "bb_pos": 0.6, "momentum": 1.5},
-    "Сильный позитив": {"rsi": 55},
-    "Негатив + позиция в плюсе": {"has_position": True, "pnl_pct": 2, "imoex_change": -2},
-    "Разнонаправленные новости": {"rsi": 50},
-    "Инсайдерская покупка": {"rsi": 40, "bb_pos": 0.3},
-    "Покупка на слухах": {"rsi": 85, "bb_pos": 0.95, "has_position": True, "pnl_pct": 8},
-    "Негатив по сектору": {"rsi": 50, "has_position": True, "pnl_pct": 3},
-    "Дивидендные новости": {"rsi": 55, "market_regime": 1},
-    "Санкции": {"rsi": 50, "has_position": True, "pnl_pct": 1},
-    "Рынок растёт, нефть растёт": {"rsi": 55, "imoex": 2550, "imoex_change": 1.5, "brent": 82, "brent_change": 2, "rvi": 22, "usd_rub": 70, "market_regime": 1},
-    "Рынок падает, нефть падает": {"rsi": 45, "imoex": 2400, "imoex_change": -2.5, "brent": 77, "brent_change": -3, "rvi": 30, "usd_rub": 75, "market_regime": 2},
-    "Боковик, нефть стабильна": {"rsi": 50, "imoex": 2500, "imoex_change": 0, "brent": 80, "brent_change": 0, "rvi": 25, "usd_rub": 72},
-    "Рубль слабеет, рынок растёт": {"rsi": 55, "imoex": 2525, "imoex_change": 1, "brent": 81, "brent_change": 1, "rvi": 24, "usd_rub": 78, "market_regime": 1},
-    "RVI>30": {"rsi": 50, "imoex": 2480, "imoex_change": -1, "brent": 79, "brent_change": -1, "rvi": 32, "usd_rub": 74, "has_position": True, "pnl_pct": 2, "market_regime": 2},
-    "RVI<20": {"rsi": 55, "imoex": 2510, "imoex_change": 0.5, "rvi": 18, "market_regime": 1},
-    "Нефть растёт": {"rsi": 50, "imoex": 2510, "imoex_change": 0.5, "brent": 83, "brent_change": 3, "usd_rub": 68, "rvi": 22, "market_regime": 1},
-    "Рынок падает, RVI высокий": {"rsi": 40, "imoex": 2350, "imoex_change": -3, "brent": 75, "brent_change": -4, "rvi": 35, "usd_rub": 77, "has_position": True, "pnl_pct": -2, "market_regime": 2},
-    "Пустой портфель": {"rsi": 55, "imoex_change": 1, "cash": 9000, "positions_count": 0, "market_regime": 1},
-    "Портфель заполнен": {"rsi": 40, "imoex_change": -2, "cash": 1000, "positions_count": 8, "exposure": 0.85, "has_position": True, "pnl_pct": -3, "market_regime": 2},
-    "Концентрация в секторе": {"rsi": 55, "cash": 5000, "positions_count": 3, "exposure": 0.45, "has_position": True, "pnl_pct": 5},
-    "Есть кэш, рынок растёт": {"rsi": 55, "imoex_change": 1, "cash": 6000, "positions_count": 3, "exposure": 0.35, "market_regime": 1},
-    "Все в плюсе": {"rsi": 75, "cash": 3000, "positions_count": 5, "exposure": 0.65, "has_position": True, "pnl_pct": 6},
-    "Все в минусе": {"rsi": 30, "cash": 2000, "positions_count": 5, "exposure": 0.75, "has_position": True, "pnl_pct": -4},
-    "Кэш кончается": {"rsi": 50, "cash": 500, "positions_count": 7, "exposure": 0.9, "has_position": True, "pnl_pct": -2},
-    "Портфель сбалансирован": {"rsi": 55, "cash": 5000, "positions_count": 3, "exposure": 0.45},
-    "Высокая частота сделок": {"rsi": 50, "volume": 3e9},
-    "Низкая частота сделок": {"rsi": 55, "volume": 1e9},
-    "Комиссия съела прибыль": {"rsi": 50, "has_position": True, "pnl_pct": 0.5},
-    "Комиссия минимальна": {"rsi": 55, "imoex_change": 0.5, "volume": 1e9},
-    "Геополитический шок": {"rsi": 20, "imoex_change": -5, "brent_change": -6, "rvi": 40, "market_regime": 2, "has_position": True, "pnl_pct": -5},
-    "Отскок после паники": {"rsi": 35, "imoex_change": 3, "brent_change": 4, "rvi": 28, "market_regime": 1},
-    "Затяжной боковик": {"rsi": 50, "bb_pos": 0.5, "momentum": 0, "volume": 5e7},
-    "Утро": {"rsi": 55, "imoex_change": 1, "market_regime": 1, "volume": 3e9},
-    "Вечер": {"rsi": 65, "bb_pos": 0.8, "volume": 5e7},
-    "Позиция 1 час": {"rsi": 55, "has_position": True, "pnl_pct": 1.5, "hold_time": 1},
-    "Дневной горизонт": {"rsi": 65, "has_position": True, "pnl_pct": 0.8, "hold_time": 4},
-    "Недельный горизонт": {"rsi": 55, "has_position": True, "pnl_pct": 2, "hold_time": 24},
-    "SELL без позиции — ошибка": {"rsi": 70, "imoex_change": -1, "cash": 10000, "positions_count": 0, "exposure": 0},
-    "HOLD при пустом портфеле — терпение": {"rsi": 70, "imoex_change": -1, "cash": 10000, "positions_count": 0,
-                                            "exposure": 0},
-}
-
 for seed in seeds:
-    params = seed_params.get(seed["desc"], {})
+    params = seed.get("params", {})
     state = create_base_state(**params)
     strategy_params = list(model.strategies.values())[0] if model.strategies else {}
     full_state = model._create_strategy_state(state, strategy_params)
@@ -203,7 +167,6 @@ for seed in seeds:
     model.memory.append(experience)
     if hasattr(model, 'prioritized_buffer'):
         model.prioritized_buffer.add(experience, td_error=2.0)
-
 model.save_memory()
 print(f"Добавлено {len(seeds)} seed-опытов")
 
@@ -283,10 +246,116 @@ def load_historical_macro(start_date, end_date):
 
     return macro_history
 
+
+# ============================================================
+# LOOKAHEAD: ВЫЧИСЛЕНИЕ ИДЕАЛЬНОГО ДЕЙСТВИЯ
+# ============================================================
+def calculate_lookahead_ideal_action(candles, current_idx, price, commission_rate=0.003):
+    """
+    Вычисляет идеальное действие на основе будущих цен (учитель).
+
+    Args:
+        candles: DataFrame со свечами (индекс — datetime)
+        current_idx: текущий индекс в candles
+        price: текущая цена
+        commission_rate: ставка комиссии (0.003 = 0.3%)
+
+    Returns:
+        dict с полями:
+            - ideal_action: int (0-6) или None если недостаточно данных
+            - confidence: float (0-1) уверенность в идеальном действии
+            - horizon_days: int горизонт, на котором вычислено действие
+            - expected_pnl_pct: float ожидаемая прибыль в %
+    """
+    with open("config/training_wheels.json", "r", encoding="utf-8") as f:
+        tw = json.load(f)
+
+    lookahead_config = tw.get('lookahead', {})
+    if not lookahead_config.get('enabled', True):
+        return {'ideal_action': None, 'confidence': 0.0, 'horizon_days': 0, 'expected_pnl_pct': 0.0}
+
+    horizons = lookahead_config.get('horizons', [1, 2, 3])
+    min_price_change = lookahead_config.get('min_price_change_pct', 0.5) / 100.0
+    commission_aware = lookahead_config.get('commission_aware', True)
+
+    total_bars = len(candles)
+    best_action = None
+    best_confidence = 0.0
+    best_horizon = 0
+    best_pnl_pct = 0.0
+
+    # Проверяем каждый горизонт
+    for horizon in horizons:
+        future_idx = current_idx + horizon
+
+        # Проверяем, что будущий индекс в пределах данных
+        if future_idx >= total_bars:
+            continue
+
+        future_price = float(candles.iloc[future_idx]['Close'])
+
+        if future_price <= 0 or price <= 0:
+            continue
+
+        price_change_pct = (future_price - price) / price
+
+        # Учитываем комиссии, если включено
+        if commission_aware:
+            # BUY + SELL = 2 комиссии
+            net_change_pct = price_change_pct - (2 * commission_rate)
+        else:
+            net_change_pct = price_change_pct
+
+        # Определяем идеальное действие
+        if net_change_pct > min_price_change:
+            # BUY: выбираем между BUY_SMALL и BUY_NORMAL в зависимости от силы сигнала
+            if net_change_pct > min_price_change * 3:
+                action = 4  # BUY_NORMAL для сильного сигнала
+            else:
+                action = 3  # BUY_SMALL для умеренного сигнала
+
+            confidence = min(1.0, abs(net_change_pct) / (min_price_change * 5))
+            pnl_pct = net_change_pct
+
+        elif net_change_pct < -min_price_change:
+            # SELL: выбираем между SELL_SMALL и SELL_ALL
+            if net_change_pct < -min_price_change * 3:
+                action = 6  # SELL_ALL для сильного падения
+            else:
+                action = 5  # SELL_SMALL для умеренного падения
+
+            confidence = min(1.0, abs(net_change_pct) / (min_price_change * 5))
+            pnl_pct = net_change_pct
+
+        else:
+            # HOLD: боковик
+            action = 0  # HOLD
+            confidence = 0.3  # Низкая уверенность в боковике
+            pnl_pct = 0.0
+
+        # Выбираем горизонт с максимальной уверенностью
+        if confidence > best_confidence:
+            best_confidence = confidence
+            best_action = action
+            best_horizon = horizon
+            best_pnl_pct = pnl_pct
+
+    # Если ни один горизонт не подошёл (конец данных)
+    if best_action is None:
+        return {'ideal_action': None, 'confidence': 0.0, 'horizon_days': 0, 'expected_pnl_pct': 0.0}
+
+    return {
+        'ideal_action': best_action,
+        'confidence': best_confidence,
+        'horizon_days': best_horizon,
+        'expected_pnl_pct': best_pnl_pct
+    }
+
+
 # ============================================================
 # ФУНКЦИЯ ОБУЧЕНИЯ НА ПЕРИОДЕ
 # ============================================================
-def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
+def train_on_period(tickers, start_date, end_date, macro_history, learn=True, force_teacher=False):
     """Обучение или валидация на периоде"""
     total_steps = 0
     total_reward = 0.0
@@ -317,6 +386,21 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
         portfolio.settings = {
             'max_positions_per_horizon': {'balanced': 999, 'day_session': 999, 'three_days': 999, 'week': 999}}
         portfolio.training_wheels = {}
+
+
+        # Загрузка параметров
+
+        with open("config/training_wheels.json", "r", encoding="utf-8") as f:
+            tw = json.load(f)
+        tw_risk = tw.get('risk_params', {})
+        stop_loss_pct = tw_risk.get('stop_loss_percent', 6.0) / 100
+        stop_loss_hold_penalty = tw_risk.get('stop_loss_hold_penalty', 2.0)
+        stop_loss_sell_bonus = tw_risk.get('stop_loss_sell_bonus', 2.0)
+        max_episode_steps = tw_risk.get('max_episode_steps', 20)
+        episode_reward_scale = tw_risk.get('episode_reward_scale', 1.0)
+        lookahead_config = tw.get('lookahead', {})
+        lookahead_bonus_weight = lookahead_config.get('bonus_weight', 0.5)
+        pending_buy = {}
 
         tech_core.price_history.clear()
         tech_core.indicators_cache.clear()
@@ -436,16 +520,46 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
             full_state = model._create_strategy_state(state, strategy_params)
             state_tensor = full_state.unsqueeze(0).to(model.device)
 
+            # ========== LOOKAHEAD: ВЫЧИСЛЕНИЕ ИДЕАЛЬНОГО ДЕЙСТВИЯ ==========
+            lookahead_result = calculate_lookahead_ideal_action(
+                candles, i, price,
+                commission_rate=0.003
+            )
+            lookahead_ideal = lookahead_result.get('ideal_action')
+            lookahead_confidence = lookahead_result.get('confidence', 0.0)
+            lookahead_horizon = lookahead_result.get('horizon_days', 0)
+            lookahead_expected_pnl = lookahead_result.get('expected_pnl_pct', 0.0)
+
             with torch.no_grad():
                 action_probs, state_value, _ = model.policy_net(state_tensor)
-                if learn:
-                    action = torch.multinomial(action_probs, 1).item()
-                else:
-                    action = action_probs.argmax().item()
 
-            # Исполняем сделку
+            # Маскирование недоступных действий
+            available_actions = [0, 1, 2, 3, 4]
+            if ticker in portfolio.positions:
+                available_actions.extend([5, 6])
+
+            mask = torch.zeros(action_probs.shape).to(model.device)
+            for a in available_actions:
+                mask[0, a] = 1.0
+            masked_probs = action_probs * mask
+            masked_probs = masked_probs / (masked_probs.sum(dim=-1, keepdim=True) + 1e-10)
+
+            if force_teacher and lookahead_ideal is not None:
+                if lookahead_ideal in [5, 6] and ticker not in portfolio.positions:
+                    action = torch.multinomial(masked_probs, 1).item()
+                else:
+                    action = lookahead_ideal
+            elif learn:
+                action = torch.multinomial(masked_probs, 1).item()
+            else:
+                action = masked_probs.argmax().item()
+
+            # ========== ИСПОЛНЕНИЕ СДЕЛКИ ==========
+
             if action in [3, 4]:
-                qty = int(portfolio.cash * 0.1 / price)
+                # BUY_SMALL = 5% кэша, BUY_NORMAL = 10% кэша
+                cash_fraction = 0.05 if action == 3 else 0.10
+                qty = int(portfolio.cash * cash_fraction / price)
                 lot_size = sec_info.get('lot_size', 1)
                 if lot_size > 1:
                     qty = (qty // lot_size) * lot_size
@@ -453,52 +567,183 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
                     qty = lot_size
                 if qty > 0 and portfolio.cash >= qty * price:
                     portfolio.buy(ticker, qty, price, 'balanced')
+                    if ticker not in pending_buy:
+                        pending_buy[ticker] = {
+                            'entry_price': price,
+                            'total_cost': 0,
+                            'total_qty': 0,
+                            'step': i,
+                            'action': action
+                        }
+                    pending_buy[ticker]['total_qty'] += qty
+                    pending_buy[ticker]['total_cost'] += qty * price
+                    pending_buy[ticker]['entry_price'] = (
+                            pending_buy[ticker]['total_cost'] / pending_buy[ticker]['total_qty']
+                    )
+
+
             elif action in [5, 6] and ticker in portfolio.positions:
                 pos = portfolio.positions[ticker]
                 qty = pos['qty'] if action == 6 else int(pos['qty'] * 0.5)
                 if qty > 0:
                     portfolio.sell(ticker, qty, price)
 
-            # Reward — дифференцированный по режиму рынка
-            if i + 1 < len(candles):
+                    # Закрываем эпизод — назначаем reward для BUY (ТОЛЬКО НА ЭТАПЕ 1)
+                    if force_teacher and ticker in pending_buy:
+                        entry = pending_buy[ticker]
+                        pnl_pct = (price - entry['entry_price']) / entry['entry_price'] if entry['entry_price'] > 0 else 0
+                        episode_reward = pnl_pct * 100 * episode_reward_scale
+                        episode_reward -= 0.006
+                        episode_reward = max(-5.0, min(5.0, episode_reward))
+
+                        for j in range(len(model.memory) - 1, max(0, len(model.memory) - max_episode_steps) - 1, -1):
+                            exp = model.memory[j]
+                            if isinstance(exp, dict) and exp.get('action') in [3, 4]:
+                                sent_data = exp.get('sentiment_data', {})
+                                saved_lookahead_bonus = 0.0
+                                if isinstance(sent_data, dict):
+                                    saved_lookahead_bonus = sent_data.get('_lookahead_bonus', 0.0)
+                                if exp['action'] == 3 and episode_reward < 0:
+                                    exp['reward'] = episode_reward * 0.5 + saved_lookahead_bonus
+                                else:
+                                    exp['reward'] = episode_reward + saved_lookahead_bonus
+                                exp['done'] = True
+                                break
+
+                        pending_buy[ticker]['total_qty'] -= qty
+                        if pending_buy[ticker]['total_qty'] <= 0 or ticker not in portfolio.positions:
+                            del pending_buy[ticker]
+
+            # Принудительное закрытие зависших эпизодов (ТОЛЬКО НА ЭТАПЕ 1)
+            forced_sell = False
+            if force_teacher:
+                for tkr in list(pending_buy.keys()):
+                    if tkr in portfolio.positions and (i - pending_buy[tkr]['step']) > max_episode_steps:
+                        pos = portfolio.positions[tkr]
+                        qty = pos['qty']
+                        portfolio.sell(tkr, qty, price)
+                        forced_sell = True
+                        entry = pending_buy[tkr]
+                        pnl_pct = (price - entry['entry_price']) / entry['entry_price'] if entry['entry_price'] > 0 else 0
+                        episode_reward = pnl_pct * 100 - 0.006
+                        episode_reward = max(-5.0, min(5.0, episode_reward))
+
+                        for j in range(len(model.memory) - 1, max(0, len(model.memory) - max_episode_steps) - 1, -1):
+                            exp = model.memory[j]
+                            if isinstance(exp, dict) and exp.get('action') in [3, 4]:
+                                sent_data = exp.get('sentiment_data', {})
+                                saved_lookahead_bonus = 0.0
+                                if isinstance(sent_data, dict):
+                                    saved_lookahead_bonus = sent_data.get('_lookahead_bonus', 0.0)
+                                if exp['action'] == 3 and episode_reward < 0:
+                                    exp['reward'] = episode_reward * 0.5 + saved_lookahead_bonus
+                                else:
+                                    exp['reward'] = episode_reward + saved_lookahead_bonus
+                                exp['done'] = True
+                                break
+
+                        del pending_buy[tkr]
+
+            # ========== REWARD ==========
+            if force_teacher and lookahead_ideal is not None:
+                # Этап 1: Reward только от учителя
+                horizon_scale = min(1.0, lookahead_horizon / 3.0)
+                lookahead_match = (action == lookahead_ideal)
+
+                if lookahead_match:
+                    reward = lookahead_confidence * 5.0 * horizon_scale
+                elif (lookahead_ideal in [3, 4] and action in [3, 4]) or \
+                        (lookahead_ideal in [5, 6] and action in [5, 6]):
+                    reward = lookahead_confidence * 2.0 * horizon_scale
+                elif lookahead_ideal == 0 and action == 0:
+                    reward = lookahead_confidence * 3.0 * horizon_scale
+                else:
+                    reward = -5.0 * lookahead_confidence * horizon_scale
+
+                reward = max(-5.0, min(5.0, reward))
+
+            elif i + 1 < len(candles):
+                # Этап 2 или валидация: Рыночный reward + мягкий lookahead-бонус
                 next_price = float(candles.iloc[i + 1]['Close'])
                 price_change = (next_price - price) / price
+                commission_rate = 0.003
 
+                # Основной reward
                 if action in [3, 4]:  # BUY
-                    if market_regime == 1:
-                        reward = price_change * 100
-                    elif market_regime == 2:
-                        reward = price_change * 150
+                    commission_cost = commission_rate if action == 4 else commission_rate * 0.5
+                    if ticker in pending_buy:
+                        reward = -commission_cost * 100
                     else:
-                        reward = price_change * 50
-                    reward -= 0.003  # комиссия 0.3%
+                        if market_regime == 1:
+                            regime_mult = 1.0
+                        elif market_regime == 2:
+                            regime_mult = 0.3
+                        else:
+                            regime_mult = 0.7
+                        reward = price_change * 100 * regime_mult
+                        reward -= commission_cost * 100
+
                 elif action in [5, 6] and ticker in portfolio.positions:
-                    entry_price = portfolio.positions[ticker]['avg_price']
-                    if entry_price > 0:
-                        pnl_pct = (price - entry_price) / entry_price
-                        reward = pnl_pct * 100
-                    else:
+                    if forced_sell:
                         reward = 0
-                    reward -= 0.003
+                    else:
+                        entry_price = portfolio.positions[ticker]['avg_price']
+                        if entry_price > 0:
+                            pnl_pct = (price - entry_price) / entry_price
+                            reward = pnl_pct * 100
+                            if market_regime == 2:
+                                reward *= 1.3
+                            elif market_regime == 1:
+                                reward *= 0.8
+                            if pnl_pct < -stop_loss_pct:
+                                reward += stop_loss_sell_bonus
+                        else:
+                            reward = 0
+                    reward -= commission_rate * 100
+
                 elif action in [5, 6]:
                     reward = -1.0
+
                 else:  # HOLD
                     if ticker in portfolio.positions:
                         pos = portfolio.positions[ticker]
                         entry_price = pos['avg_price']
                         if entry_price > 0:
                             pnl_pct = (price - entry_price) / entry_price
-                            reward = pnl_pct * 10
+                            if market_regime == 2 and pnl_pct < 0:
+                                reward = pnl_pct * 100 - stop_loss_hold_penalty
+                            elif pnl_pct < -stop_loss_pct:
+                                reward = pnl_pct * 80 - stop_loss_hold_penalty
+                            else:
+                                reward = pnl_pct * 80
                         else:
                             reward = 0
                     else:
-                        reward = -0.1
+                        if market_regime == 1:
+                            reward = -0.05
+                        else:
+                            reward = 0
+
+                # Мягкий lookahead-бонус (только на Этапе 2)
+                if learn and lookahead_ideal is not None:
+                    horizon_scale = min(1.0, lookahead_horizon / 3.0)
+                    if action == lookahead_ideal:
+                        reward += lookahead_confidence * 1.5 * horizon_scale
+                    elif (lookahead_ideal in [3, 4] and action in [3, 4]) or \
+                            (lookahead_ideal in [5, 6] and action in [5, 6]):
+                        reward += lookahead_confidence * 0.5 * horizon_scale
+                    elif (lookahead_ideal in [3, 4] and action in [5, 6]) or \
+                            (lookahead_ideal in [5, 6] and action in [3, 4]):
+                        reward -= lookahead_confidence * 1.0 * horizon_scale
 
                 reward = max(-5.0, min(5.0, reward))
+
             else:
                 reward = 0
 
-            # Сохраняем опыт
+            lookahead_match = (action == lookahead_ideal) if lookahead_ideal is not None else None
+
+            # ========== СОХРАНЕНИЕ ОПЫТА ==========
             next_state = model.build_state_vector(
                 ticker=ticker, price=price,
                 momentum=indicators.get('momentum', 0),
@@ -511,7 +756,14 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
             model.remember_experience(
                 state=full_state, action=action, reward=reward,
                 next_state=next_full, done=(i == len(candles) - 1),
-                pnl_rub=reward * 100
+                pnl_rub=reward * 100,
+                sentiment_data={
+                    'teacher_action': lookahead_ideal,
+                    'teacher_confidence': lookahead_confidence,
+                    'teacher_horizon': lookahead_horizon,
+                    'forced': force_teacher,
+                    'available_actions': available_actions
+                }
             )
 
             total_steps += 1
@@ -526,8 +778,13 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
                                   range(max(0, len(model.memory) - 50), len(model.memory)) if
                                   isinstance(model.memory[j], dict)]
                 avg_reward = np.mean(recent_rewards) if recent_rewards else 0.0
+
+                buys = sum(1 for e in list(model.memory)[-50:] if isinstance(e, dict) and e.get('action') in [3, 4])
+                sells = sum(1 for e in list(model.memory)[-50:] if isinstance(e, dict) and e.get('action') in [5, 6])
+                holds = sum(1 for e in list(model.memory)[-50:] if isinstance(e, dict) and e.get('action') in [0, 1, 2])
+                pos_count = len(portfolio.positions)
                 print(
-                    f"  [{current_date}] Шаг {total_steps}: reward={reward:+.2f}, ср.за 50={avg_reward:+.2f}, память={len(model.memory)}, кэш={portfolio.cash:.0f}₽")
+                    f"  [{current_date}] Шаг {total_steps}: reward={reward:+.2f}, ср.за 50={avg_reward:+.2f}, B={buys} S={sells} H={holds} поз={pos_count} кэш={portfolio.cash:.0f}₽ память={len(model.memory)}")
 
         final_portfolio_value = portfolio.cash + sum(
             pos['qty'] * (moex.get_price(ticker) or pos['avg_price'])
@@ -537,29 +794,95 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True):
     return total_steps, total_reward, final_portfolio_value
 
 # ============================================================
-# ЭТАП 2: ОБУЧЕНИЕ (12 месяцев)
+# ЭТАП 1: ПРИНУДИТЕЛЬНОЕ ОБУЧЕНИЕ С УЧИТЕЛЕМ
 # ============================================================
 print("\n" + "=" * 70)
-print("ЭТАП 2: ОБУЧЕНИЕ (12 месяцев)")
+print("ЭТАП 1: ПРИНУДИТЕЛЬНОЕ ОБУЧЕНИЕ С УЧИТЕЛЕМ")
 print("=" * 70)
 
 print("Загрузка исторических макро-данных...")
 macro_history = load_historical_macro(TRAIN_START, TRAIN_END)
 print(f"Загружено макро-данных за {len(macro_history)} дней")
 
-train_steps, train_reward, train_value = train_on_period(TICKERS, TRAIN_START, TRAIN_END, macro_history, learn=True)
+train_steps, train_reward, train_value = train_on_period(
+    TICKERS, TRAIN_START, TRAIN_END, macro_history, learn=True, force_teacher=True
+)
 
-print(f"\nОбучение завершено: {train_steps} шагов, средний reward={train_reward/train_steps:+.4f}")
+print(f"\nЭтап 1 (учитель) завершён: {train_steps} шагов, средний reward={train_reward/train_steps:+.4f}" if train_steps > 0 else "\nЭтап 1: нет шагов")
 print(f"Финальная стоимость портфеля: {train_value:,.0f}₽")
 
+
+# # ============================================================
+# # ЭТАП 2: САМОСТОЯТЕЛЬНАЯ ТОРГОВЛЯ
+# # ============================================================
+# print("\n" + "=" * 70)
+# print("ЭТАП 2: САМОСТОЯТЕЛЬНАЯ ТОРГОВЛЯ")
+# print("=" * 70)
+#
+# # Сброс портфеля перед Этапом 2
+# with open("data/portfolio_state.json", "w", encoding="utf-8") as f:
+#     json.dump({
+#         "total_value": 10000,
+#         "cash": 10000,
+#         "positions": {},
+#         "last_update": datetime.now().isoformat(),
+#         "initial_capital": 10000,
+#         "reserved_cash": 0,
+#         "pending_commissions": [],
+#         "trade_history": [],
+#         "daily_trades": [],
+#         "commission_spent_today": 0.0,
+#         "total_commission": 0.0,
+#         "total_trades": 0,
+#         "total_pnl": 0.0
+#     }, f, indent=2, default=str)
+#
+# print("Портфель сброшен для Этапа 2")
+#
+# print("Загрузка исторических макро-данных для Этапа 2...")
+# macro_history_train2 = load_historical_macro(TRAIN2_START, TRAIN2_END)
+# print(f"Загружено макро-данных за {len(macro_history_train2)} дней")
+#
+# train2_steps, train2_reward, train2_value = train_on_period(
+#     TICKERS, TRAIN2_START, TRAIN2_END, macro_history_train2, learn=True, force_teacher=False
+# )
+
+# print(f"\nЭтап 2 (самостоятельно) завершён: {train2_steps} шагов, средний reward={train2_reward/train2_steps:+.4f}" if train2_steps > 0 else "\nЭтап 2: нет шагов")
+# print(f"Финальная стоимость портфеля: {train2_value:,.0f}₽")
+# print(f"PnL за самостоятельную торговлю: {train2_value - 10000:+,.0f}₽")
+
+train2_steps, train2_reward, train2_value = 0, 0.0, 10000.0
+print("\n⚠ ЭТАП 2 ОТКЛЮЧЕН — переходим сразу к валидации")
+
+
 # ============================================================
-# ЭТАП 3: ВАЛИДАЦИЯ (3 месяца, без обучения)
+# ЭТАП 3: ВАЛИДАЦИЯ (out-of-sample, без обучения)
 # ============================================================
 print("\n" + "=" * 70)
-print("ЭТАП 3: ВАЛИДАЦИЯ (3 месяца, без обучения)")
+print("ЭТАП 3: ВАЛИДАЦИЯ (out-of-sample)")
 print("=" * 70)
 
+with open("data/portfolio_state.json", "w", encoding="utf-8") as f:
+    json.dump({
+        "total_value": 10000,
+        "cash": 10000,
+        "positions": {},
+        "last_update": datetime.now().isoformat(),
+        "initial_capital": 10000,
+        "reserved_cash": 0,
+        "pending_commissions": [],
+        "trade_history": [],
+        "daily_trades": [],
+        "commission_spent_today": 0.0,
+        "total_commission": 0.0,
+        "total_trades": 0,
+        "total_pnl": 0.0
+    }, f, indent=2, default=str)
+
+print("Портфель сброшен для валидации")
+
 print("Загрузка исторических макро-данных для валидации...")
+
 val_macro_history = load_historical_macro(VAL_START, VAL_END)
 print(f"Загружено макро-данных за {len(val_macro_history)} дней")
 
@@ -573,6 +896,94 @@ else:
 print(f"Финальная стоимость портфеля: {val_value:,.0f}₽")
 print(f"PnL за валидацию: {val_value - 10000:+,.0f}₽")
 
+
+# ============================================================
+# ЭТАП 4: СТРЕСС-ТЕСТ 1 — СВО 2022
+# ============================================================
+print("\n" + "=" * 70)
+print("ЭТАП 4: СТРЕСС-ТЕСТ — СВО 2022")
+print("=" * 70)
+
+with open("data/portfolio_state.json", "w", encoding="utf-8") as f:
+    json.dump({
+        "total_value": 10000,
+        "cash": 10000,
+        "positions": {},
+        "last_update": datetime.now().isoformat(),
+        "initial_capital": 10000,
+        "reserved_cash": 0,
+        "pending_commissions": [],
+        "trade_history": [],
+        "daily_trades": [],
+        "commission_spent_today": 0.0,
+        "total_commission": 0.0,
+        "total_trades": 0,
+        "total_pnl": 0.0
+    }, f, indent=2, default=str)
+
+print("Портфель сброшен для стресс-теста СВО")
+
+print("Загрузка исторических макро-данных для стресс-теста СВО...")
+
+stress_svo_macro = load_historical_macro(STRESS_SVO_START, STRESS_SVO_END)
+print(f"Загружено макро-данных за {len(stress_svo_macro)} дней")
+
+stress_svo_steps, stress_svo_reward, stress_svo_value = train_on_period(
+    TICKERS, STRESS_SVO_START, STRESS_SVO_END, stress_svo_macro, learn=False
+)
+
+print(f"\nСтресс-тест СВО завершён: {stress_svo_steps} шагов", end="")
+if stress_svo_steps > 0:
+    print(f", средний reward={stress_svo_reward/stress_svo_steps:+.4f}")
+else:
+    print()
+print(f"Финальная стоимость портфеля: {stress_svo_value:,.0f}₽")
+print(f"PnL за стресс-тест СВО: {stress_svo_value - 10000:+,.0f}₽")
+
+# ============================================================
+# ЭТАП 5: СТРЕСС-ТЕСТ 2 — Ковид 2020
+# ============================================================
+print("\n" + "=" * 70)
+print("ЭТАП 5: СТРЕСС-ТЕСТ — КОВИД 2020")
+print("=" * 70)
+
+with open("data/portfolio_state.json", "w", encoding="utf-8") as f:
+    json.dump({
+        "total_value": 10000,
+        "cash": 10000,
+        "positions": {},
+        "last_update": datetime.now().isoformat(),
+        "initial_capital": 10000,
+        "reserved_cash": 0,
+        "pending_commissions": [],
+        "trade_history": [],
+        "daily_trades": [],
+        "commission_spent_today": 0.0,
+        "total_commission": 0.0,
+        "total_trades": 0,
+        "total_pnl": 0.0
+    }, f, indent=2, default=str)
+
+print("Портфель сброшен для стресс-теста Ковид")
+
+print("Загрузка исторических макро-данных для стресс-теста Ковид...")
+
+stress_covid_macro = load_historical_macro(STRESS_COVID_START, STRESS_COVID_END)
+print(f"Загружено макро-данных за {len(stress_covid_macro)} дней")
+
+stress_covid_steps, stress_covid_reward, stress_covid_value = train_on_period(
+    TICKERS, STRESS_COVID_START, STRESS_COVID_END, stress_covid_macro, learn=False
+)
+
+print(f"\nСтресс-тест Ковид завершён: {stress_covid_steps} шагов", end="")
+if stress_covid_steps > 0:
+    print(f", средний reward={stress_covid_reward/stress_covid_steps:+.4f}")
+else:
+    print()
+print(f"Финальная стоимость портфеля: {stress_covid_value:,.0f}₽")
+print(f"PnL за стресс-тест Ковид: {stress_covid_value - 10000:+,.0f}₽")
+
+
 # ============================================================
 # РЕЗУЛЬТИРУЮЩИЙ ЛОГ
 # ============================================================
@@ -580,8 +991,21 @@ print("\n" + "=" * 70)
 print("📊 РЕЗУЛЬТИРУЮЩИЙ ЛОГ ПРЕДОБУЧЕНИЯ")
 print("=" * 70)
 
+# Подсчёт lookahead-статистики (если есть в памяти)
+lookahead_matches = 0
+lookahead_total = 0
+for exp in model.memory:
+    if isinstance(exp, dict):
+        sent_data = exp.get('sentiment_data', {})
+        if isinstance(sent_data, dict) and 'lookahead_match' in sent_data:
+            lookahead_total += 1
+            if sent_data['lookahead_match']:
+                lookahead_matches += 1
+
 print(f"\n🧠 ПАМЯТЬ:")
 print(f"   Всего опытов: {len(model.memory)}")
+if lookahead_total > 0:
+    print(f"   Lookahead accuracy: {lookahead_matches}/{lookahead_total} ({lookahead_matches/lookahead_total*100:.1f}%)")
 if len(model.memory) > 0:
     rewards = [exp['reward'] for exp in model.memory if isinstance(exp, dict)]
     actions = [exp['action'] for exp in model.memory if isinstance(exp, dict)]
@@ -606,16 +1030,34 @@ if len(model.memory) > 0:
             bar = "█" * int(pct / 2)
             print(f"   {name:<15} {count:>5} ({pct:>5.1f}%) {bar}")
 
-print(f"\n📈 ОБУЧЕНИЕ:")
-print(f"   Шагов обучения: {train_steps}")
-print(f"   Средний reward (обучение): {train_reward/train_steps:+.4f}" if train_steps > 0 else "   Нет шагов")
-print(f"   Портфель после обучения: {train_value:,.0f}₽")
+print(f"\n📈 ЭТАП 1: ПРИНУДИТЕЛЬНОЕ ОБУЧЕНИЕ:")
+print(f"   Шагов: {train_steps}")
+print(f"   Средний reward: {train_reward/train_steps:+.4f}" if train_steps > 0 else "   Нет шагов")
+print(f"   Портфель: {train_value:,.0f}₽")
 
-print(f"\n📉 ВАЛИДАЦИЯ:")
-print(f"   Шагов валидации: {val_steps}")
-print(f"   Средний reward (валидация): {val_reward/val_steps:+.4f}" if val_steps > 0 else "   Нет шагов")
-print(f"   Портфель после валидации: {val_value:,.0f}₽")
+print(f"\n📈 ЭТАП 2: САМОСТОЯТЕЛЬНАЯ ТОРГОВЛЯ:")
+print(f"   Шагов: {train2_steps}")
+print(f"   Средний reward: {train2_reward/train2_steps:+.4f}" if train2_steps > 0 else "   Нет шагов")
+print(f"   Портфель: {train2_value:,.0f}₽")
+print(f"   PnL: {train2_value - 10000:+,.0f}₽ ({(train2_value/10000 - 1)*100:+.2f}%)")
+
+print(f"\n📉 ВАЛИДАЦИЯ (out-of-sample):")
+print(f"   Шагов: {val_steps}")
+print(f"   Средний reward: {val_reward/val_steps:+.4f}" if val_steps > 0 else "   Нет шагов")
+print(f"   Портфель: {val_value:,.0f}₽")
 print(f"   PnL: {val_value - 10000:+,.0f}₽ ({(val_value/10000 - 1)*100:+.2f}%)")
+
+print(f"\n💥 СТРЕСС-ТЕСТ СВО 2022:")
+print(f"   Шагов: {stress_svo_steps}")
+print(f"   Средний reward: {stress_svo_reward/stress_svo_steps:+.4f}" if stress_svo_steps > 0 else "   Нет шагов")
+print(f"   Портфель: {stress_svo_value:,.0f}₽")
+print(f"   PnL: {stress_svo_value - 10000:+,.0f}₽ ({(stress_svo_value/10000 - 1)*100:+.2f}%)")
+
+print(f"\n💥 СТРЕСС-ТЕСТ КОВИД 2020:")
+print(f"   Шагов: {stress_covid_steps}")
+print(f"   Средний reward: {stress_covid_reward/stress_covid_steps:+.4f}" if stress_covid_steps > 0 else "   Нет шагов")
+print(f"   Портфель: {stress_covid_value:,.0f}₽")
+print(f"   PnL: {stress_covid_value - 10000:+,.0f}₽ ({(stress_covid_value/10000 - 1)*100:+.2f}%)")
 
 print(f"\n🎯 ВЕСА МОДЕЛИ:")
 action_net_bias = model.policy_net.action_net[2].bias.detach().cpu().numpy()

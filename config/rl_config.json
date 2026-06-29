@@ -58,9 +58,9 @@
     "convergence_threshold": 0.1
   },
   "exploration": {
-    "initial_exploration_rate": 0.1,
-    "final_exploration_rate": 0.05,
-    "action_exploration_rate": 0.15,
+    "initial_exploration_rate": 0.15,
+    "final_exploration_rate": 0.03,
+    "action_exploration_rate": 0.20,
     "min_exploration_rate": 0.05,
     "max_exploration_rate": 0.3
   },
@@ -330,6 +330,9 @@
     "concentration_penalty_enabled": true,
     "max_positions_before_penalty": 3,
     "concentration_penalty_per_position": 0.5,
+    "hold_empty_portfolio_reward": 0.0,
+    "buy_commission_penalty_small": 0.0015,
+    "buy_commission_penalty_normal": 0.003,
     "reward_clip_max": 5.0,
     "reward_clip_min": -5.0
   },

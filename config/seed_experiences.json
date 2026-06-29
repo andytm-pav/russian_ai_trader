@@ -1,52 +1,386 @@
 [
-  {"action": 3, "reward": 3.0, "desc": "Перепроданность на растущем"},
-  {"action": 5, "reward": 5.0, "desc": "Перекупленность + прибыль"},
-  {"action": 1, "reward": 0.3, "desc": "Боковик"},
-  {"action": 4, "reward": 4.0, "desc": "Идеальный вход"},
-  {"action": 6, "reward": 6.0, "desc": "Сильная перекупленность"},
-  {"action": 1, "reward": 0.5, "desc": "Падение ускоряется"},
-  {"action": 3, "reward": 2.0, "desc": "Начало тренда"},
-  {"action": 1, "reward": 1.0, "desc": "Высокая волатильность"},
-  {"action": 2, "reward": 0.5, "desc": "Сжатие перед движением"},
-  {"action": 4, "reward": 3.5, "desc": "Всплеск объёма"},
-  {"action": 1, "reward": 0.5, "desc": "Низкий объём при падении"},
-  {"action": 3, "reward": 2.5, "desc": "Золотой крест SMA"},
-  {"action": 4, "reward": 4.0, "desc": "Сильный позитив"},
-  {"action": 6, "reward": -1.0, "desc": "Негатив + позиция в плюсе"},
-  {"action": 1, "reward": 0.5, "desc": "Разнонаправленные новости"},
-  {"action": 3, "reward": 2.5, "desc": "Инсайдерская покупка"},
-  {"action": 5, "reward": 4.5, "desc": "Покупка на слухах"},
-  {"action": 5, "reward": 2.0, "desc": "Негатив по сектору"},
-  {"action": 4, "reward": 5.0, "desc": "Дивидендные новости"},
-  {"action": 6, "reward": -2.0, "desc": "Санкции"},
-  {"action": 3, "reward": 3.0, "desc": "Рынок растёт, нефть растёт"},
-  {"action": 1, "reward": 1.0, "desc": "Рынок падает, нефть падает"},
-  {"action": 1, "reward": 0.3, "desc": "Боковик, нефть стабильна"},
-  {"action": 4, "reward": 4.0, "desc": "Рубль слабеет, рынок растёт"},
-  {"action": 5, "reward": 1.5, "desc": "RVI>30"},
-  {"action": 2, "reward": 0.5, "desc": "RVI<20"},
-  {"action": 3, "reward": 2.0, "desc": "Нефть растёт"},
-  {"action": 6, "reward": -1.5, "desc": "Рынок падает, RVI высокий"},
-  {"action": 3, "reward": 2.0, "desc": "Пустой портфель"},
-  {"action": 6, "reward": -1.0, "desc": "Портфель заполнен"},
-  {"action": 5, "reward": 1.5, "desc": "Концентрация в секторе"},
-  {"action": 3, "reward": 2.5, "desc": "Есть кэш, рынок растёт"},
-  {"action": 5, "reward": 4.0, "desc": "Все в плюсе"},
-  {"action": 2, "reward": -0.5, "desc": "Все в минусе"},
-  {"action": 5, "reward": 1.0, "desc": "Кэш кончается"},
-  {"action": 1, "reward": 0.5, "desc": "Портфель сбалансирован"},
-  {"action": 1, "reward": -2.0, "desc": "Высокая частота сделок"},
-  {"action": 2, "reward": 1.0, "desc": "Низкая частота сделок"},
-  {"action": 1, "reward": -1.5, "desc": "Комиссия съела прибыль"},
-  {"action": 3, "reward": 2.0, "desc": "Комиссия минимальна"},
-  {"action": 6, "reward": -3.0, "desc": "Геополитический шок"},
-  {"action": 4, "reward": 5.0, "desc": "Отскок после паники"},
-  {"action": 1, "reward": 0.5, "desc": "Затяжной боковик"},
-  {"action": 3, "reward": 2.0, "desc": "Утро"},
-  {"action": 1, "reward": 0.5, "desc": "Вечер"},
-  {"action": 2, "reward": 1.5, "desc": "Позиция 1 час"},
-  {"action": 0, "reward": 0.8, "desc": "Дневной горизонт"},
-  {"action": 2, "reward": 2.0, "desc": "Недельный горизонт"},
-  {"action": 5, "reward": -2.0, "desc": "SELL без позиции — ошибка"},
-  {"action": 1, "reward": 0.5, "desc": "HOLD при пустом портфеле — терпение"}
+  {
+    "desc": "Перепроданность на растущем",
+    "action": 3,
+    "reward": 2.0,
+    "params": {"rsi": 25, "bb_pos": 0.1, "imoex_change": 1.5, "market_regime": 1}
+  },
+  {
+    "desc": "Перекупленность + прибыль",
+    "action": 5,
+    "reward": 5.0,
+    "params": {"rsi": 78, "bb_pos": 0.9, "has_position": true, "pnl_pct": 4.2}
+  },
+  {
+    "desc": "Боковик",
+    "action": 1,
+    "reward": 1.0,
+    "params": {"rsi": 50, "bb_pos": 0.5}
+  },
+  {
+    "desc": "Идеальный вход",
+    "action": 3,
+    "reward": 3.0,
+    "params": {"rsi": 22, "bb_pos": 0.05, "momentum": -3, "imoex_change": 2.5, "market_regime": 1}
+  },
+  {
+    "desc": "Сильная перекупленность",
+    "action": 6,
+    "reward": 5.0,
+    "params": {"rsi": 85, "bb_pos": 1.0, "has_position": true, "pnl_pct": 8}
+  },
+  {
+    "desc": "Падение ускоряется",
+    "action": 1,
+    "reward": 1.5,
+    "params": {"rsi": 28, "momentum": -3}
+  },
+  {
+    "desc": "Начало тренда",
+    "action": 3,
+    "reward": 1.5,
+    "params": {"rsi": 55, "bb_pos": 0.6, "momentum": 2}
+  },
+  {
+    "desc": "Высокая волатильность",
+    "action": 1,
+    "reward": 2.0,
+    "params": {"rsi": 48, "imoex_change": -2, "market_regime": 2, "volume": 50000000}
+  },
+  {
+    "desc": "Сжатие перед движением",
+    "action": 1,
+    "reward": 1.0,
+    "params": {"rsi": 50, "bb_pos": 0.5, "volume": 50000000}
+  },
+  {
+    "desc": "Всплеск объёма",
+    "action": 4,
+    "reward": 2.0,
+    "params": {"rsi": 55, "volume": 3000000000}
+  },
+  {
+    "desc": "Низкий объём при падении",
+    "action": 1,
+    "reward": 1.5,
+    "params": {"rsi": 45, "momentum": -1, "volume": 200000000}
+  },
+  {
+    "desc": "Золотой крест SMA",
+    "action": 3,
+    "reward": 2.0,
+    "params": {"rsi": 55, "bb_pos": 0.6, "momentum": 1.5}
+  },
+  {
+    "desc": "Сильный позитив",
+    "action": 4,
+    "reward": 2.5,
+    "params": {"rsi": 55}
+  },
+  {
+    "desc": "Негатив + позиция в плюсе",
+    "action": 5,
+    "reward": 3.0,
+    "params": {"has_position": true, "pnl_pct": 2, "imoex_change": -2}
+  },
+  {
+    "desc": "Разнонаправленные новости",
+    "action": 1,
+    "reward": 0.5,
+    "params": {"rsi": 50}
+  },
+  {
+    "desc": "Инсайдерская покупка",
+    "action": 3,
+    "reward": 1.5,
+    "params": {"rsi": 40, "bb_pos": 0.3}
+  },
+  {
+    "desc": "Покупка на слухах",
+    "action": 5,
+    "reward": 4.0,
+    "params": {"rsi": 85, "bb_pos": 0.95, "has_position": true, "pnl_pct": 8}
+  },
+  {
+    "desc": "Негатив по сектору",
+    "action": 5,
+    "reward": 2.0,
+    "params": {"rsi": 50, "has_position": true, "pnl_pct": 3}
+  },
+  {
+    "desc": "Дивидендные новости",
+    "action": 4,
+    "reward": 3.0,
+    "params": {"rsi": 55, "market_regime": 1}
+  },
+  {
+    "desc": "Санкции",
+    "action": 6,
+    "reward": -1.0,
+    "params": {"rsi": 50, "has_position": true, "pnl_pct": 1}
+  },
+  {
+    "desc": "Рынок растёт, нефть растёт",
+    "action": 3,
+    "reward": 2.0,
+    "params": {"rsi": 55, "imoex": 2550, "imoex_change": 1.5, "brent": 82, "brent_change": 2, "rvi": 22, "usd_rub": 70, "market_regime": 1}
+  },
+  {
+    "desc": "Рынок падает, нефть падает",
+    "action": 1,
+    "reward": 2.0,
+    "params": {"rsi": 45, "imoex": 2400, "imoex_change": -2.5, "brent": 77, "brent_change": -3, "rvi": 30, "usd_rub": 75, "market_regime": 2}
+  },
+  {
+    "desc": "Боковик, нефть стабильна",
+    "action": 1,
+    "reward": 0.5,
+    "params": {"rsi": 50, "imoex": 2500, "imoex_change": 0, "brent": 80, "brent_change": 0, "rvi": 25, "usd_rub": 72}
+  },
+  {
+    "desc": "Рубль слабеет, рынок растёт",
+    "action": 4,
+    "reward": 2.5,
+    "params": {"rsi": 55, "imoex": 2525, "imoex_change": 1, "brent": 81, "brent_change": 1, "rvi": 24, "usd_rub": 78, "market_regime": 1}
+  },
+  {
+    "desc": "RVI>30",
+    "action": 5,
+    "reward": 1.5,
+    "params": {"rsi": 50, "imoex": 2480, "imoex_change": -1, "brent": 79, "brent_change": -1, "rvi": 32, "usd_rub": 74, "has_position": true, "pnl_pct": 2, "market_regime": 2}
+  },
+  {
+    "desc": "RVI<20",
+    "action": 1,
+    "reward": 1.0,
+    "params": {"rsi": 55, "imoex": 2510, "imoex_change": 0.5, "rvi": 18, "market_regime": 1}
+  },
+  {
+    "desc": "Нефть растёт",
+    "action": 3,
+    "reward": 1.5,
+    "params": {"rsi": 50, "imoex": 2510, "imoex_change": 0.5, "brent": 83, "brent_change": 3, "usd_rub": 68, "rvi": 22, "market_regime": 1}
+  },
+  {
+    "desc": "Рынок падает, RVI высокий",
+    "action": 6,
+    "reward": 0.5,
+    "params": {"rsi": 40, "imoex": 2350, "imoex_change": -3, "brent": 75, "brent_change": -4, "rvi": 35, "usd_rub": 77, "has_position": true, "pnl_pct": -2, "market_regime": 2}
+  },
+  {
+    "desc": "Пустой портфель",
+    "action": 3,
+    "reward": 1.0,
+    "params": {"rsi": 55, "imoex_change": 1, "cash": 9000, "positions_count": 0, "market_regime": 1}
+  },
+  {
+    "desc": "Портфель заполнен",
+    "action": 6,
+    "reward": -0.5,
+    "params": {"rsi": 40, "imoex_change": -2, "cash": 1000, "positions_count": 8, "exposure": 0.85, "has_position": true, "pnl_pct": -3, "market_regime": 2}
+  },
+  {
+    "desc": "Концентрация в секторе",
+    "action": 5,
+    "reward": 1.5,
+    "params": {"rsi": 55, "cash": 5000, "positions_count": 3, "exposure": 0.45, "has_position": true, "pnl_pct": 5}
+  },
+  {
+    "desc": "Есть кэш, рынок растёт",
+    "action": 3,
+    "reward": 1.5,
+    "params": {"rsi": 55, "imoex_change": 1, "cash": 6000, "positions_count": 3, "exposure": 0.35, "market_regime": 1}
+  },
+  {
+    "desc": "Все в плюсе",
+    "action": 5,
+    "reward": 3.0,
+    "params": {"rsi": 75, "cash": 3000, "positions_count": 5, "exposure": 0.65, "has_position": true, "pnl_pct": 6}
+  },
+  {
+    "desc": "Все в минусе",
+    "action": 6,
+    "reward": -1.0,
+    "params": {"rsi": 30, "cash": 2000, "positions_count": 5, "exposure": 0.75, "has_position": true, "pnl_pct": -4}
+  },
+  {
+    "desc": "Кэш кончается",
+    "action": 5,
+    "reward": 1.0,
+    "params": {"rsi": 50, "cash": 500, "positions_count": 7, "exposure": 0.9, "has_position": true, "pnl_pct": -2}
+  },
+  {
+    "desc": "Портфель сбалансирован",
+    "action": 1,
+    "reward": 0.5,
+    "params": {"rsi": 55, "cash": 5000, "positions_count": 3, "exposure": 0.45}
+  },
+  {
+    "desc": "Высокая частота сделок",
+    "action": 1,
+    "reward": 0.0,
+    "params": {"rsi": 50, "volume": 3000000000}
+  },
+  {
+    "desc": "Низкая частота сделок",
+    "action": 1,
+    "reward": 1.0,
+    "params": {"rsi": 55, "volume": 1000000000}
+  },
+  {
+    "desc": "Комиссия съела прибыль",
+    "action": 1,
+    "reward": 0.0,
+    "params": {"rsi": 50, "has_position": true, "pnl_pct": 0.5}
+  },
+  {
+    "desc": "Комиссия минимальна",
+    "action": 3,
+    "reward": 1.5,
+    "params": {"rsi": 55, "imoex_change": 0.5, "volume": 1000000000}
+  },
+  {
+    "desc": "Геополитический шок",
+    "action": 1,
+    "reward": -1.0,
+    "params": {"rsi": 20, "imoex_change": -5, "brent_change": -6, "rvi": 40, "market_regime": 2, "has_position": true, "pnl_pct": -5}
+  },
+  {
+    "desc": "Отскок после паники",
+    "action": 4,
+    "reward": 3.0,
+    "params": {"rsi": 35, "imoex_change": 3, "brent_change": 4, "rvi": 28, "market_regime": 1}
+  },
+  {
+    "desc": "Затяжной боковик",
+    "action": 1,
+    "reward": 0.5,
+    "params": {"rsi": 50, "bb_pos": 0.5, "momentum": 0, "volume": 50000000}
+  },
+  {
+    "desc": "Утро",
+    "action": 3,
+    "reward": 1.0,
+    "params": {"rsi": 55, "imoex_change": 1, "market_regime": 1, "volume": 3000000000}
+  },
+  {
+    "desc": "Вечер",
+    "action": 1,
+    "reward": 0.5,
+    "params": {"rsi": 65, "bb_pos": 0.8, "volume": 50000000}
+  },
+  {
+    "desc": "Позиция 1 час",
+    "action": 1,
+    "reward": 1.5,
+    "params": {"rsi": 55, "has_position": true, "pnl_pct": 1.5, "hold_time": 1}
+  },
+  {
+    "desc": "Дневной горизонт",
+    "action": 1,
+    "reward": 1.0,
+    "params": {"rsi": 65, "has_position": true, "pnl_pct": 0.8, "hold_time": 4}
+  },
+  {
+    "desc": "Недельный горизонт",
+    "action": 1,
+    "reward": 2.0,
+    "params": {"rsi": 55, "has_position": true, "pnl_pct": 2, "hold_time": 24}
+  },
+  {
+    "desc": "SELL без позиции — ошибка",
+    "action": 1,
+    "reward": -1.0,
+    "params": {"rsi": 70, "imoex_change": -1, "cash": 10000, "positions_count": 0, "exposure": 0}
+  },
+  {
+    "desc": "HOLD при пустом портфеле — терпение",
+    "action": 1,
+    "reward": 1.0,
+    "params": {"rsi": 70, "imoex_change": -1, "cash": 10000, "positions_count": 0, "exposure": 0}
+  },
+  {
+    "desc": "Боковик с позицией",
+    "action": 1,
+    "reward": 0.5,
+    "params": {"rsi": 50, "bb_pos": 0.5, "has_position": true, "pnl_pct": 1}
+  },
+  {
+    "desc": "Частичная фиксация в боковике",
+    "action": 5,
+    "reward": 1.0,
+    "params": {"rsi": 55, "bb_pos": 0.6, "has_position": true, "pnl_pct": 3}
+  },
+  {
+    "desc": "Осторожный вход в падающем",
+    "action": 3,
+    "reward": 0.5,
+    "params": {"rsi": 35, "imoex_change": -1.5, "market_regime": 2}
+  },
+  {
+    "desc": "Продажа малой части при неопределённости",
+    "action": 5,
+    "reward": 0.5,
+    "params": {"rsi": 50, "has_position": true, "pnl_pct": 0.5, "imoex_change": -0.5, "market_regime": 0}
+  },
+  {
+    "desc": "Удержание при слабом росте",
+    "action": 1,
+    "reward": 1.5,
+    "params": {"rsi": 58, "has_position": true, "pnl_pct": 2, "imoex_change": 0.5, "market_regime": 1}
+  },
+  {
+    "desc": "Долгий HOLD при сильном тренде",
+    "action": 2,
+    "reward": 2.5,
+    "params": {"rsi": 65, "has_position": true, "pnl_pct": 5, "imoex_change": 2, "market_regime": 1, "momentum": 3}
+  },
+  {
+    "desc": "HOLD при высокой комиссии",
+    "action": 1,
+    "reward": 0.0,
+    "params": {"rsi": 55, "has_position": true, "pnl_pct": 0.5, "volume": 3000000000}
+  },
+  {
+    "desc": "BUY на растущем рынке",
+    "action": 4,
+    "reward": 3.0,
+    "params": {"rsi": 40, "bb_pos": 0.3, "momentum": 2, "imoex_change": 2.5, "market_regime": 1}
+  },
+  {
+    "desc": "BUY на падающем рынке — штраф",
+    "action": 3,
+    "reward": -1.5,
+    "params": {"rsi": 45, "imoex_change": -3, "market_regime": 2}
+  },
+  {
+    "desc": "SELL на падающем рынке — выход",
+    "action": 6,
+    "reward": 1.5,
+    "params": {"rsi": 45, "imoex_change": -2.5, "market_regime": 2, "has_position": true, "pnl_pct": -2}
+  },
+  {
+    "desc": "HOLD при падающем рынке — плохо",
+    "action": 0,
+    "reward": -2.0,
+    "params": {"rsi": 45, "imoex_change": -2.5, "market_regime": 2, "has_position": true, "pnl_pct": -3}
+  },
+  {
+    "desc": "Частые сделки — комиссии съели",
+    "action": 0,
+    "reward": 0.5,
+    "params": {"rsi": 55, "volume": 3000000000, "has_position": true, "pnl_pct": 0.3}
+  },
+  {
+    "desc": "Продажа в минус — спасение",
+    "action": 6,
+    "reward": 0.5,
+    "params": {"rsi": 30, "imoex_change": -4, "market_regime": 2, "has_position": true, "pnl_pct": -5}
+  },
+  {
+    "desc": "Ротация — продал слабое",
+    "action": 6,
+    "reward": 1.0,
+    "params": {"rsi": 55, "imoex_change": 1.5, "market_regime": 1, "has_position": true, "pnl_pct": -1}
+  }
 ]

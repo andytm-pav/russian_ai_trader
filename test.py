@@ -1,23 +1,65 @@
 #!/usr/bin/env python3
-"""
-Тест: получение актуальных макро-данных через MoexFetcher
-"""
-import sys
-sys.path.insert(0, '.')
-from fetchers.moex_fetcher import MoexFetcher
+"""Тест: анализ реальных сделок — время удержания и комиссия"""
+import json
+from datetime import datetime
 
-moex = MoexFetcher()
-macro = moex.get_macro_data()
+# Вставь свои сделки из лога
+trades = [
+    {"time": "2026-06-25 10:51", "ticker": "PIKK", "action": "BUY", "qty": 5, "price": 568.30},
+    {"time": "2026-06-25 11:13", "ticker": "PIKK", "action": "SELL", "qty": 5, "price": 569.00},
+    {"time": "2026-06-25 10:51", "ticker": "VKCO", "action": "BUY", "qty": 18, "price": 197.85},
+    {"time": "2026-06-25 11:00", "ticker": "OZON", "action": "BUY", "qty": 1, "price": 3487.50},
+    {"time": "2026-06-25 12:05", "ticker": "HEAD", "action": "BUY", "qty": 1, "price": 2525.00},
+    # Добавь SELL-сделки, если были
+]
+
+# Анализ
+positions = {}
+hold_times = []
+commission_losses = []
+
+for t in trades:
+    ticker = t['ticker']
+    if t['action'] == 'BUY':
+        positions[ticker] = t
+    elif t['action'] == 'SELL' and ticker in positions:
+        buy = positions[ticker]
+        # Время удержания
+        buy_time = datetime.strptime(buy['time'], "%Y-%m-%d %H:%M")
+        sell_time = datetime.strptime(t['time'], "%Y-%m-%d %H:%M")
+        hold_minutes = (sell_time - buy_time).total_seconds() / 60
+        hold_times.append(hold_minutes)
+
+        # Комиссия vs прибыль
+        buy_cost = buy['qty'] * buy['price']
+        sell_revenue = t['qty'] * t['price']
+        commission = (buy_cost + sell_revenue) * 0.003
+        pnl = (t['price'] - buy['price']) * t['qty']
+        net = pnl - commission
+        commission_losses.append({
+            'ticker': ticker,
+            'hold_min': hold_minutes,
+            'pnl': pnl,
+            'commission': commission,
+            'net': net
+        })
+        del positions[ticker]
 
 print("=" * 60)
-print("АКТУАЛЬНЫЕ МАКРО-ДАННЫЕ С MOEX")
+print("АНАЛИЗ РЕАЛЬНЫХ СДЕЛОК")
 print("=" * 60)
-print(f"IMOEX:      {macro.get('imoex', 0):.2f}")
-print(f"RTSI:       {macro.get('rtsi', 0):.2f}")
-print(f"RVI:        {macro.get('rvi', 0):.2f}")
-print(f"Brent:      {macro.get('brent', 0):.2f}")
-print(f"USD/RUB:    {macro.get('usd_rub', 0):.2f}")
-print(f"ЦБ ставка:  {macro.get('cbr_rate', 0):.2f}")
-print(f"VIX:        {macro.get('vix', 0):.2f}")
-print(f"MOEXOG:     {macro.get('moexog', 0):.2f}")
-print(f"MOEXFN:     {macro.get('moexfn', 0):.2f}")
+
+if hold_times:
+    print(f"\nСреднее время удержания: {sum(hold_times)/len(hold_times):.1f} мин")
+    print(f"Минимальное: {min(hold_times):.1f} мин")
+    print(f"Максимальное: {max(hold_times):.1f} мин")
+
+if commission_losses:
+    print(f"\nСделки, где комиссия > прибыли:")
+    for cl in commission_losses:
+        if cl['commission'] > cl['pnl']:
+            print(f"  {cl['ticker']}: PnL={cl['pnl']:+.2f}₽, комиссия={cl['commission']:.2f}₽, чистый={cl['net']:+.2f}₽, держали {cl['hold_min']:.0f} мин")
+
+print(f"\nОткрытых позиций: {len(positions)}")
+for tkr in positions:
+    print(f"  {tkr}: куплен в {positions[tkr]['time']}, ещё не продан")
