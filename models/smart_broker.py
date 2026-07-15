@@ -8,6 +8,7 @@ import time
 import threading
 import queue
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
 
@@ -16,9 +17,45 @@ from core.risk_manager import RiskManager
 from core.trading_hours_scheduler import TradingScheduler
 from fetchers.moex_fetcher import MoexFetcher
 from fetchers.news_fetcher import OptimizedNewsFetcher  # ✅ ИСПРАВЛЕНО
+from fetchers.microstructure_fetcher import microstructure_fetcher
+from fetchers.history_loader import HistoryLoader
 from utils.portfolio_manager import PortfolioManager
 from utils.logger import get_logger
 from models.trader_model import NEWS_ENCODED_DIM
+
+# 🆕 Каскадный предсказатель — с авто-восстановлением
+try:
+    from models.price_predictor import price_predictor
+except Exception as e:
+    import logging as _log
+    _log.getLogger("SMART_BROKER").warning(f"price_predictor недоступен ({e}), создаём встроенный fallback")
+    import os as _os, json as _json
+    _pp_config = {}
+    _sp = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), 'config', 'settings.json')
+    if _os.path.exists(_sp):
+        with open(_sp) as _f:
+            _pp_config = _json.load(_f).get('price_predictor', {})
+
+    # Встроенный fallback класс (если файл models/price_predictor.py удалён)
+    class _FallbackPricePredictor:
+        def __init__(self, config):
+            self.max_hold_hours = config.get('max_hold_hours', 120)
+            self._cascade_level = {}
+        def predict(self, **kwargs):
+            return {'action': 'HOLD', 'confidence': 0.0, 'horizon_name': 'fallback',
+                    'p_down': 0.33, 'p_up': 0.33, 'cascade_level': 0, 'reason': 'fallback'}
+        def reset_ticker(self, ticker): pass
+        def get_stats(self): return {'active_tickers': 0, 'total_predictions': 0}
+
+    price_predictor = _FallbackPricePredictor(_pp_config)
+
+# 🆕 Хокс процесс
+try:
+    from core.hawkes_signal import hawkes_signal
+except Exception as e:
+    hawkes_signal = None
+    import logging as _log
+    _log.getLogger("SMART_BROKER").warning(f"Hawkes недоступен: {e}")
 
 from models.trader_model import trader_model_instance
 from utils.lot_validator import LotValidator
@@ -78,6 +115,29 @@ class SmartPortfolioBroker:
         self.ticker_sectors = self._load_ticker_sectors()
 
 
+        # 🆕 v15: NewsAnalyzer — продвинутый анализатор новостей
+        try:
+            from core.news_analyzer import NewsAnalyzer
+            analyzer_config_path = "config/analyzer_config.json"
+            with open(analyzer_config_path, 'r', encoding='utf-8') as f:
+                analyzer_config = json.load(f)
+            with open("config/news_tickers.json", 'r', encoding='utf-8') as f:
+                analyzer_tickers = json.load(f)
+            models_dir = Path("data/models")
+            models_dir.mkdir(parents=True, exist_ok=True)
+            self.news_analyzer = NewsAnalyzer(
+                config=analyzer_config,
+                tickers_config=analyzer_tickers,
+                models_data_dir=models_dir,
+                log_enabled=True,
+                log_level="INFO"
+            )
+            logger.info(f"NewsAnalyzer подключён: ML={'Да' if self.news_analyzer.use_ml_sentiment else 'Нет'}, "
+                       f"Aho-Corasick={'Да' if self.news_analyzer.use_ahocorasick_filter else 'Нет'}")
+        except Exception as e:
+            self.news_analyzer = None
+            logger.warning(f"NewsAnalyzer недоступен: {e}")
+
         # ✅ ЗАГРУЖАЕМ КОНФИГИ СЕНТИМЕНТА
         self.sentiment_config = self.rl_config.get("sentiment_integration", {})
         self.market_sentiment_weight = self.sentiment_config.get("market_sentiment_weight", 0.3)
@@ -110,6 +170,43 @@ class SmartPortfolioBroker:
         self.fast_learning_cycles = self.profit_config.get("fast_learning_cycles", 5)
         self.strategy_adaptation_cycles = self.profit_config.get("strategy_adaptation_cycles", 20)
 
+        # 🆕 МИКРОСТРУКТУРНЫЙ ФЕТЧЕР (прокси-стакан)
+        self.microstructure = microstructure_fetcher
+        logger.info("MicrostructureFetcher подключён")
+
+        # 🆕 КАСКАДНЫЙ ПРЕДСКАЗАТЕЛЬ ЦЕНЫ
+        self.price_predictor = price_predictor
+        logger.info("PricePredictionCascade подключён")
+
+        # 🆕 ЗАГРУЗЧИК ИСТОРИИ
+        self.history_loader = HistoryLoader(moex_fetcher=self.moex, technical_core=self.technical_core)
+        logger.info("HistoryLoader подключён")
+
+        # 🆕 ХОКС ПРОЦЕСС
+        self.hawkes = hawkes_signal
+        if self.hawkes:
+            logger.info(f"HawkesSignalGenerator подключён: {self.hawkes.get_stats()}")
+        else:
+            logger.warning("HawkesSignalGenerator недоступен")
+
+        # 🆕 ВАРИАНТ F: Каскадный confirmer входа
+        try:
+            from core.entry_cascading_confirmer import entry_confirmer
+            self.entry_confirmer = entry_confirmer
+            logger.info(f"EntryCascadingConfirmer подключён: {self.entry_confirmer.get_stats()}")
+        except Exception as e:
+            self.entry_confirmer = None
+            logger.warning(f"EntryCascadingConfirmer недоступен: {e}")
+
+        # 🆕 ВАРИАНТ D: Rolling exit manager
+        try:
+            from core.rolling_exit_manager import rolling_exit_manager
+            self.rolling_exit = rolling_exit_manager
+            logger.info(f"RollingExitManager подключён: {self.rolling_exit.get_stats()}")
+        except Exception as e:
+            self.rolling_exit = None
+            logger.warning(f"RollingExitManager недоступен: {e}")
+
         # Торговые переменные
         self.last_cycle_time = 0
         self.cycle_count = 0
@@ -122,18 +219,27 @@ class SmartPortfolioBroker:
         self.strategy_usage_counter = defaultdict(int)
         self.last_trade_time = defaultdict(float)
 
-        # LLM-коуч
+        # 🆕 v15.3: Fresh data tracking — отслеживаем last_seen_time для каждого тикера
+        # Это позволяет:
+        #   1. Делать инкрементальные запросы [last_seen+1s, now]
+        #   2. Детектить gaps между запросами
+        #   3. Помечать stale-данные
+        self._last_seen_times = {}  # {ticker: unix_ts}
+        self._last_macro_seen_time = 0.0
+        self._stale_data_count = 0  # счётчик циклов со stale-данными
+        self._consecutive_stale_cycles = 0  # подряд stale-циклов
+        self._last_fresh_macro_data = None  # кэш последних свежих макро-данных
+
+        # Параметры fresh-data из конфига
+        fresh_cfg = settings.get('fresh_data', {})
+        self._fresh_data_enabled = fresh_cfg.get('enabled', True)
+        self._fresh_poll_interval = fresh_cfg.get('poll_interval_seconds', 10)
+        self._fresh_max_stale_cycles = fresh_cfg.get('max_consecutive_stale_cycles', 5)
+
+        # LLM-коуч — ОТКЛЮЧЕН (заменён на каскадный предсказатель + микроструктуру)
         self.coach = None
         self.coach_log = []
         self.model_log = []
-        coach_config = self.rl_config.get('llm_coach', {})
-        if coach_config.get('enabled', False):
-            try:
-                from models.llm_coach import LLMCoach
-                self.coach = LLMCoach(coach_config)
-                logger.info("LLM-коуч инициализирован")
-            except Exception as e:
-                logger.error(f"Ошибка инициализации LLM-коуча: {e}")
 
         # Запуск компонентов
         self._initialize_components()
@@ -252,25 +358,177 @@ class SmartPortfolioBroker:
             logger.warning(f"Не удалось загрузить seed_experiences.json: {e}")
             return
 
+        added = 0
         for seed in seeds:
-            state = self._create_seed_state(seed["desc"])
-            if state is None:
+            try:
+                state = self._create_seed_state(seed)
+                if state is None:
+                    continue
+                strategy_params = list(self.model.strategies.values())[0] if self.model.strategies else {}
+                full_state = self.model._create_strategy_state(state, strategy_params)
+                experience = {
+                    'state': full_state.cpu(),
+                    'action': seed["action"],
+                    'reward': seed["reward"],
+                    'next_state': full_state.cpu(),
+                    'done': True,
+                    'pnl_rub': seed["reward"] * 100,
+                    'timestamp': datetime.now().isoformat()
+                }
+                if hasattr(self.model, 'prioritized_buffer'):
+                    self.model.prioritized_buffer.add(experience, td_error=2.0)
+                    added += 1
+            except Exception as e:
+                logger.debug(f"Seed-опыт '{seed.get('desc', '?')}' пропущен: {e}")
                 continue
-            strategy_params = list(self.model.strategies.values())[0] if self.model.strategies else {}
-            full_state = self.model._create_strategy_state(state, strategy_params)
-            experience = {
-                'state': full_state.cpu(),
-                'action': seed["action"],
-                'reward': seed["reward"],
-                'next_state': full_state.cpu(),
-                'done': True,
-                'pnl_rub': seed["reward"] * 100,
-                'timestamp': datetime.now().isoformat()
-            }
-            if hasattr(self.model, 'prioritized_buffer'):
-                self.model.prioritized_buffer.add(experience, td_error=2.0)
 
-        logger.debug("Seed-опыты добавлены в приоритетный буфер")
+        if added:
+            logger.debug(f"Seed-опыты добавлены в приоритетный буфер: {added}/{len(seeds)}")
+
+    def _create_seed_state(self, seed):
+        """
+        Создание синтетического state-вектора из seed-опыта (по params).
+        Возвращает torch.Tensor размерности model.total_state_dim или None при ошибке.
+
+        seed = {
+            "desc": "...",
+            "action": int,
+            "reward": float,
+            "params": {rsi, bb_pos, imoex_change, market_regime, momentum,
+                       has_position, pnl_pct, volume, hold_time, cash,
+                       positions_count, exposure, brent, brent_change,
+                       rvi, usd_rub, imoex, ...}
+        }
+        """
+        try:
+            if not isinstance(seed, dict):
+                logger.warning("_create_seed_state: seed must be a dict")
+                return None
+
+            params = seed.get("params", {}) or {}
+            if not params:
+                logger.debug(f"_create_seed_state: пустые params для seed '{seed.get('desc', '?')}'")
+                return None
+
+            # ——— Заглушки для синтетического тикера ———
+            ticker = "SBER"  # типичный liquid ticker для seed-обучения
+            try:
+                price = float(self.moex.get_price(ticker) or 250.0)
+            except Exception:
+                price = 250.0
+
+            # ——— Конвертируем params в формат market_data для build_state_vector ———
+            rsi = float(params.get("rsi", 50))
+            bb_pos = float(params.get("bb_pos", 0.5))
+            mom = float(params.get("momentum", 0.0))
+            imoex_change = float(params.get("imoex_change", 0))
+            market_regime = int(params.get("market_regime", 1))
+            volume = float(params.get("volume", 1_000_000_000))
+            brent = float(params.get("brent", 80))
+            brent_change = float(params.get("brent_change", 0))
+            rvi = float(params.get("rvi", 22))
+            usd_rub = float(params.get("usd_rub", 72))
+            imoex = float(params.get("imoex", 2500))
+            cash = float(params.get("cash", 5000))
+            positions_count = int(params.get("positions_count", 0))
+            exposure = float(params.get("exposure", 0.0))
+            has_position = bool(params.get("has_position", False))
+            pnl_pct = float(params.get("pnl_pct", 0))
+            hold_time = float(params.get("hold_time", 0))
+
+            # ——— market_data dict ———
+            market_data = {
+                'volume': volume,
+                'spread': 0.01,
+                'rsi': rsi,
+                'volatility': 0.1,
+                'sma_10_ratio': 1.0,
+                'sma_20_ratio': 1.0,
+                'bb_position': bb_pos,
+                'volume_ratio': 1.0,
+                'atr': price * 0.02,
+                'market_cap': 5_000_000_000_000,  # типичная кап.для SBER
+                'lot_size': 10,
+                'min_step': 0.01,
+                'sector': 'финансы',
+                'momentum': mom,
+                'market_regime': market_regime,
+                'imoex': imoex,
+                'imoex_change': imoex_change,
+                'rtsi': 1200,
+                'rtsi_change': imoex_change,
+                'rvi': rvi,
+                'rvi_change': 0,
+                'moexog': 100,
+                'moexfn': 100,
+                'brent': brent,
+                'brent_change': brent_change,
+                'market_liquidity_ratio': 0.7,
+                'market_activity_score': 0.5,
+                'spread_pct': 0.01,
+                'market_mood': 0.0,
+                'shares_turnover': 50_000_000_000 / 1e12,
+                'rvi_normalized': rvi / 100.0,
+                'imoex_normalized': imoex / 4000.0,
+                'market_cap_total': 50_000_000_000_000 / 1e14,
+                'liquidity_ratio': 0.7,
+                'cbr_rate_normalized': 0.08,
+                'vix': 0.4,
+                'moexog_normalized': 100 / 10000.0,
+            }
+
+            # ——— news_features (нулевые, т.к. синтетический опыт) ———
+            try:
+                news_features = self.model.encode_news([])
+            except Exception:
+                news_features = torch.zeros(1, self.model.news_encoded_dim if hasattr(self.model, 'news_encoded_dim') else 132)
+
+            # ——— Сентимент (если есть позиция — берём из pnl, иначе нейтральный) ———
+            sentiment = 0.0
+            if has_position:
+                sentiment = max(-0.5, min(0.5, pnl_pct / 10.0))
+
+            market_sentiment = 0.0
+            if imoex_change != 0:
+                market_sentiment = max(-0.5, min(0.5, imoex_change / 5.0))
+
+            # ——— Заглушка портфеля для build_state_vector ———
+            class _FakePortfolio:
+                def __init__(self, has_pos, pnl_pct, hold_time, cash, positions_count, exposure):
+                    self.positions = {}
+                    if has_pos:
+                        self.positions[ticker] = {
+                            'avg_price': price / (1 + pnl_pct / 100.0) if pnl_pct != 0 else price,
+                            'stop_loss': price * 0.97,
+                            'take_profit': price * 1.05,
+                            'buy_time': time.time() - hold_time * 3600,
+                            'target_hold_hours': 6,
+                            'qty': 100,
+                        }
+                    self.cash = cash
+                    self.initial_capital = 10000
+                    self.positions_count = positions_count
+                    self.exposure = exposure
+
+            fake_portfolio = _FakePortfolio(has_position, pnl_pct, hold_time, cash, positions_count, exposure)
+
+            # ——— build_state_vector ———
+            state = self.model.build_state_vector(
+                ticker=ticker,
+                price=price,
+                momentum=mom,
+                sentiment=sentiment,
+                news_features=news_features,
+                market_data=market_data,
+                market_sentiment=market_sentiment,
+                portfolio=fake_portfolio
+            )
+
+            return state.to(self.model.device)
+
+        except Exception as e:
+            logger.debug(f"_create_seed_state: ошибка создания состояния для seed '{seed.get('desc', '?')}': {e}")
+            return None
 
     def _get_ticker_sentiment(self, ticker: str) -> float:
         """Получение сентимента для тикера из оптимизированного фетчера"""
@@ -319,8 +577,96 @@ class SmartPortfolioBroker:
             logger.error(f"Ошибка получения рыночного сентимента: {e}")
             return 0.0
 
+    def _get_fresh_macro_data(self) -> Dict:
+        """
+        🆕 v15.3: Получение свежих макро-данных с трекингом timestamp и staleness.
+        Возвращает те же поля, что и moex.get_macro_data(), но с дополнительной
+        метаинформацией (server_time, is_stale).
+        """
+        try:
+            if self._fresh_data_enabled and hasattr(self.moex, 'get_fresh_macro_data'):
+                fresh = self.moex.get_fresh_macro_data()
+                if fresh.get('is_stale', False):
+                    logger.warning(f"[FRESH] macro data STALE — используются последние корректные данные")
+                    self._last_macro_seen_time = fresh.get('server_time', time.time())
+                else:
+                    self._last_macro_seen_time = fresh.get('server_time', time.time())
+                    self._last_fresh_macro_data = fresh
+
+                # Возвращаем в том же формате, что и get_macro_data
+                return {
+                    'imoex': fresh.get('imoex', 0.0),
+                    'imoex_change': fresh.get('imoex_change', 0.0),
+                    'rtsi': fresh.get('rtsi', 0.0),
+                    'rtsi_change': fresh.get('rtsi_change', 0.0),
+                    'rvi': fresh.get('rvi', 20.0),
+                    'rvi_change': fresh.get('rvi_change', 0.0),
+                    'brent': fresh.get('brent', 0.0),
+                    'brent_change': fresh.get('brent_change', 0.0),
+                    'usd_rub': fresh.get('usd_rub', 0.0),
+                    'usd_rub_change': fresh.get('usd_rub_change', 0.0),
+                    'vix': fresh.get('vix', 0.0),
+                    # Совместимость с оставшимися полями get_macro_data
+                    'market_mood': 0.0,
+                    'moexbmi': 0.0,
+                    'moexfn': fresh.get('imoex', 0.0),  # fallback
+                    'moexog': 0.0,
+                    'moextl': 0.0,
+                    'cny_rub': 0.0,
+                    'cny_rub_change': 0.0,
+                    'cbr_rate': 0.0,
+                    'shares_turnover': 0,
+                    'market_cap': 0,
+                    'market_liquidity_ratio': 0.0,
+                    'market_activity_score': 0.0,
+                }
+            else:
+                # Fallback на старый API
+                return self.moex.get_macro_data()
+        except Exception as e:
+            logger.error(f"Ошибка получения свежих макро-данных: {e}")
+            # Возвращаем последние сохранённые макро-данные
+            if self._last_fresh_macro_data:
+                return self._last_fresh_macro_data
+            return self.moex.get_macro_data()
+
+    def _generate_microstructure_signals(self, prices: Dict[str, float],
+                                          securities: Dict = None) -> List[Dict]:
+        """🆕 Генерация сигналов на основе микроструктуры (прокси-стакан)"""
+        ms_config = self.settings.get('microstructure', {})
+        if not ms_config.get('enabled', True):
+            return []
+
+        max_tickers = ms_config.get('max_tickers_per_cycle', 20)
+        buy_threshold = ms_config.get('imbalance_buy_threshold', 0.3)
+        sell_threshold = ms_config.get('imbalance_sell_threshold', -0.3)
+        max_spread = ms_config.get('max_spread_pct_for_signal', 0.2)
+
+        signals = []
+        for ticker, price in list(prices.items())[:max_tickers]:
+            try:
+                sig = self.microstructure.generate_signal(
+                    ticker, securities,
+                    buy_threshold=buy_threshold,
+                    sell_threshold=sell_threshold,
+                    max_spread_pct=max_spread,
+                )
+                if sig and sig['action'] != 'HOLD':
+                    signals.append({
+                        'ticker': ticker,
+                        'action': sig['action'],
+                        'confidence': sig['confidence'],
+                        'price': price,
+                        'reason': sig['reason'],
+                        'sentiment': sig.get('imbalance', 0),
+                        'news_count': 0,
+                    })
+            except Exception:
+                pass
+        return signals
+
     def _generate_news_signals(self, prices: Dict[str, float]) -> List[Dict]:
-        """Генерация сигналов на основе новостей с маппингом тикер→название"""
+        """Генерация сигналов на основе новостей через NewsAnalyzer."""
         signals = []
 
         try:
@@ -329,6 +675,44 @@ class SmartPortfolioBroker:
             if not news_items:
                 return signals
 
+            # 🆕 v15: Используем NewsAnalyzer для обработки
+            if self.news_analyzer:
+                # Конвертируем формат новостей для NewsAnalyzer
+                raw_news = []
+                for item in news_items:
+                    raw_news.append({
+                        'id': item.get('id', item.get('link', '')),
+                        'title': item.get('title', ''),
+                        'content': item.get('summary', item.get('title', '')),
+                        'link': item.get('link', ''),
+                        'published_at': item.get('published', item.get('datetime', '')),
+                        'source_name': item.get('source', 'unknown'),
+                        'priority': item.get('priority', 5),
+                    })
+
+                result = self.news_analyzer.process(raw_news)
+
+                if result.get('status') == 'success':
+                    # Конвертируем сигналы NewsAnalyzer в формат системы
+                    for signal in result.get('signals', []):
+                        ticker = signal.get('ticker', '')
+                        if ticker in prices:
+                            signals.append({
+                                'ticker': ticker,
+                                'action': signal.get('signal', 'HOLD'),
+                                'confidence': signal.get('confidence', 0.5),
+                                'reason': 'news_analysis',
+                                'news_count': signal.get('news_count', 0),
+                                'sentiment': signal.get('sentiment', 0),
+                                'timestamp': signal.get('timestamp', datetime.now().isoformat()),
+                            })
+
+                    logger.debug(f"NewsAnalyzer: {result.get('total_filtered', 0)} новостей → "
+                               f"{result.get('tickers_found', 0)} тикеров → "
+                               f"{len(signals)} сигналов")
+                    return signals
+
+            # Fallback: старая логика если NewsAnalyzer недоступен
             news_with_sentiment = self.news_fetcher.analyze_sentiment_batch(news_items)
 
             securities = self.moex.get_all_securities()
@@ -501,6 +885,36 @@ class SmartPortfolioBroker:
 
             # ===== BUY действия =====
             if action_str.startswith('BUY'):
+                # 🆕 Если включён EntryCascadingConfirmer — старый путь BUY блокируется
+                # (входы управляются только через Вариант F)
+                # 🆕 v15.6: Fallback mode — если entry_confirmer не дал ни одного сигнала
+                # за последние N циклов, разрешаем legacy BUY с высокой confidence (>= 0.6)
+                if self.entry_confirmer and self.entry_confirmer.enabled:
+                    fallback_cfg = self.settings.get('entry_cascading', {}).get('fallback', {})
+                    fallback_enabled = fallback_cfg.get('enabled', True)
+                    fallback_cycles = fallback_cfg.get('min_cycles_without_entry', 10)
+                    fallback_min_conf = fallback_cfg.get('min_confidence', 0.6)
+
+                    # Считаем подряд идущие циклы без entry-сигналов
+                    if not hasattr(self, '_consecutive_no_entry_cycles'):
+                        self._consecutive_no_entry_cycles = 0
+
+                    should_fallback = (fallback_enabled
+                                      and self._consecutive_no_entry_cycles >= fallback_cycles
+                                      and confidence >= fallback_min_conf)
+
+                    if should_fallback:
+                        logger.info(
+                            f"[ENTRY_F fallback] BUY {ticker} ALLOWED via legacy path "
+                            f"(conf={confidence:.2f} >= {fallback_min_conf}, "
+                            f"no_entry_cycles={self._consecutive_no_entry_cycles})"
+                        )
+                        # Продолжаем к исполнению — не блокируем, не continue
+                    else:
+                        logger.debug(f"[ENTRY_F active] BUY {ticker} blocked in legacy path "
+                                    f"(entry managed by cascading_confirmer, "
+                                    f"no_entry_cycles={getattr(self, '_consecutive_no_entry_cycles', 0)})")
+                        continue
                 # Вызов коуча перед всеми проверками
                 coach_action_str = None
                 if self.coach and self.coach.is_available():
@@ -1037,7 +1451,7 @@ class SmartPortfolioBroker:
         news_features = self.model.encode_news(news_texts)
 
         market_sentiment = self._get_market_sentiment()
-        macro_data = self.moex.get_macro_data()
+        macro_data = self._get_fresh_macro_data()
 
         # Коэффициенты нормализации из конфига модели
         norm = self.model.normalization
@@ -1243,14 +1657,8 @@ class SmartPortfolioBroker:
                     if regular_loss:
                         logger.debug(f"Регулярное обучение: Loss={regular_loss:.6f}")
 
-            # === LLM-КОУЧ ===
-            if self.coach and self.coach.is_available():
-                coach_config = self.rl_config.get('llm_coach', {})
-                coach_interval = coach_config.get('coach_interval_cycles', 20)
-                weight = coach_config.get('coach_action_weight', 0.3)
-
-                if self.cycle_count % coach_interval == 0:
-                    self._invoke_coach(weight)
+            # === LLM-КОУЧ — ОТКЛЮЧЕН ===
+            # Заменён на каскадный предсказатель цены и микроструктуру
 
             # 5. Адаптация стратегий
             if self.cycle_count % self.strategy_adaptation_cycles == 0:
@@ -1690,6 +2098,119 @@ class SmartPortfolioBroker:
         # Загрузка состояния портфеля
         self._load_portfolio_state()
 
+        # 🆕 ЗАГРУЗКА ИСТОРИЧЕСКИХ ДАННЫХ (3 месяца при первом старте, инкремент при рестарте)
+        try:
+            logger.info("🔄 Загрузка исторических данных...")
+            self.history_data = self.history_loader.load_history(months_back=3)
+            chaos_metrics = self.history_loader.get_chaos_metrics()
+            if chaos_metrics:
+                logger.info(f"📊 Хаос-метрики загружены: {len(chaos_metrics)} тикеров")
+                for ticker, m in chaos_metrics.items():
+                    logger.info(f"  {ticker}: {m.get('n_points', 0)} точек, vol={m.get('volatility_pct', 0):.3f}%")
+            self.chaos_metrics = chaos_metrics
+
+            # 🆕 Инициализация Хокса историческими ценами
+            if self.hawkes and self.history_data:
+                import time as _time_init
+                now_ts = _time_init.time()
+                n_initialized = 0
+                for ticker, hist in self.history_data.items():
+                    prices = hist.get('prices', [])
+                    if len(prices) < 50:
+                        continue
+                    # Устанавливаем волатильность для per-ticker threshold
+                    if ticker in self.chaos_metrics:
+                        vol = self.chaos_metrics[ticker].get('volatility_pct', 0.5)
+                        self.hawkes.set_ticker_volatility(ticker, vol)
+                    # 🆕 v14.1: Timestamps заканчиваются СЕЙЧАС, а не 30 дней назад
+                    # Раньше: base_ts = now - 30 дней → exp(-beta * 30_days) = 0 → forecast = 0
+                    # Теперь: последние 200 часов до now → события свежие → forecast работает
+                    n_points = min(len(prices), 200)
+                    for i, p in enumerate(prices[-n_points:]):
+                        # Каждая точка = 1 час назад от now
+                        ts = now_ts - (n_points - 1 - i) * 3600
+                        self.hawkes.update_price(ticker, p, ts)
+                    # Обучаем Хокс с current_time = now
+                    self.hawkes.fit(ticker, now_ts)
+                    n_initialized += 1
+                h_stats = self.hawkes.get_stats()
+                logger.info(f"🎯 Хокс инициализирован часовыми свечами: {n_initialized} тикеров, "
+                           f"bullish_events={h_stats['total_bullish_events']}, "
+                           f"bearish_events={h_stats['total_bearish_events']}, "
+                           f"fitted={h_stats['tickers_fitted']}")
+
+            # 🆕 v15.4: Intraday bootstrap — фид 10-минутных свечей для ускоренного обучения Hawkes
+            # Часовые свечи дают мало событий (|log-return| < threshold). 10-мин свечи за 5 дней
+            # дают ~720 точек и значительно больше событий, что позволяет Hawkes обучиться сразу.
+            if self.hawkes:
+                try:
+                    fresh_cfg = self.settings.get('fresh_data', {})
+                    hawkes_cfg = self.settings.get('hawkes', {})
+                    bootstrap_cfg = hawkes_cfg.get('bootstrap', {})
+
+                    bootstrap_enabled = bootstrap_cfg.get('enabled', True)
+                    interval_min = bootstrap_cfg.get('interval_minutes', 10)
+                    days_back = bootstrap_cfg.get('days_back', 5)
+                    max_tickers = bootstrap_cfg.get('max_tickers', 30)
+
+                    if bootstrap_enabled:
+                        # Берём топ-тикеров из universe (если есть portfolio_state — добавляем тикеры портфеля)
+                        bootstrap_tickers = []
+                        try:
+                            with open('config/tickers.json', 'r', encoding='utf-8') as f:
+                                tickers_cfg = json.load(f)
+                            bootstrap_tickers = [t['ticker'] for t in tickers_cfg.get('watchlist', [])][:max_tickers]
+                        except Exception:
+                            bootstrap_tickers = list(self.history_data.keys())[:max_tickers]
+
+                        # Добавляем тикеры из портфеля (если есть)
+                        try:
+                            with open('data/portfolio_state.json', 'r') as f:
+                                portfolio = json.load(f)
+                                for t in portfolio.get('positions', {}).keys():
+                                    if t not in bootstrap_tickers:
+                                        bootstrap_tickers.append(t)
+                        except Exception:
+                            pass
+
+                        logger.info(f"🚀 Hawkes intraday bootstrap: {len(bootstrap_tickers)} тикеров, "
+                                    f"interval={interval_min}м, days_back={days_back}")
+
+                        bootstrap_results = self.history_loader.bootstrap_hawkes_from_intraday(
+                            hawkes_instance=self.hawkes,
+                            tickers=bootstrap_tickers,
+                            interval_minutes=interval_min,
+                            days_back=days_back,
+                            chaos_metrics=self.chaos_metrics,
+                        )
+
+                        # Логируем результаты
+                        fitted_count = sum(1 for r in bootstrap_results.values() if r.get('fitted'))
+                        no_data_count = sum(1 for r in bootstrap_results.values() if r.get('error') == 'no_data')
+                        logger.info(
+                            f"📊 Hawkes intraday bootstrap завершён: "
+                            f"fitted={fitted_count}/{len(bootstrap_tickers)}, "
+                            f"no_data={no_data_count}"
+                        )
+
+                        # Если fitted_count = 0 — предупреждаем пользователя
+                        if fitted_count == 0:
+                            logger.warning(
+                                "⚠️ Hawkes не обучился ни на одном тикере! "
+                                "Возможные причины: 1) MOEX недоступен, 2) порог слишком высок "
+                                "(снизьте hawkes.per_ticker_thresholds.multiplier в settings.json), "
+                                "3) низкая волатильность рынка"
+                            )
+
+                except Exception as e:
+                    logger.warning(f"Hawkes intraday bootstrap не удался: {e}")
+                    import traceback
+                    logger.debug(traceback.format_exc())
+        except Exception as e:
+            logger.warning(f"Не удалось загрузить историю: {e}")
+            self.history_data = {}
+            self.chaos_metrics = {}
+
         # Запуск планировщика задач
         self.scheduler.schedule_daily_tasks(
             pre_market_callback=self.pre_session_analysis,
@@ -1711,7 +2232,7 @@ class SmartPortfolioBroker:
             # Получаем текущие цены для проверки стопов
             prices = self._get_current_prices()
             if prices:
-                self.check_stops_and_tp(prices)
+                self.check_stops_and_tp(prices, None)
         else:
             logger.info("Рынок закрыт при запуске, ожидаем открытия")
             self.trading_enabled = False
@@ -1795,7 +2316,7 @@ class SmartPortfolioBroker:
 
         prices = self._get_current_prices()
         if prices:
-            self.check_stops_and_tp(prices)
+            self.check_stops_and_tp(prices, None)
 
     def on_market_close(self):
         """Действия при закрытии рынка"""
@@ -1878,10 +2399,107 @@ class SmartPortfolioBroker:
             self.current_tickers = tickers
 
             prices = {}
-            for ticker in tickers:
-                price = self.moex.get_price(ticker)
-                if price:
-                    prices[ticker] = price
+            # 🆕 v15.3: Используем FRESH DATA API (без кэша, с timestamp и staleness-чеком)
+            # Старый batch-запрос (с кэшем) оставлен как fallback
+            if self._fresh_data_enabled and hasattr(self.moex, 'get_fresh_market_data'):
+                fresh_data = self.moex.get_fresh_market_data(
+                    tickers=tickers,
+                    last_seen_times=self._last_seen_times,
+                    poll_interval_seconds=self._fresh_poll_interval,
+                )
+
+                # Подсчитываем stale-тикеры
+                stale_tickers = []
+                gap_tickers = []
+                fresh_count = 0
+                for ticker, info in fresh_data.items():
+                    price = info.get('price', 0.0)
+                    if price > 0:
+                        prices[ticker] = price
+
+                        # Обновляем last_seen_time
+                        server_time = info.get('server_time', time.time())
+                        self._last_seen_times[ticker] = server_time
+
+                        # 🆕 Передаём timestamp + is_stale в technical_core
+                        is_stale = info.get('is_stale', False)
+                        gap = info.get('gap_detected', False)
+
+                        if is_stale:
+                            stale_tickers.append(ticker)
+                        elif gap:
+                            gap_tickers.append(ticker)
+                        else:
+                            fresh_count += 1
+
+                        # Обновляем technical_core с timestamp-проверкой на дубликаты
+                        self.technical_core.update_price_data(
+                            ticker=ticker,
+                            price=price,
+                            volume=int(info.get('volume', 0) or 0),
+                            timestamp=server_time,
+                            is_stale=is_stale,
+                        )
+
+                # Логирование свежести данных
+                if stale_tickers:
+                    logger.warning(
+                        f"[FRESH] STALE данные для {len(stale_tickers)} тикеров: "
+                        f"{stale_tickers[:5]}... — индикаторы НЕ пересчитаны"
+                    )
+                    self._stale_data_count += 1
+                    self._consecutive_stale_cycles += 1
+                else:
+                    self._consecutive_stale_cycles = 0
+
+                if gap_tickers:
+                    logger.info(
+                        f"[FRESH] GAPS детектированы для {len(gap_tickers)} тикеров: "
+                        f"{gap_tickers[:5]}... — запросы покрывают весь пропущенный интервал"
+                    )
+
+                if fresh_count > 0:
+                    logger.debug(
+                        f"[FRESH] Свежие данные: {fresh_count} тикеров | "
+                        f"stale={len(stale_tickers)} | gaps={len(gap_tickers)}"
+                    )
+
+                # 🆕 Если слишком много подряд stale-циклов — экстренный рефреш
+                if self._consecutive_stale_cycles >= self._fresh_max_stale_cycles:
+                    logger.error(
+                        f"[FRESH] ⚠️ {self._consecutive_stale_cycles} подряд stale-циклов! "
+                        f"Возможно, MOEX недоступен. Принудительный запрос всех тикеров без кэша."
+                    )
+                    # Сбрасываем last_seen_times — следующий цикл запросит всё заново
+                    self._last_seen_times.clear()
+                    self._consecutive_stale_cycles = 0
+
+                logger.debug(f"Batch-запрос: получено {len(prices)} цен из {len(tickers)} тикеров")
+            else:
+                # Fallback на старый batch-запрос (с кэшем)
+                batch_prices = self.moex.get_prices_batch(tickers)
+                if batch_prices:
+                    prices = batch_prices
+                    logger.debug(f"Batch-запрос: получено {len(prices)} цен из {len(tickers)} тикеров")
+                else:
+                    # Fallback на индивидуальные запросы если batch не сработал
+                    logger.warning("Batch-запрос не удался, fallback на индивидуальные")
+                    for ticker in tickers:
+                        price = self.moex.get_price(ticker)
+                        if price:
+                            prices[ticker] = price
+
+                # 🆕 v15.3: Даже в fallback-режиме обновляем technical_core с timestamp
+                now_ts = time.time()
+                for ticker, price in prices.items():
+                    self.technical_core.update_price_data(
+                        ticker=ticker,
+                        price=price,
+                        volume=0,
+                        timestamp=now_ts,
+                        is_stale=False,
+                    )
+                    self._last_seen_times[ticker] = now_ts
 
             # Фильтр ликвидности
             liquidity_filter = self.settings.get('liquidity_filter', {})
@@ -1891,6 +2509,16 @@ class SmartPortfolioBroker:
                 max_spread = liquidity_filter.get('max_spread_percent', 100.0)
                 min_price = liquidity_filter.get('min_price', 0)
                 allowed_boards = liquidity_filter.get('allowed_boards', [])
+
+                # 🆕 Адаптивный порог объёма для выходных (из конфига)
+                now_msk = datetime.now()
+                if now_msk.strftime('%A').lower() in ['saturday', 'sunday']:
+                    vol_divisor = liquidity_filter.get('weekend_volume_divisor', 5)
+                    trades_divisor = liquidity_filter.get('weekend_trades_divisor', 3)
+                    weekend_min_trades = liquidity_filter.get('weekend_min_trades', 30)
+                    min_volume = min_volume // vol_divisor
+                    min_trades = max(min_trades // trades_divisor, weekend_min_trades)
+                    logger.debug(f"Выходной день: снижены пороги ликвидности (vol={min_volume:,}, trades={min_trades})")
 
                 filtered_prices = {}
                 for ticker, price in prices.items():
@@ -1918,8 +2546,9 @@ class SmartPortfolioBroker:
                 logger.debug(f"Фильтр ликвидности: {len(prices)} → {len(filtered_prices)} тикеров")
                 prices = filtered_prices
 
-            if len(prices) < 10:
-                logger.warning(f"Слишком мало цен после фильтра: {len(prices)}")
+            min_tickers = liquidity_filter.get('min_tickers_after_filter', 10) if liquidity_filter.get('enabled', False) else 3
+            if len(prices) < min_tickers:
+                logger.warning(f"Слишком мало цен после фильтра: {len(prices)} (минимум {min_tickers})")
                 return
 
             all_signals = []
@@ -1934,13 +2563,39 @@ class SmartPortfolioBroker:
                 all_signals.extend(tech_signals)
                 logger.debug(f"Сгенерировано технических сигналов: {len(tech_signals)}")
 
+            # 🆕 МИКРОСТРУКТУРНЫЕ СИГНАЛЫ (прокси-стакан)
+            try:
+                ms_signals = self._generate_microstructure_signals(prices, securities)
+                all_signals.extend(ms_signals)
+                logger.debug(f"Сгенерировано микроструктурных сигналов: {len(ms_signals)}")
+            except Exception as e:
+                logger.debug(f"Ошибка микроструктурных сигналов: {e}")
+
             filtered_signals = self._aggregate_signals(all_signals)
 
             # Применяем фильтрацию по успешности тикеров
             filtered_signals = self._filter_signals_by_success_rate(filtered_signals)
 
             self.signals_cache = filtered_signals[:10]
-            self.check_stops_and_tp(prices)
+
+            # 🆕 Обновление Хокса ценами и переобучение
+            if self.hawkes:
+                import time as _time
+                now_ts = _time.time()
+                for ticker, price in prices.items():
+                    self.hawkes.update_price(ticker, price, now_ts)
+                # Переобучение для тикеров в портфеле И для тикеров-кандидатов
+                for ticker in list(self.portfolio.positions.keys()) + list(prices.keys())[:30]:
+                    if self.hawkes.should_refit(ticker, self.cycle_count):
+                        self.hawkes.fit(ticker, now_ts)
+
+            # 🆕 ВАРИАНТ D: Rolling exit evaluation
+            self._evaluate_rolling_exits(prices, securities)
+
+            # 🆕 ВАРИАНТ F: Entry screening
+            self._evaluate_entry_signals(prices, securities)
+
+            self.check_stops_and_tp(prices, securities)
 
             # ===== HOLD REWARD =====
             hold_config = self.rl_config.get('hold_reward', {})
@@ -2113,14 +2768,20 @@ class SmartPortfolioBroker:
         return critical_trades
 
     def _get_current_prices(self) -> Dict[str, float]:
-        """Получение текущих цен для портфеля"""
+        """Получение текущих цен для портфеля — гарантированно для всех позиций"""
         prices = {}
-
         for ticker in list(self.portfolio.positions.keys()):
             price = self.moex.get_price(ticker)
-            if price:
+            if price and price > 0:
                 prices[ticker] = price
-
+            else:
+                # Fallback: берём из securities или из avg_price позиции
+                securities = self.moex.get_all_securities()
+                sec_price = securities.get(ticker, {}).get('price', 0)
+                if sec_price and sec_price > 0:
+                    prices[ticker] = sec_price
+                else:
+                    prices[ticker] = self.portfolio.positions[ticker].get('avg_price', 0)
         return prices
 
     def _aggregate_signals(self, signals: List[Dict]) -> List[Dict]:
@@ -2237,7 +2898,7 @@ class SmartPortfolioBroker:
         except Exception as e:
             logger.error(f"Ошибка записи сделки для обучения: {e}")
 
-    def check_stops_and_tp(self, prices: Dict[str, float]):
+    def check_stops_and_tp(self, prices: Dict[str, float], securities: Dict = None):
         """Проверка стоп-лоссов и тейк-профитов с трейлинг-стопом"""
         cfg = self.settings
 
@@ -2394,6 +3055,517 @@ class SmartPortfolioBroker:
 
                         logger.info(f"ТЕЙК-ПРОФИТ: {ticker} {qty} @ {price:.2f} "
                                     f"({change_pct:+.1f}%, PnL: {pnl:+.0f}₽)")
+                continue  # позиция закрыта по TP
+
+            # ===== 🆕 КАСКАДНЫЙ ПРЕДСКАЗАТЕЛЬ ЦЕНЫ =====
+            try:
+                hold_time_h = (time.time() - pos.get('buy_time', time.time())) / 3600
+                indicators = self.technical_core.calculate_indicators(ticker)
+                ms_data = self.microstructure.get_microstructure(ticker, securities)
+                hurst = 0.5
+                if hasattr(self, 'chaos_metrics') and ticker in self.chaos_metrics:
+                    hurst = self.chaos_metrics[ticker].get('hurst', 0.5)
+                # Получаем base state и дополняем strategy_params до 227
+                base_state = self.ticker_states.get(ticker)
+                full_state = None
+                if base_state is not None:
+                    default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                    strategy_name = pos.get('strategy', default_name)
+                    strategy_params = self.model.strategies.get(
+                        strategy_name, self.model.strategies.get(default_name, {}))
+                    full_state = self.model._create_strategy_state(base_state, strategy_params)
+                # 🆕 Хокс-сигнал
+                hawkes_sig = 0.0
+                if self.hawkes:
+                    hawkes_sig = self.hawkes.get_signal(ticker)
+                # 🆕 D₂ из хаос-метрик
+                d2 = 2.5
+                if hasattr(self, 'chaos_metrics') and ticker in self.chaos_metrics:
+                    d2 = self.chaos_metrics[ticker].get('fractal_dim', 2.5)
+                prediction = self.price_predictor.predict(
+                    ticker=ticker, entry_price=entry_price, current_price=price,
+                    hold_time_hours=hold_time_h, model=self.model, state=full_state,
+                    indicators=indicators, microstructure=ms_data,
+                    hawkes_signal=hawkes_sig, hurst=hurst,
+                )
+                if prediction['action'] == 'SELL':
+                    qty = pos['qty']
+                    if lot_size > 1:
+                        qty = (qty // lot_size) * lot_size
+                        if qty == 0:
+                            qty = lot_size
+                    if qty > 0 and self.portfolio.sell(ticker, qty, price):
+                        pnl = (price - entry_price) * qty
+                        self.risk_manager.update_trade_result(
+                            ticker=ticker, action='CASCADE_PREDICTION',
+                            quantity=qty, price=price, pnl=pnl)
+                        logger.info(f"🎯 КАСКАД-ПРОДАЖА: {ticker} {qty} @ {price:.2f} "
+                                    f"({change_pct:+.1f}%, PnL: {pnl:+.0f}₽) "
+                                    f"[{prediction['horizon_name']}, P(down)={prediction['p_down']:.2f}]")
+                        self.price_predictor.reset_ticker(ticker)
+                        continue
+            except Exception as e:
+                logger.debug(f"Ошибка каскада для {ticker}: {e}")
+
+    # ============================================================
+    # 🆕 ВАРИАНТ D: Rolling Exit
+    # ============================================================
+    def _evaluate_rolling_exits(self, prices: Dict, securities: Dict):
+        """Почасовая переоценка позиций через RollingExitManager."""
+        if not self.rolling_exit or not self.rolling_exit.enabled:
+            return
+
+        try:
+            # 🆕 Синхронизация: регистрируем позиции, которых нет в rolling_exit
+            active_in_re = set(self.rolling_exit.get_active_positions().keys())
+            for ticker, pos in self.portfolio.positions.items():
+                if ticker not in active_in_re and ticker in prices:
+                    chaos = {}
+                    if hasattr(self, 'chaos_metrics') and ticker in self.chaos_metrics:
+                        chaos = self.chaos_metrics[ticker]
+                    hawkes_sig = self.hawkes.get_signal(ticker) if self.hawkes else 0
+                    ms = self.microstructure.get_microstructure(ticker, securities) or {}
+                    try:
+                        self.rolling_exit.on_buy(
+                            ticker=ticker,
+                            price=pos.get('avg_price', prices[ticker]),
+                            qty=pos.get('qty', 0),
+                            chaos_metrics=chaos,
+                            hawkes_signal_val=hawkes_sig,
+                            ms_imbalance=ms.get('imbalance', 0),
+                            strategy_stop_loss_pct=None,
+                        )
+                        if 'buy_time' in pos and ticker in self.rolling_exit._positions:
+                            self.rolling_exit._positions[ticker].entry_time = pos['buy_time']
+                        logger.info(f"[ROLL_EXIT] registered existing position {ticker}")
+                    except Exception as e:
+                        logger.warning(f"Failed to register {ticker} in rolling_exit: {e}")
+
+            active_count = self.rolling_exit.get_stats().get('active_positions', 0)
+            logger.debug(f"[ROLL_EXIT] active_positions={active_count}, portfolio={len(self.portfolio.positions)}")
+            if active_count == 0:
+                return
+
+            for ticker in list(self.portfolio.positions.keys()):
+                if ticker not in prices:
+                    continue
+                try:
+                    price = prices[ticker]
+
+                    def get_pred_1h(t):
+                        try:
+                            pos = self.portfolio.positions.get(t)
+                            if not pos:
+                                return None
+                            entry_p = pos.get('avg_price', price)
+                            hold_h = (time.time() - pos.get('buy_time', time.time())) / 3600
+                            indicators = self.technical_core.calculate_indicators(t)
+                            ms_data = self.microstructure.get_microstructure(t, securities)
+                            hurst = 0.5
+                            if hasattr(self, 'chaos_metrics') and t in self.chaos_metrics:
+                                hurst = self.chaos_metrics[t].get('hurst', 0.5)
+                            base_state = self.ticker_states.get(t)
+                            full_state = None
+                            if base_state is not None:
+                                default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                                strategy_name = pos.get('strategy', default_name)
+                                strategy_params = self.model.strategies.get(
+                                    strategy_name, self.model.strategies.get(default_name, {}))
+                                full_state = self.model._create_strategy_state(base_state, strategy_params)
+                            hawkes_sig = self.hawkes.get_signal(t) if self.hawkes else 0
+                            pred = self.price_predictor.predict(
+                                ticker=t, entry_price=entry_p, current_price=price,
+                                hold_time_hours=hold_h, model=self.model, state=full_state,
+                                indicators=indicators, microstructure=ms_data,
+                                hawkes_signal=hawkes_sig, hurst=hurst,
+                            )
+                            return pred
+                        except Exception as e:
+                            logger.debug(f"pred_1h callback error {t}: {e}")
+                            return None
+
+                    def get_hawkes_sig(t):
+                        if not self.hawkes:
+                            return 0
+                        return self.hawkes.get_signal(t)
+
+                    def get_indicators_cb(t):
+                        try:
+                            ind = self.technical_core.calculate_indicators(t) or {}
+                            prices_hist = self.technical_core.price_history.get(t, {}).get('prices', [])
+                            if len(prices_hist) >= 6:
+                                local_max_6h = max(prices_hist[-6:])
+                                ind['local_max_6h'] = local_max_6h
+                                ind['distance_from_local_max_pct'] = (price - local_max_6h) / local_max_6h * 100
+                            else:
+                                ind['local_max_6h'] = price
+                                ind['distance_from_local_max_pct'] = 0
+                            ind['rsi_short'] = ind.get('rsi', 50)
+                            ind['momentum_1h'] = ind.get('momentum', 0)
+                            if len(prices_hist) >= 4:
+                                ind['momentum_4h'] = (prices_hist[-1] - prices_hist[-4]) / prices_hist[-4] * 100
+                            else:
+                                ind['momentum_4h'] = ind.get('momentum', 0)
+                            return ind
+                        except Exception as e:
+                            logger.debug(f"indicators callback error {t}: {e}")
+                            return {}
+
+                    def get_ms_cb(t):
+                        try:
+                            return self.microstructure.get_microstructure(t, securities) or {}
+                        except Exception:
+                            return {}
+
+                    decision = self.rolling_exit.evaluate(
+                        ticker=ticker,
+                        current_price=price,
+                        current_cycle=self.cycle_count,
+                        get_pred_1h=get_pred_1h,
+                        get_hawkes_signal=get_hawkes_sig,
+                        get_indicators=get_indicators_cb,
+                        get_microstructure=get_ms_cb,
+                    )
+                    if decision:
+                        if decision.action != 'HOLD':
+                            self._execute_rolling_exit_decision(decision, securities, prices)
+                        else:
+                            logger.debug(f"[ROLL_EXIT] {ticker} HOLD | "
+                                        f"score={decision.sell_score:.2f}/{decision.threshold:.2f} | "
+                                        f"{decision.reason}")
+                            # 🆕 v14: Логируем в model_log
+                            self.model_log.append({
+                                'time': datetime.now().strftime('%H:%M:%S'),
+                                'ticker': ticker,
+                                'action': 'EXIT_HOLD',
+                                'state_value': decision.sell_score,
+                                'coach_advice': f'score={decision.sell_score:.2f}/{decision.threshold:.2f}',
+                                'matched': True,
+                            })
+                            if len(self.model_log) > 50:
+                                self.model_log = self.model_log[-50:]
+
+                except Exception as e:
+                    logger.warning(f"Rolling exit error {ticker}: {e}")
+                    import traceback
+                    logger.debug(traceback.format_exc())
+        except Exception as e:
+            logger.error(f"_evaluate_rolling_exits critical error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
+    def _execute_rolling_exit_decision(self, decision, securities: Dict, prices: Dict):
+        """Исполнение решения rolling exit."""
+        ticker = decision.ticker
+        if ticker not in self.portfolio.positions:
+            return
+        pos = self.portfolio.positions[ticker]
+        price = prices.get(ticker, pos.get('avg_price', 0))
+        if price <= 0:
+            return
+        lot_size = securities.get(ticker, {}).get('lot_size', 1)
+        qty = decision.qty_to_sell
+        if lot_size > 1:
+            qty = (qty // lot_size) * lot_size
+            if qty == 0:
+                qty = lot_size
+        if qty <= 0:
+            return
+        entry_price = pos.get('avg_price', price)
+        if self.portfolio.sell(ticker, qty, price):
+            pnl = (price - entry_price) * qty
+            self.risk_manager.update_trade_result(
+                ticker=ticker, action=decision.action,
+                quantity=qty, price=price, pnl=pnl
+            )
+            self.rolling_exit.on_partial_fill(ticker, qty)
+            logger.info(f"🎯 [ROLL_EXIT] {decision.action} {ticker} {qty} @ {price:.2f} "
+                       f"(PnL: {pnl:+.0f}₽) | {decision.reason}")
+
+    # ============================================================
+    # 🆕 ВАРИАНТ F: Entry Cascading Confirmer
+    # ============================================================
+    def _evaluate_entry_signals(self, prices: Dict, securities: Dict):
+        """Скрининг входов через EntryCascadingConfirmer."""
+        if not self.entry_confirmer or not self.entry_confirmer.enabled:
+            return
+        # Скрининг каждый цикл (в реальной системе — каждые 15 минут)
+        # На тесте — каждый, чтобы быстрее получить сигнал
+        logger.debug(f"[ENTRY_F] screen start, universe_size={len(prices)}")
+
+        # Получаем вселенную тикеров из конфига
+        try:
+            with open('config/tickers.json', 'r', encoding='utf-8') as f:
+                tickers_cfg = json.load(f)
+            universe = [t['ticker'] for t in tickers_cfg.get('watchlist', [])]
+        except Exception:
+            universe = list(prices.keys())[:60]
+
+        # Ограничиваем вселенную теми, у кого есть цена
+        universe = [t for t in universe if t in prices]
+
+        # Callback-функции
+        def get_hawkes_forecast(t, h):
+            if not self.hawkes:
+                return {'bull_expected': 0, 'bear_expected': 0,
+                        'prob_bull': 0, 'net_signal': 0}
+            return self.hawkes.forecast(t, time.time(), h)
+
+        def get_indicators_cb(t):
+            try:
+                return self.technical_core.calculate_indicators(t) or {}
+            except Exception:
+                return {}
+
+        def get_ms_cb(t):
+            try:
+                return self.microstructure.get_microstructure(t, securities) or {}
+            except Exception:
+                return {}
+
+        def get_chaos_cb(t):
+            if hasattr(self, 'chaos_metrics') and t in self.chaos_metrics:
+                return self.chaos_metrics[t]
+            return {}
+
+        def get_price_cb(t):
+            return prices.get(t)
+
+        # Portfolio state
+        sector_weights = defaultdict(int)
+        for t, p in self.portfolio.positions.items():
+            sec = self.ticker_sectors.get(t, 'unknown')
+            sector_weights[sec] += 1
+        portfolio_state = {
+            'available_capital': self.portfolio.cash,
+            'total_capital': self.portfolio.get_total_value(prices),
+            'sector_weights': dict(sector_weights),
+            'ticker_sectors': self.ticker_sectors,
+            'correlation_matrix': getattr(self, '_correlation_matrix', {}),
+        }
+
+        signals = self.entry_confirmer.screen(
+            universe=universe,
+            get_hawkes_forecast=get_hawkes_forecast,
+            get_indicators=get_indicators_cb,
+            get_microstructure=get_ms_cb,
+            get_chaos_metrics=get_chaos_cb,
+            get_price=get_price_cb,
+            held_tickers=list(self.portfolio.positions.keys()),
+            portfolio_state=portfolio_state,
+        )
+
+        logger.info(f"[ENTRY_F] screen result: {len(signals)} signals from {len(universe)} tickers")
+
+        # 🆕 v15.6: Трекинг подряд идущих циклов без entry-сигналов для fallback mode
+        if not hasattr(self, '_consecutive_no_entry_cycles'):
+            self._consecutive_no_entry_cycles = 0
+        if len(signals) > 0:
+            self._consecutive_no_entry_cycles = 0
+        else:
+            self._consecutive_no_entry_cycles += 1
+            fallback_cfg = self.settings.get('entry_cascading', {}).get('fallback', {})
+            fallback_cycles = fallback_cfg.get('min_cycles_without_entry', 10)
+            if self._consecutive_no_entry_cycles >= fallback_cycles:
+                logger.warning(
+                    f"[ENTRY_F] ⚠️ {self._consecutive_no_entry_cycles} циклов подряд без entry-сигналов. "
+                    f"Fallback mode активен — legacy BUY сигналы с conf>={fallback_cfg.get('min_confidence', 0.6)} "
+                    f"будут разрешены."
+                )
+
+        # 🆕 Диагностика: если 0 сигналов — показываем причины
+        if not signals and hasattr(self.entry_confirmer, '_screen_log'):
+            screen_log = self.entry_confirmer._screen_log
+            from collections import Counter
+            reason_counter = Counter()
+            rejected = [s for s in screen_log if s.get('result') == 'REJECT']
+            skipped = [s for s in screen_log if s.get('result') == 'skip']
+
+            for r in rejected:
+                if r.get('phase', 0) == 0:
+                    # 🆕 v15.5: Правильная классификация (как в entry_cascading_confirmer)
+                    hawkes_prob = r.get('hawkes_prob', 0)
+                    hawkes_bull = r.get('hawkes_bull', 0)
+                    rsi = r.get('rsi', 50)
+                    mom = r.get('momentum', 0)
+                    bb_pos = r.get('bb_pos', 0.5)
+
+                    # 1) Hawkes не обучен (нет событий)
+                    if hawkes_prob < 0.05 and hawkes_bull < 0.05:
+                        reason_counter['hawkes_not_trained'] += 1
+                    # 2) Hawkes обучен, но слабый сигнал
+                    elif hawkes_prob < 0.5 or hawkes_bull < 0.5:
+                        reason_counter['hawkes_weak_signal'] += 1
+                    # 3) RSI вне диапазона
+                    elif rsi < 30:
+                        reason_counter['rsi_oversold'] += 1
+                    elif rsi > 70:
+                        reason_counter['rsi_overbought'] += 1
+                    elif rsi < 50:
+                        reason_counter['rsi_too_low'] += 1
+                    # 4) Momentum слишком низкий
+                    elif abs(mom) < 0.1:
+                        reason_counter['momentum_low'] += 1
+                    # 5) BB position вне диапазона
+                    elif not (0.2 <= bb_pos <= 0.8):
+                        reason_counter['bb_out_of_range'] += 1
+                    else:
+                        reason_counter['phase0_other'] += 1
+                else:
+                    reason_counter[f'phase{r.get("phase", 0)}_fail'] += 1
+
+            for s in skipped:
+                reason_counter[f'skip:{s.get("reason", "?")[:20]}'] += 1
+
+            top_reasons = ', '.join(f'{k}:{v}' for k, v in reason_counter.most_common(5))
+            logger.warning(
+                f"[ENTRY_F] ⚠️ 0 ENTRY SIGNALS. "
+                f"universe={len(universe)}, rejected={len(rejected)}, skipped={len(skipped)}. "
+                f"Top reasons: {top_reasons}"
+            )
+
+            # 🆕 v15.5: Подсказки для пользователя — точные по причинам
+            if 'hawkes_not_trained' in reason_counter:
+                logger.info(f"[ENTRY_F] 💡 Hawkes не обучен для {reason_counter['hawkes_not_trained']} тикеров. "
+                           f"Подождите завершения bootstrap или проверьте лог 'Hawkes bootstrap завершён'.")
+            if 'hawkes_weak_signal' in reason_counter:
+                logger.info(f"[ENTRY_F] 💡 Hawkes обучен но даёт слабый сигнал для "
+                           f"{reason_counter['hawkes_weak_signal']} тикеров. "
+                           f"Снизьте min_prob_bull в settings.entry_cascading.hawkes_trigger (сейчас 0.5).")
+            if 'momentum_low' in reason_counter:
+                logger.info(f"[ENTRY_F] 💡 Momentum < 0.1% для {reason_counter['momentum_low']} тикеров. "
+                           f"Снизьте min_momentum_pct в settings.entry_cascading.technical_confirmation.")
+            if 'rsi_too_low' in reason_counter:
+                logger.info(f"[ENTRY_F] 💡 RSI < 50 для {reason_counter['rsi_too_low']} тикеров. "
+                           f"Рынок падает. Расширьте rsi_min в настройках или активируйте oversold-режим "
+                           f"(rsi_oversold_threshold).")
+            if 'rsi_oversold' in reason_counter:
+                logger.info(f"[ENTRY_F] 💡 RSI < 30 для {reason_counter['rsi_oversold']} тикеров — "
+                           f"перепроданность. Oversold-триггер уже активен, но требует BB < 0.2.")
+
+        # 🆕 v14: Заполняем model_log для веб-интерфейса
+        if hasattr(self.entry_confirmer, '_screen_log'):
+            now_str = datetime.now().strftime('%H:%M:%S')
+            for entry in self.entry_confirmer._screen_log[-15:]:
+                if entry.get('result') == 'PASS':
+                    self.model_log.append({
+                        'time': now_str,
+                        'ticker': entry['ticker'],
+                        'action': 'ENTRY_PASS',
+                        'state_value': entry.get('confidence', 0),
+                        'coach_advice': ', '.join(entry.get('reasons', [])),
+                        'matched': True,
+                    })
+                elif entry.get('result') == 'REJECT':
+                    self.model_log.append({
+                        'time': now_str,
+                        'ticker': entry['ticker'],
+                        'action': f'REJECT_p{entry.get("phase", 0)}',
+                        'state_value': 0,
+                        'coach_advice': (f'H={entry.get("hawkes_bull", 0):.2f} '
+                                        f'P={entry.get("hawkes_prob", 0):.2f} '
+                                        f'RSI={entry.get("rsi", 0):.0f} '
+                                        f'mom={entry.get("momentum", 0):.2f}'),
+                        'matched': False,
+                    })
+            # Ограничиваем размер
+            if len(self.model_log) > 50:
+                self.model_log = self.model_log[-50:]
+
+        if signals:
+            for s in signals[:5]:
+                logger.info(f"[ENTRY_F] signal: {s.ticker} conf={s.confidence:.2f} "
+                           f"stop={s.stop_loss_pct:.2f}% reasons={s.reasons[:3]}")
+
+        # Исполняем сигналы
+        max_positions = self.settings.get('max_positions', 10)
+        for sig in signals:
+            if len(self.portfolio.positions) >= max_positions:
+                break
+            self._execute_entry_signal(sig, securities, prices)
+
+    def _execute_entry_signal(self, signal, securities: Dict, prices: Dict):
+        """Исполнение сигнала входа от EntryCascadingConfirmer."""
+        ticker = signal.ticker
+        if ticker in self.portfolio.positions:
+            return
+        if ticker not in prices:
+            return
+        price = prices[ticker]
+        sec = securities.get(ticker, {})
+        lot_size = sec.get('lot_size', 1)
+        min_step = sec.get('min_step', 0.01)
+
+        # Округление цены
+        if min_step and min_step > 0:
+            price = round(price / min_step) * min_step
+
+        # Расчёт количества через target_weight
+        total_value = self.portfolio.get_total_value(prices)
+        target_value = total_value * signal.target_weight
+        qty = int(target_value / price) if price > 0 else 0
+        if lot_size > 1:
+            qty = (qty // lot_size) * lot_size
+        if qty <= 0:
+            qty = lot_size  # минимальный лот
+
+        # Проверка достаточности кэша
+        cost = qty * price
+        if cost > self.portfolio.cash:
+            # Уменьшаем qty
+            qty = int(self.portfolio.cash / price / lot_size) * lot_size
+            if qty <= 0:
+                logger.debug(f"[ENTRY] {ticker} insufficient cash for even 1 lot")
+                return
+
+        # Покупка
+        # 🆕 v15.7: Явно передаём time_horizon='week' для cascading_entry сигналов
+        # (раньше дефолт 'balanced' не существовал в max_positions_per_horizon → fallback на week=2)
+        # 🆕 v15.7: Используем 'day_session' (лимит 5) для oversold-триггеров (короткий горизонт),
+        # и 'week' (лимит 2) для hawkes-триггеров (долгий горизонт)
+        trigger_source = ''
+        if hasattr(signal, 'reasons') and signal.reasons:
+            for r in signal.reasons:
+                if 'trigger=' in r:
+                    trigger_source = r.split('trigger=')[1].split(',')[0].strip()
+                    break
+
+        if 'oversold' in trigger_source:
+            entry_horizon = 'day_session'  # короткий горизонт для отскока
+        elif 'hawkes' in trigger_source:
+            entry_horizon = 'three_days'   # средний горизонт для тренда
+        else:
+            entry_horizon = 'week'         # долгий по умолчанию
+
+        if self.portfolio.buy(ticker, qty, price, strategy='cascading_entry',
+                              time_horizon=entry_horizon):
+            logger.info(f"🟢 [ENTRY] КУПЛЕНО {ticker} ×{qty} @ {price:.2f}₽ "
+                       f"(strategy=cascading_entry, horizon={entry_horizon}, "
+                       f"trigger={trigger_source}, conf={signal.confidence:.2f})")
+            self.risk_manager.update_trade_result(
+                ticker=ticker, action='BUY',
+                quantity=qty, price=price, pnl=0
+            )
+            # Регистрируем в rolling exit
+            if self.rolling_exit:
+                chaos = {}
+                if hasattr(self, 'chaos_metrics') and ticker in self.chaos_metrics:
+                    chaos = self.chaos_metrics[ticker]
+                hawkes_sig = self.hawkes.get_signal(ticker) if self.hawkes else 0
+                ms = self.microstructure.get_microstructure(ticker, securities) or {}
+                self.rolling_exit.on_buy(
+                    ticker=ticker, price=price, qty=qty,
+                    chaos_metrics=chaos,
+                    hawkes_signal_val=hawkes_sig,
+                    ms_imbalance=ms.get('imbalance', 0),
+                    strategy_stop_loss_pct=signal.stop_loss_pct,
+                )
+            # Обновляем last_trade_time
+            self.last_trade_time[ticker] = time.time()
+            logger.info(f"✅ [ENTRY_F] BUY {ticker} {qty} @ {price:.2f} "
+                       f"(conf={signal.confidence:.2f}, stop={signal.stop_loss_pct:.2f}%, "
+                       f"weight={signal.target_weight*100:.1f}%) | "
+                       f"{' | '.join(signal.reasons[:3])}")
 
     def _rebalance_portfolio(self, prices: Dict, securities: Dict):
         """Ребалансировка портфеля с учетом лотности"""
@@ -2508,7 +3680,7 @@ class SmartPortfolioBroker:
             news_features = self.model.encode_news(news_texts)
 
             market_sentiment = self._get_market_sentiment()
-            macro_data = self.moex.get_macro_data()
+            macro_data = self._get_fresh_macro_data()
 
             settings = self.settings
             default_spread = settings.get('default_spread', 0.01)
@@ -2686,7 +3858,12 @@ class SmartPortfolioBroker:
             'session_info': self.scheduler.get_session_info(),
             'last_update': datetime.now().isoformat(),
             'market_sentiment': self._get_market_sentiment(),
-            'news_stats': self.news_fetcher.stats if hasattr(self.news_fetcher, 'stats') else {}
+            'news_stats': self.news_fetcher.stats if hasattr(self.news_fetcher, 'stats') else {},
+            # 🆕 Информация о новых модулях
+            'microstructure_stats': self.microstructure.stats if hasattr(self, 'microstructure') else {},
+            'cascade_stats': self.price_predictor.get_stats() if hasattr(self, 'price_predictor') else {},
+            'hawkes_stats': self.hawkes.get_stats() if hasattr(self, 'hawkes') and self.hawkes else {},
+            'chaos_metrics': self.chaos_metrics if hasattr(self, 'chaos_metrics') else {},
         }
 
         # Детали по позициям
@@ -2711,6 +3888,200 @@ class SmartPortfolioBroker:
         summary['positions'] = positions_detail
 
         return summary
+
+    def get_advanced_modules_summary(self) -> Dict:
+        """🆕 Сводка по новым модулям для веб-интерфейса.
+        Возвращает статусы и детальную информацию по:
+        - Entry Cascading Confirmer (Вариант F)
+        - Rolling Exit Manager (Вариант D)
+        - Hawkes process (per-ticker thresholds, события)
+        - Chaos metrics (Hurst, D₂, RQA, kurtosis)
+        - Microstructure (статистика)
+        - Price predictor (каскад)
+        """
+        result = {
+            'entry_confirmer': None,
+            'rolling_exit': None,
+            'hawkes': None,
+            'chaos_metrics': {},
+            'microstructure': {},
+            'price_predictor': {},
+            'timestamp': datetime.now().isoformat(),
+        }
+
+        # Entry Confirmer
+        if hasattr(self, 'entry_confirmer') and self.entry_confirmer:
+            ec = self.entry_confirmer
+            result['entry_confirmer'] = {
+                'enabled': ec.enabled,
+                'stats': ec.get_stats(),
+                'config': {
+                    'hawkes_trigger': ec.hawkes_cfg,
+                    'technical_confirmation': ec.tech_cfg,
+                    'microstructure_confirmation': ec.ms_cfg,
+                    'chaos_filter': ec.chaos_cfg,
+                    'portfolio_constraints': ec.portfolio_cfg,
+                    'cooldown_seconds': ec.cooldown,
+                },
+            }
+
+        # Rolling Exit
+        if hasattr(self, 'rolling_exit') and self.rolling_exit:
+            re_mgr = self.rolling_exit
+            result['rolling_exit'] = {
+                'enabled': re_mgr.enabled,
+                'stats': re_mgr.get_stats(),
+                'active_positions': re_mgr.get_active_positions(),
+                'config': {
+                    'sell_score_components': re_mgr.weights,
+                    'thresholds_by_hold_time': re_mgr.thresholds_cfg,
+                    'hard_stops': re_mgr.hard_stops_cfg,
+                    'phase_exit': re_mgr.phase_cfg,
+                    'minimum_hold_hours_before_sell': re_mgr.min_hold_hours,
+                    'min_pnl_pct_for_profit_sell': re_mgr.min_pnl_for_profit_sell,
+                },
+            }
+
+        # Hawkes
+        if hasattr(self, 'hawkes') and self.hawkes:
+            h = self.hawkes
+            # Топ тикеров по числу событий
+            ticker_events = []
+            for t in list(self.portfolio.positions.keys()) + list(getattr(self, 'current_tickers', []))[:30]:
+                params = h.get_params(t)
+                if params:
+                    ticker_events.append({
+                        'ticker': t,
+                        'eta_bull': params.get('eta_bull', 0),
+                        'eta_bear': params.get('eta_bear', 0),
+                        'beta_bull': params.get('beta_bull', 0),
+                        'beta_bear': params.get('beta_bear', 0),
+                        'threshold': h._get_threshold(t),
+                        'volatility_pct': h._ticker_volatility.get(t, 0),
+                    })
+            # Сортировка по сумме eta
+            ticker_events.sort(key=lambda x: -(x['eta_bull'] + x['eta_bear']))
+            result['hawkes'] = {
+                'stats': h.get_stats(),
+                'per_ticker': ticker_events[:15],  # топ-15
+                'default_threshold': h.default_threshold,
+                'per_ticker_count': len(h._ticker_thresholds),
+            }
+
+        # Chaos metrics (топ тикеров по волатильности)
+        if hasattr(self, 'chaos_metrics') and self.chaos_metrics:
+            chaos_list = []
+            for ticker, m in self.chaos_metrics.items():
+                chaos_list.append({
+                    'ticker': ticker,
+                    'hurst': m.get('hurst', 0.5),
+                    'fractal_dim': m.get('fractal_dim', 2.5),
+                    'volatility_pct': m.get('volatility_pct', 0),
+                    'kurtosis': m.get('kurtosis', 0),
+                    'skew': m.get('skew', 0),
+                    'atr_pct': m.get('atr_pct', 0),
+                    'rqa_DET': m.get('rqa_DET', 0),
+                    'rqa_L_max': m.get('rqa_L_max', 0),
+                    'rqa_LAM': m.get('rqa_LAM', 0),
+                    'rqa_RR': m.get('rqa_RR', 0),
+                    'n_points': m.get('n_points', 0),
+                    'last_price': m.get('last_price', 0),
+                })
+            # Сортировка по волатильности (для отображения топ-волатильных)
+            chaos_list.sort(key=lambda x: -x['volatility_pct'])
+            result['chaos_metrics'] = {
+                'total_tickers': len(chaos_list),
+                'top_by_volatility': chaos_list[:15],
+                'all_tickers': chaos_list,
+            }
+
+        # Microstructure
+        if hasattr(self, 'microstructure') and self.microstructure:
+            result['microstructure'] = {
+                'stats': self.microstructure.stats,
+            }
+
+        # Price predictor
+        if hasattr(self, 'price_predictor') and self.price_predictor:
+            try:
+                result['price_predictor'] = self.price_predictor.get_stats()
+            except Exception:
+                result['price_predictor'] = {}
+
+        return result
+
+    def update_advanced_module_config(self, module: str, config: Dict) -> Dict:
+        """🆕 Обновление конфигурации нового модуля на лету.
+        module: 'entry_cascading' | 'rolling_exit' | 'hawkes' | 'screen_universe'
+        """
+        try:
+            # Сохраняем в settings.json
+            with open('config/settings.json', 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+
+            if module not in settings:
+                settings[module] = {}
+            settings[module].update(config)
+
+            with open('config/settings.json', 'w', encoding='utf-8') as f:
+                json.dump(settings, f, indent=2, ensure_ascii=False)
+
+            # Применяем к активным модулям
+            if module == 'entry_cascading' and hasattr(self, 'entry_confirmer') and self.entry_confirmer:
+                ec = self.entry_confirmer
+                if 'enabled' in config:
+                    ec.enabled = config['enabled']
+                if 'hawkes_trigger' in config:
+                    ec.hawkes_cfg.update(config['hawkes_trigger'])
+                if 'technical_confirmation' in config:
+                    ec.tech_cfg.update(config['technical_confirmation'])
+                if 'microstructure_confirmation' in config:
+                    ec.ms_cfg.update(config['microstructure_confirmation'])
+                if 'chaos_filter' in config:
+                    ec.chaos_cfg.update(config['chaos_filter'])
+                if 'portfolio_constraints' in config:
+                    ec.portfolio_cfg.update(config['portfolio_constraints'])
+                if 'cooldown_seconds_between_entries' in config:
+                    ec.cooldown = config['cooldown_seconds_between_entries']
+
+            elif module == 'rolling_exit' and hasattr(self, 'rolling_exit') and self.rolling_exit:
+                re_mgr = self.rolling_exit
+                if 'enabled' in config:
+                    re_mgr.enabled = config['enabled']
+                if 'sell_score_components' in config:
+                    re_mgr.weights.update(config['sell_score_components'])
+                if 'thresholds_by_hold_time' in config:
+                    re_mgr.thresholds_cfg.update(config['thresholds_by_hold_time'])
+                if 'hard_stops' in config:
+                    re_mgr.hard_stops_cfg.update(config['hard_stops'])
+                if 'phase_exit' in config:
+                    re_mgr.phase_cfg.update(config['phase_exit'])
+                if 'minimum_hold_hours_before_sell' in config:
+                    re_mgr.min_hold_hours = config['minimum_hold_hours_before_sell']
+
+            elif module == 'hawkes' and hasattr(self, 'hawkes') and self.hawkes:
+                h = self.hawkes
+                if 'event_threshold_pct' in config:
+                    h.default_threshold = config['event_threshold_pct']
+                if 'refit_interval' in config:
+                    h.refit_interval = config['refit_interval']
+                if 'forecast_horizon_hours' in config:
+                    h.forecast_horizon = config['forecast_horizon_hours']
+                if 'per_ticker_thresholds' in config:
+                    pt = config['per_ticker_thresholds']
+                    if 'vol_threshold_split' in pt:
+                        h._pt_split = pt['vol_threshold_split']
+                    if 'low_vol_multiplier' in pt:
+                        h._pt_low_mult = pt['low_vol_multiplier']
+                    if 'high_vol_multiplier' in pt:
+                        h._pt_high_mult = pt['high_vol_multiplier']
+
+            logger.info(f"Конфигурация модуля {module} обновлена: {list(config.keys())}")
+            return {'success': True, 'module': module, 'updated_keys': list(config.keys())}
+
+        except Exception as e:
+            logger.error(f"Ошибка обновления конфигурации {module}: {e}")
+            return {'success': False, 'error': str(e)}
 
     def _get_next_settlement_date(self) -> Optional[str]:
         """Получение ближайшей даты списания"""
@@ -3296,6 +4667,192 @@ class SmartPortfolioBroker:
         except Exception as e:
             logger.error(f"Ошибка получения истории сентимента: {e}")
             return []
+
+    def get_news_sentiment_feed(self, limit: int = 100,
+                                min_abs_sentiment: float = 0.0,
+                                ticker_filter: Optional[str] = None,
+                                label_filter: str = 'ALL') -> List[Dict]:
+        """
+        Возвращает ленту новостей с сентиментом для веб-интерфейса.
+
+        Каждая запись содержит:
+          - timestamp, source, title, summary, link
+          - sentiment (-1..+1), sentiment_label (POSITIVE/NEGATIVE/NEUTRAL), sentiment_score (0..1)
+          - tickers[] — список тикеров, извлечённых из новости
+          - priority — приоритет источника
+
+        Фильтры:
+          - min_abs_sentiment: показывать только новости с |sentiment| >= порога
+          - ticker_filter: показывать только новости, в которых упоминается тикер
+          - label_filter: 'ALL' | 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL'
+
+        Использует кэш на 30 секунд (self._news_sentiment_feed_cache).
+        """
+        try:
+            # —— Кэш ——
+            cache_ttl = 30  # секунд
+            now = time.time()
+            cached = getattr(self, '_news_sentiment_feed_cache', None)
+            if cached and (now - cached['ts'] < cache_ttl):
+                all_news = cached['data']
+            else:
+                # —— Получаем новости ——
+                news_items = self.news_fetcher.get_last_news(limit=limit)
+                if not news_items:
+                    return []
+
+                # —— Анализ сентимента ——
+                if self.news_analyzer:
+                    # Конвертируем в формат NewsAnalyzer
+                    raw_news = [{
+                        'id': item.get('id', item.get('link', '')),
+                        'title': item.get('title', ''),
+                        'content': item.get('summary', item.get('title', '')),
+                        'link': item.get('link', ''),
+                        'published_at': item.get('published', item.get('datetime', '')),
+                        'source_name': item.get('source', 'unknown'),
+                        'priority': item.get('priority', 5),
+                    } for item in news_items]
+
+                    result = self.news_analyzer.process(raw_news)
+                    if result.get('status') == 'success':
+                        analyzed = result.get('news', [])
+                    else:
+                        analyzed = []
+                else:
+                    # Fallback — без NewsAnalyzer (тикеры не извлекаются)
+                    analyzed = self.news_fetcher.analyze_sentiment_batch(
+                        [dict(item) for item in news_items]
+                    )
+                    for n in analyzed:
+                        n.setdefault('source_name', n.get('source', 'unknown'))
+                        n.setdefault('published_at', n.get('published', ''))
+                        n.setdefault('tickers', [])
+                        n.setdefault('sentiment_label',
+                                     'POSITIVE' if n.get('sentiment', 0) > 0.05
+                                     else 'NEGATIVE' if n.get('sentiment', 0) < -0.05
+                                     else 'NEUTRAL')
+
+                # —— Нормализуем поля ——
+                normalized = []
+                for n in analyzed:
+                    sentiment = float(n.get('sentiment', 0.0) or 0.0)
+                    # Берём тикеры из анализатора, либо пробуем извлечь вручную
+                    tickers = n.get('tickers', []) or []
+                    if not tickers:
+                        extracted = self._extract_ticker_from_news(n)
+                        if extracted:
+                            tickers = [extracted]
+
+                    title = n.get('title', '')
+                    summary = n.get('content', '') or n.get('summary', '')
+
+                    # Если у NewsAnalyzer нет published — пробуем оригинальный
+                    published = n.get('published_at', '') or n.get('published', '')
+
+                    normalized.append({
+                        'timestamp': published,
+                        'source': n.get('source_name', n.get('source', 'unknown')),
+                        'title': title,
+                        'summary': summary,
+                        'link': n.get('link', ''),
+                        'sentiment': sentiment,
+                        'sentiment_score': float(n.get('sentiment_score', abs(sentiment)) or 0.0),
+                        'sentiment_label': n.get('sentiment_label',
+                                                 'POSITIVE' if sentiment > 0.05
+                                                 else 'NEGATIVE' if sentiment < -0.05
+                                                 else 'NEUTRAL'),
+                        'tickers': tickers,
+                        'priority': int(n.get('priority', 5) or 5),
+                        'sentiment_override': n.get('sentiment_override', ''),
+                    })
+
+                # Сортируем по времени (новые сначала); при пустой дате — в конец
+                normalized.sort(
+                    key=lambda x: x.get('timestamp') or '',
+                    reverse=True
+                )
+
+                # Кэшируем
+                self._news_sentiment_feed_cache = {'ts': now, 'data': normalized}
+                all_news = normalized
+
+            # —— Применяем фильтры ——
+            filtered = []
+            for item in all_news:
+                sentiment = item.get('sentiment', 0.0)
+
+                # Фильтр по модулю сентимента
+                if abs(sentiment) < min_abs_sentiment:
+                    continue
+
+                # Фильтр по лейблу
+                if label_filter != 'ALL' and item.get('sentiment_label') != label_filter:
+                    continue
+
+                # Фильтр по тикеру
+                if ticker_filter and ticker_filter != 'ALL':
+                    if ticker_filter not in item.get('tickers', []):
+                        continue
+
+                filtered.append(item)
+
+            return filtered[:limit]
+
+        except Exception as e:
+            logger.error(f"Ошибка получения ленты новостей с сентиментом: {e}")
+            return []
+
+    def get_news_sentiment_stats(self) -> Dict:
+        """
+        Краткая статистика по новостному сентименту для дашборда.
+        Возвращает:
+          - total — всего новостей в кэше
+          - positive / negative / neutral — количество
+          - avg_sentiment — средний сентимент
+          - top_positive / top_negative — топ-3 по модулю сентимента
+          - last_updated — timestamp обновления кэша
+        """
+        try:
+            cache = getattr(self, '_news_sentiment_feed_cache', None)
+            if not cache:
+                # Триггерим обновление
+                news = self.get_news_sentiment_feed(limit=100)
+                cache = getattr(self, '_news_sentiment_feed_cache', None)
+                if not cache:
+                    return {
+                        'total': 0, 'positive': 0, 'negative': 0, 'neutral': 0,
+                        'avg_sentiment': 0.0, 'top_positive': [], 'top_negative': [],
+                        'last_updated': None,
+                    }
+
+            data = cache.get('data', [])
+            positive = [n for n in data if n.get('sentiment_label') == 'POSITIVE']
+            negative = [n for n in data if n.get('sentiment_label') == 'NEGATIVE']
+            neutral = [n for n in data if n.get('sentiment_label') == 'NEUTRAL']
+
+            avg = sum(n.get('sentiment', 0) for n in data) / max(len(data), 1)
+
+            top_pos = sorted(positive, key=lambda x: -x.get('sentiment', 0))[:3]
+            top_neg = sorted(negative, key=lambda x: x.get('sentiment', 0))[:3]
+
+            return {
+                'total': len(data),
+                'positive': len(positive),
+                'negative': len(negative),
+                'neutral': len(neutral),
+                'avg_sentiment': avg,
+                'top_positive': top_pos,
+                'top_negative': top_neg,
+                'last_updated': cache.get('ts'),
+            }
+        except Exception as e:
+            logger.error(f"Ошибка получения статистики сентимента: {e}")
+            return {
+                'total': 0, 'positive': 0, 'negative': 0, 'neutral': 0,
+                'avg_sentiment': 0.0, 'top_positive': [], 'top_negative': [],
+                'last_updated': None,
+            }
 
     def _extract_ticker_from_news(self, news: Dict) -> Optional[str]:
         """Извлечение тикера из новости с использованием всех доступных тикеров"""

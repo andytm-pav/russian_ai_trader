@@ -55,6 +55,7 @@
   },
   "weekend_sessions": {
     "enabled": true,
+    "allow_order_placement": true,
     "schedule": "09:50-19:00",
     "auction_start": "09:50",
     "auction_end": "10:00",

@@ -1,18 +1,25 @@
 """
-Предобучение модели (v2): Seed + История + Валидация + Макро + Режим рынка
+Предобучение модели (v3): Seed + История + Валидация + Макро + Режим рынка
++ Интеграция с новыми модулями: history_loader (хаос-метрики),
+  Hawkes (per-ticker thresholds + инициализация историей),
+  tickers.json (60 ликвидных+волатильных тикеров).
 """
 import json
 import time
+import os
 import torch
 import numpy as np
 import random
 import pandas as pd
+from collections import defaultdict
 from datetime import datetime, timedelta
 from models.trader_model import trader_model_instance
 from core.core_technical_trader import TechnicalTraderCore
 from fetchers.moex_fetcher import MoexFetcher
 from utils.portfolio_manager import PortfolioManager
 from utils.logger import get_logger
+from fetchers.history_loader import HistoryLoader, history_loader
+from core.hawkes_signal import hawkes_signal
 import logging
 
 logger = get_logger("PRE_TRAIN")
@@ -27,50 +34,58 @@ logger.logger.addHandler(file_handler)
 with open("config/settings.json", "r", encoding="utf-8") as f:
     settings = json.load(f)
 
-# 37 тикеров, отобранных брокером
-TICKERS = [
-    # Нефть и газ (6)
-    "GAZP", "LKOH", "ROSN", "SNGS", "TATN", "NVTK",
-    # Финансы (5)
-    "SBER", "MOEX", "TCSG", "BSPB", "RENI",
-    # Металлургия и горнодобыча (6)
-    "GMKN", "CHMF", "MAGN", "NLMK", "PLZL", "ALRS",
-    # Телеком и технологии (4)
-    "MTSS", "RTKM", "YNDX", "VKCO",
-    # Потребительский сектор и ритейл (5)
-    "MGNT", "DSKY", "AFLT", "FESH", "BELU",
-    # Энергетика (4)
-    "IRAO", "HYDR", "FEES", "UPRO",
-    # Химия и фармацевтика (2)
-    "PHOR", "LIFE",
-    # Транспорт и промышленность (3)
-    "TRNFP", "NMTP", "DELI",
-    # ОПК и смежные (2)
-    "UNAC", "KMAZ"
-]
+# 🆕 Тикеры из config/tickers.json (60 ликвидных+волатильных)
+TICKERS = []
+try:
+    with open("config/tickers.json", "r", encoding="utf-8") as f:
+        tickers_cfg = json.load(f)
+    TICKERS = [t["ticker"] for t in tickers_cfg.get("watchlist", [])]
+    logger.info(f"Загружено {len(TICKERS)} тикеров из config/tickers.json")
+except Exception as e:
+    logger.warning(f"Не удалось загрузить config/tickers.json ({e}), используем fallback")
+    # Fallback — базовые голубые фишки
+    TICKERS = [
+        "GAZP", "LKOH", "ROSN", "SNGS", "TATN", "NVTK",
+        "SBER", "MOEX", "TCSG", "BSPB", "RENI",
+        "GMKN", "CHMF", "MAGN", "NLMK", "PLZL", "ALRS",
+        "MTSS", "RTKM", "YNDX", "VKCO",
+        "MGNT", "DSKY", "AFLT", "FESH", "BELU",
+        "IRAO", "HYDR", "FEES", "UPRO",
+        "PHOR", "LIFE", "TRNFP", "NMTP", "DELI", "UNAC", "KMAZ",
+    ]
 
-# Этап 1: Принудительное обучение с учителем
-TRAIN_START = "2023-06-01"
-TRAIN_END   = "2024-05-31"
+# Параметры периодов — из конфига (если есть) или fallback
+pretrain_cfg = settings.get("pre_train", {})
+# 🆕 v10.1: Reward-параметры из конфига (без хардкода)
+reward_cfg = pretrain_cfg.get("rewards", {})
+REWARD_MATCH = reward_cfg.get("match_multiplier", 2.0)
+REWARD_PARTIAL = reward_cfg.get("partial_match_multiplier", 0.8)
+REWARD_HOLD = reward_cfg.get("hold_match_multiplier", 1.2)
+REWARD_MISMATCH = reward_cfg.get("mismatch_multiplier", -2.0)
+REWARD_SELL_NO_POS = reward_cfg.get("sell_without_position_penalty", -2.0)
+REWARD_CLIP_MIN = reward_cfg.get("reward_clip_min", -5.0)
+REWARD_CLIP_MAX = reward_cfg.get("reward_clip_max", 5.0)
 
-# Этап 2: Самостоятельная торговля (другие данные!)
-TRAIN2_START = "2024-06-01"
-TRAIN2_END   = "2025-05-31"
+TRAIN_START = pretrain_cfg.get("train_start", "2023-06-01")
+TRAIN_END   = pretrain_cfg.get("train_end",   "2024-05-31")
+TRAIN2_START = pretrain_cfg.get("train2_start", "2024-06-01")
+TRAIN2_END   = pretrain_cfg.get("train2_end",   "2025-05-31")
+VAL_START   = pretrain_cfg.get("val_start",   "2025-06-01")
+VAL_END     = pretrain_cfg.get("val_end",     "2026-06-23")
+STRESS_SVO_START = pretrain_cfg.get("stress_svo_start", "2022-01-15")
+STRESS_SVO_END   = pretrain_cfg.get("stress_svo_end",   "2022-04-15")
+STRESS_COVID_START = pretrain_cfg.get("stress_covid_start", "2020-02-01")
+STRESS_COVID_END   = pretrain_cfg.get("stress_covid_end",   "2020-04-30")
 
-# Валидация (out-of-sample)
-VAL_START   = "2025-06-01"
-VAL_END     = "2026-06-23"
-
-# Стресс-тест: СВО
-STRESS_SVO_START = "2022-01-15"
-STRESS_SVO_END   = "2022-04-15"
-
-# Стресс-тест: Ковид
-STRESS_COVID_START = "2020-02-01"
-STRESS_COVID_END   = "2020-04-30"
+# Ограничение числа тикеров для ускорения pre_train
+# (60 тикеров × 365 дней × 5 периодов = ~109500 шагов, это долго)
+MAX_TICKERS_PRETRAIN = pretrain_cfg.get("max_tickers", 20)
+if MAX_TICKERS_PRETRAIN > 0 and len(TICKERS) > MAX_TICKERS_PRETRAIN:
+    logger.info(f"Ограничиваем pre_train до {MAX_TICKERS_PRETRAIN} тикеров (из {len(TICKERS)})")
+    TICKERS = TICKERS[:MAX_TICKERS_PRETRAIN]
 
 print("=" * 70)
-print("🧠 ПРЕДОБУЧЕНИЕ МОДЕЛИ (v2 — все улучшения)")
+print("🧠 ПРЕДОБУЧЕНИЕ МОДЕЛИ (v3 — интеграция с хаос-метриками и Хоксом)")
 print("=" * 70)
 print(f"Тикеров: {len(TICKERS)}")
 print(f"Этап 1 (учитель): {TRAIN_START} → {TRAIN_END}")
@@ -86,7 +101,40 @@ model = trader_model_instance
 moex = MoexFetcher()
 tech_core = TechnicalTraderCore()
 
-print(f"Память до: {len(model.memory)} опытов")
+# 🆕 Инициализация history_loader и расчёт хаос-метрик
+print("\n--- Загрузка истории и расчёт хаос-метрик ---")
+try:
+    history_data = history_loader.load_history(months_back=3)
+    chaos_metrics = history_loader.get_chaos_metrics()
+    print(f"✓ Хаос-метрики: {len(chaos_metrics)} тикеров")
+    # 🆕 Инициализация Хокса историческими ценами + per-ticker thresholds
+    if hawkes_signal and history_data:
+        now_ts = time.time()
+        n_init = 0
+        for ticker, hist in history_data.items():
+            prices = hist.get('prices', [])
+            if len(prices) < 50:
+                continue
+            # Per-ticker threshold по волатильности
+            if ticker in chaos_metrics:
+                vol = chaos_metrics[ticker].get('volatility_pct', 0.5)
+                hawkes_signal.set_ticker_volatility(ticker, vol)
+            # 🆕 v14.1: Timestamps заканчиваются СЕЙЧАС — события свежие
+            n_points = min(len(prices), 200)
+            for i, p in enumerate(prices[-n_points:]):
+                ts = now_ts - (n_points - 1 - i) * 3600
+                hawkes_signal.update_price(ticker, p, ts)
+            hawkes_signal.fit(ticker, now_ts)
+            n_init += 1
+        h_stats = hawkes_signal.get_stats()
+        print(f"✓ Хокс инициализирован: {n_init} тикеров, "
+              f"bullish_events={h_stats['total_bullish_events']}, "
+              f"bearish_events={h_stats['total_bearish_events']}")
+except Exception as e:
+    logger.warning(f"Не удалось инициализировать history/hawkes: {e}")
+    chaos_metrics = {}
+
+print(f"\nПамять до: {len(model.memory)} опытов")
 
 # ============================================================
 # ЭТАП 0: SEED EXPERIENCES (48 опытов)
@@ -120,7 +168,9 @@ def create_base_state(ticker="SBER", price=300, rsi=50, bb_pos=0.5, momentum=0,
         'imoex_normalized': imoex / 4000,
         'market_cap_total': 5e13, 'liquidity_ratio': 0.8,
         'cbr_rate_normalized': 0.675, 'vix': 16, 'moexog_normalized': 0.45,
-        'market_regime': market_regime
+        'market_regime': market_regime,
+        # 🆕 CNYRUB
+        'cny_rub': 11.5, 'cny_rub_change': 0.0,
     }
 
     sim_portfolio = PortfolioManager()
@@ -372,14 +422,22 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
         print(f"  Загружено {len(candles)} свечей")
 
         portfolio = PortfolioManager()
-        # Сброс портфеля после загрузки из файла — каждый тикер стартует с чистым портфелем
-        portfolio.positions.clear()
-        portfolio.trade_history.clear()
+        # 🆕 v11.1: Полный сброс портфеля — убираем наследование между тикерами
+        # PortfolioManager.__init__ загружает state из data/portfolio_state.json
+        # Это приводило к "Усреднена позиция" — позиция от прошлого тикера наследовалась
+        portfolio.positions = {}
+        portfolio.trade_history = []
+        portfolio.daily_trades = []
+        portfolio.pending_commissions = []
+        portfolio.strategy_positions = defaultdict(list)
         portfolio.cash = settings.get("initial_capital_rub", 10000)
         portfolio.initial_capital = portfolio.cash
         portfolio.reserved_cash = 0
-        portfolio.total_commission = 0
-        portfolio.commission_spent_today = 0
+        portfolio.commission_reserve = 0.0
+        portfolio.commission_spent_today = 0.0
+        portfolio.total_commission = 0.0
+        portfolio.total_trades = 0
+        portfolio.total_pnl = 0.0
         portfolio.max_positions = settings.get("max_positions", 10)
         portfolio.max_trades_per_hour = 999999
         portfolio.daily_commission_limit = 999999
@@ -405,6 +463,14 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
         tech_core.price_history.clear()
         tech_core.indicators_cache.clear()
 
+        # 🆕 Предзагрузка live_macro один раз для тикера (избегаем NameError)
+        live_macro = {}
+        try:
+            live_macro = moex.get_macro_data() or {}
+        except Exception as e:
+            logger.debug(f"get_macro_data failed for {ticker}: {e}")
+            live_macro = {}
+
         warmup = min(20, len(candles))
         for i in range(warmup):
             row = candles.iloc[i]
@@ -418,6 +484,18 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
 
             tech_core.update_price_data(ticker, price, volume)
 
+            # 🆕 Обновление Хокса исторической ценой (для поддержания актуального forecast)
+            if hawkes_signal:
+                try:
+                    # Используем timestamp из даты свечи
+                    candle_ts = row.name.timestamp()
+                    hawkes_signal.update_price(ticker, price, candle_ts)
+                    # Переобучение каждые 50 свечей
+                    if i > 0 and i % 50 == 0:
+                        hawkes_signal.fit(ticker, candle_ts)
+                except Exception as e:
+                    logger.debug(f"Hawkes update failed for {ticker}: {e}")
+
             news_features = model.encode_news([f"Корпоративная новость {ticker}"])
 
             if i == warmup:
@@ -429,8 +507,7 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
             # Используем исторические макро-данные или получаем актуальные из MOEX
             day_macro = macro_history.get(current_date, {})
             if not day_macro:
-                # Получаем актуальные макро-данные как fallback
-                live_macro = moex.get_macro_data()
+                # live_macro уже загружен выше
                 default_imoex = live_macro.get('imoex', 2500.0)
                 default_rtsi = live_macro.get('rtsi', 1100.0)
                 default_rvi = live_macro.get('rvi', 25.0)
@@ -440,6 +517,7 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
                 default_vix = live_macro.get('vix', 16.0)
                 default_moexog = live_macro.get('moexog', 4500.0)
                 default_moexfn = live_macro.get('moexfn', 8000.0)
+                default_cny_rub = live_macro.get('cny_rub', 11.5)
             else:
                 default_imoex = 2500.0
                 default_rtsi = 1100.0
@@ -450,6 +528,7 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
                 default_vix = 16.0
                 default_moexog = 4500.0
                 default_moexfn = 8000.0
+                default_cny_rub = 11.5
 
             imoex_val = day_macro.get('IMOEX', default_imoex)
             rtsi_val = day_macro.get('RTSI', default_rtsi)
@@ -505,7 +584,10 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
                 'cbr_rate_normalized': default_cbr_rate / 20.0,
                 'vix': default_vix / 50.0,
                 'moexog_normalized': default_moexog / 10000.0,
-                'market_regime': market_regime
+                'market_regime': market_regime,
+                # 🆕 CNYRUB (наш анализ: β=-0.15)
+                'cny_rub': default_cny_rub,
+                'cny_rub_change': 0.0,
             }
 
             state = model.build_state_vector(
@@ -550,15 +632,73 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
                 else:
                     action = lookahead_ideal
             elif learn:
+                # Этап 2: сэмплирование (exploration)
                 action = torch.multinomial(masked_probs, 1).item()
             else:
-                action = masked_probs.argmax().item()
+                # 🆕 Валидация: ε-greedy + soft teacher + anti-stuck
+                # Проблема: после supervised pre-training модель часто замирает на HOLD
+                # Решение: 3 механизма для обеспечения торговли
+                val_cfg = pretrain_cfg.get('validation', {})
+                epsilon = val_cfg.get('epsilon_greedy', 0.15)  # 15% случайных действий
+                teacher_guidance_prob = val_cfg.get('teacher_guidance_prob', 0.30)  # 30% следуем учителю
+                anti_stuck_window = val_cfg.get('anti_stuck_window', 30)  # если за 30 шагов 0 BUY
+                anti_stuck_force_buy = val_cfg.get('anti_stuck_force_buy', True)
+
+                r = random.random()
+                if r < teacher_guidance_prob and lookahead_ideal is not None:
+                    # Soft teacher: следуем учителю без обучения
+                    if lookahead_ideal in [5, 6] and ticker not in portfolio.positions:
+                        action = torch.multinomial(masked_probs, 1).item()
+                    else:
+                        action = lookahead_ideal
+                elif r < teacher_guidance_prob + epsilon:
+                    # ε-greedy: случайное действие из доступных
+                    action = random.choice(available_actions)
+                else:
+                    # argmax (основной режим)
+                    action = masked_probs.argmax().item()
+
+                # 🆕 Anti-stuck: если за последние N шагов 0 BUY и нет позиции — принудительно BUY
+                if anti_stuck_force_buy and ticker not in portfolio.positions:
+                    recent_actions = [model.memory[j].get('action') if isinstance(model.memory[j], dict) else -1
+                                      for j in range(max(0, len(model.memory) - anti_stuck_window), len(model.memory))]
+                    recent_buys = sum(1 for a in recent_actions if a in [3, 4])
+                    if recent_buys == 0 and len(recent_actions) >= anti_stuck_window:
+                        # Принудительно BUY_SMALL (action=3)
+                        action = 3
+                        logger.debug(f"Anti-stuck: принудительный BUY {ticker} (нет покупок {anti_stuck_window} шагов)")
 
             # ========== ИСПОЛНЕНИЕ СДЕЛКИ ==========
 
+            # 🆕 v12: Конвертация действий с учётом ограничений
+            # 1) Запрет докупки при уже открытой позиции
+            if action in [3, 4] and ticker in portfolio.positions:
+                action = 1  # BUY → HOLD
+            # 2) Минимальное удержание позиции — после BUY модель должна HOLD минимум N шагов
+            #    Это предотвращает pattern "купил-продал на следующем шаге"
+            min_hold_steps = pretrain_cfg.get('min_hold_steps_after_buy', 3)
+            if action in [5, 6] and ticker in portfolio.positions:
+                pos = portfolio.positions[ticker]
+                buy_step = pos.get('buy_step', None)
+                if buy_step is None:
+                    # buy_step не сохранён — блокируем SELL (перестраховка)
+                    action = 1
+                    logger.debug(f"MIN_HOLD: {ticker} buy_step не найден → SELL→HOLD")
+                else:
+                    steps_held = i - buy_step
+                    if steps_held < min_hold_steps:
+                        logger.debug(f"MIN_HOLD: {ticker} шаг={i}, buy_step={buy_step}, "
+                                    f"held={steps_held} < {min_hold_steps} → SELL→HOLD")
+                        action = 1  # SELL → HOLD
+
+            buy_this_step = False
+            sell_blocked_this_step = False
+
             if action in [3, 4]:
-                # BUY_SMALL = 5% кэша, BUY_NORMAL = 10% кэша
-                cash_fraction = 0.05 if action == 3 else 0.10
+                # 🆕 v12: Увеличены cash_fraction — было 5%/10%, стало 10%/20%
+                # При цене 500₽ и кэше 10000₽: 5% = 500₽ = 1 акция (слишком мало)
+                # 10% = 1000₽ = 2 акции, 20% = 2000₽ = 4 акции
+                cash_fraction = 0.10 if action == 3 else 0.20
                 qty = int(portfolio.cash * cash_fraction / price)
                 lot_size = sec_info.get('lot_size', 1)
                 if lot_size > 1:
@@ -566,7 +706,9 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
                 if qty < lot_size:
                     qty = lot_size
                 if qty > 0 and portfolio.cash >= qty * price:
-                    portfolio.buy(ticker, qty, price, 'balanced')
+                    # 🆕 v12: Передаём buy_step через kwargs — portfolio.buy() сохранит его
+                    portfolio.buy(ticker, qty, price, 'balanced', buy_step=i)
+                    buy_this_step = True
                     if ticker not in pending_buy:
                         pending_buy[ticker] = {
                             'entry_price': price,
@@ -583,10 +725,15 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
 
 
             elif action in [5, 6] and ticker in portfolio.positions:
-                pos = portfolio.positions[ticker]
-                qty = pos['qty'] if action == 6 else int(pos['qty'] * 0.5)
-                if qty > 0:
-                    portfolio.sell(ticker, qty, price)
+                # 🆕 v11: Кулдаун BUY→SELL — если покупка была в этом шаге, пропускаем продажу
+                if buy_this_step:
+                    sell_blocked_this_step = True
+                    action = 1  # конвертируем в HOLD
+                else:
+                    pos = portfolio.positions[ticker]
+                    qty = pos['qty'] if action == 6 else int(pos['qty'] * 0.5)
+                    if qty > 0:
+                        portfolio.sell(ticker, qty, price)
 
                     # Закрываем эпизод — назначаем reward для BUY (ТОЛЬКО НА ЭТАПЕ 1)
                     if force_teacher and ticker in pending_buy:
@@ -594,7 +741,7 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
                         pnl_pct = (price - entry['entry_price']) / entry['entry_price'] if entry['entry_price'] > 0 else 0
                         episode_reward = pnl_pct * 100 * episode_reward_scale
                         episode_reward -= 0.006
-                        episode_reward = max(-5.0, min(5.0, episode_reward))
+                        episode_reward = max(REWARD_CLIP_MIN, min(REWARD_CLIP_MAX, episode_reward))
 
                         for j in range(len(model.memory) - 1, max(0, len(model.memory) - max_episode_steps) - 1, -1):
                             exp = model.memory[j]
@@ -626,7 +773,7 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
                         entry = pending_buy[tkr]
                         pnl_pct = (price - entry['entry_price']) / entry['entry_price'] if entry['entry_price'] > 0 else 0
                         episode_reward = pnl_pct * 100 - 0.006
-                        episode_reward = max(-5.0, min(5.0, episode_reward))
+                        episode_reward = max(REWARD_CLIP_MIN, min(REWARD_CLIP_MAX, episode_reward))
 
                         for j in range(len(model.memory) - 1, max(0, len(model.memory) - max_episode_steps) - 1, -1):
                             exp = model.memory[j]
@@ -646,21 +793,23 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
 
             # ========== REWARD ==========
             if force_teacher and lookahead_ideal is not None:
-                # Этап 1: Reward только от учителя
+                # 🆕 УМЕНЬШЕННЫЙ reward — был ±5, стал ±2
+                # Это предотвращает схлопывание softmax после supervised pre-training
+                # Большие reward → большие gradients → большие logits → softmax collapse
                 horizon_scale = min(1.0, lookahead_horizon / 3.0)
                 lookahead_match = (action == lookahead_ideal)
 
                 if lookahead_match:
-                    reward = lookahead_confidence * 5.0 * horizon_scale
+                    reward = lookahead_confidence * REWARD_MATCH * horizon_scale
                 elif (lookahead_ideal in [3, 4] and action in [3, 4]) or \
                         (lookahead_ideal in [5, 6] and action in [5, 6]):
-                    reward = lookahead_confidence * 2.0 * horizon_scale
+                    reward = lookahead_confidence * REWARD_PARTIAL * horizon_scale
                 elif lookahead_ideal == 0 and action == 0:
-                    reward = lookahead_confidence * 3.0 * horizon_scale
+                    reward = lookahead_confidence * REWARD_HOLD * horizon_scale
                 else:
-                    reward = -5.0 * lookahead_confidence * horizon_scale
+                    reward = REWARD_MISMATCH * lookahead_confidence * horizon_scale
 
-                reward = max(-5.0, min(5.0, reward))
+                reward = max(REWARD_CLIP_MIN, min(REWARD_CLIP_MAX, reward))
 
             elif i + 1 < len(candles):
                 # Этап 2 или валидация: Рыночный reward + мягкий lookahead-бонус
@@ -702,7 +851,8 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
                     reward -= commission_rate * 100
 
                 elif action in [5, 6]:
-                    reward = -1.0
+                    # 🆕 SELL без позиции — штраф из конфига
+                    reward = REWARD_SELL_NO_POS
 
                 else:  # HOLD
                     if ticker in portfolio.positions:
@@ -769,9 +919,15 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
             total_steps += 1
             total_reward += reward
 
-            # Обучение каждые 32 шага (только в режиме обучения)
+            # Обучение каждые 32 шага
             if learn and total_steps % 32 == 0 and len(model.memory) >= 32:
-                model.learn_from_experience(batch_size=32)
+                if force_teacher and lookahead_ideal is not None:
+                    # 🆕 v13: Cross-entropy loss для supervised pre-training
+                    # Policy gradient с reward от учителя неизбежно коллапсирует.
+                    # Cross-entropy напрямую учит модель имитировать учителя.
+                    model.learn_supervised(batch_size=32)
+                else:
+                    model.learn_from_experience(batch_size=32)
 
             if total_steps % 50 == 0:
                 recent_rewards = [model.memory[j]['reward'] for j in
@@ -785,6 +941,11 @@ def train_on_period(tickers, start_date, end_date, macro_history, learn=True, fo
                 pos_count = len(portfolio.positions)
                 print(
                     f"  [{current_date}] Шаг {total_steps}: reward={reward:+.2f}, ср.за 50={avg_reward:+.2f}, B={buys} S={sells} H={holds} поз={pos_count} кэш={portfolio.cash:.0f}₽ память={len(model.memory)}")
+
+                # 🆕 Диагностика: предупреждение если модель только HOLD-ит (валидация)
+                if not learn and not force_teacher and holds >= 48 and buys == 0 and sells == 0:
+                    print(f"  ⚠️ ПРЕДУПРЕЖДЕНИЕ: модель только HOLD (B=0 S=0 H={holds}). "
+                          f"Активирован anti-stuck механизм (ε-greedy + soft teacher + force-buy).")
 
         final_portfolio_value = portfolio.cash + sum(
             pos['qty'] * (moex.get_price(ticker) or pos['avg_price'])
@@ -1030,6 +1191,18 @@ if len(model.memory) > 0:
             bar = "█" * int(pct / 2)
             print(f"   {name:<15} {count:>5} ({pct:>5.1f}%) {bar}")
 
+        # 🆕 Диагностика дисбаланса
+        total = len(actions)
+        max_action = max(action_counts, key=action_counts.get)
+        max_pct = action_counts[max_action] / total * 100
+        if max_pct > 60:
+            print(f"\n   ⚠️ ПРЕДУПРЕЖДЕНИЕ: действие {action_names.get(max_action, max_action)} "
+                  f"доминирует ({max_pct:.1f}%). Возможен softmax collapse.")
+            print(f"   Рекомендация: увеличьте entropy_bonus_coeff или temperature в trader_model.py")
+        elif max_pct > 40:
+            print(f"\n   ⚠️ ВНИМАНИЕ: действие {action_names.get(max_action, max_action)} "
+                  f"преобладает ({max_pct:.1f}%). Следите за распределением после обучения.")
+
 print(f"\n📈 ЭТАП 1: ПРИНУДИТЕЛЬНОЕ ОБУЧЕНИЕ:")
 print(f"   Шагов: {train_steps}")
 print(f"   Средний reward: {train_reward/train_steps:+.4f}" if train_steps > 0 else "   Нет шагов")
@@ -1067,41 +1240,98 @@ for i, (name, bias) in enumerate(zip(action_names, action_net_bias)):
     direction = "📈" if bias > 0 else "📉"
     print(f"   {direction} {name:<15} bias={bias:+.4f}")
 
-print(f"\n🧪 ТЕСТОВЫЙ ПРОГОН:")
-test_state = model.build_state_vector(
-    ticker="SBER", price=300.0, momentum=0, sentiment=0,
-    news_features=model.encode_news(["Тестовая новость"]),
-    market_data={
-        'volume': 1e9, 'spread': 0.01, 'rsi': 50, 'volatility': 0.02,
-        'sma_10_ratio': 1.0, 'sma_20_ratio': 1.0, 'bb_position': 0.5,
-        'volume_ratio': 1.0, 'atr': 3.0, 'market_cap': 5e12,
-        'lot_size': 1, 'min_step': 0.01, 'sector': 'other', 'momentum': 0,
-        'imoex': 2500, 'imoex_change': 0, 'rtsi': 1100, 'rtsi_change': 0,
-        'rvi': 25, 'rvi_change': 0, 'moexog': 4500, 'moexfn': 8000,
-        'brent': 80, 'brent_change': 0, 'market_liquidity_ratio': 0.8,
-        'market_activity_score': 1.0, 'spread_pct': 0.01/300,
-        'market_mood': 0, 'shares_turnover': 5e11,
-        'rvi_normalized': 0.25, 'imoex_normalized': 0.625,
-        'market_cap_total': 5e13, 'liquidity_ratio': 0.8,
-        'cbr_rate_normalized': 0.675, 'vix': 16, 'moexog_normalized': 0.45,
-        'market_regime': 0
-    },
-    market_sentiment=0, portfolio=PortfolioManager()
-)
+print(f"\n🧪 ТЕСТОВЫЙ ПРОГОН (на реальных state из памяти):")
+# 🆕 v8: Тестируем на 5 реальных state из памяти вместо синтетического
+# + Проверяем различимость state (state_features должны быть РАЗНЫМИ для разных state)
+import random as _rnd
+if len(model.memory) >= 10:
+    test_indices = _rnd.sample(range(len(model.memory)), min(5, len(model.memory)))
+    strategy_params = list(model.strategies.values())[0] if model.strategies else {}
+    model.policy_net.eval()
 
-strategy_params = list(model.strategies.values())[0] if model.strategies else {}
-test_full = model._create_strategy_state(test_state, strategy_params)
-test_tensor = test_full.unsqueeze(0).to(model.device)
+    all_sf_means = []
+    all_sf_stds = []
+    all_probs = []
 
-model.policy_net.eval()
-with torch.no_grad():
-    probs, value, _ = model.policy_net(test_tensor)
-    probs = probs.cpu().numpy().flatten()
-    print(f"   State value: {value.item():+.4f}")
-    print(f"   Распределение вероятностей:")
-    for i, p in enumerate(probs):
-        bar = "█" * int(p * 30)
-        print(f"   {action_names[i]:<15} {p:.3f} {bar}")
+    for test_idx, mem_idx in enumerate(test_indices, 1):
+        exp = model.memory[mem_idx]
+        if not isinstance(exp, dict):
+            continue
+        state_tensor = exp['state'].to(model.device)
+        actual_action = exp.get('action', -1)
+        actual_reward = exp.get('reward', 0)
+
+        # 🆕 v8: Проверяем, что state в памяти разные (не дубликаты)
+        state_np = state_tensor.cpu().numpy()
+        state_stats = {
+            'mean': float(state_np.mean()),
+            'std': float(state_np.std()),
+            'min': float(state_np.min()),
+            'max': float(state_np.max()),
+            'n_nonzero': int((state_np != 0).sum()),
+            'n_unique': len(set(state_np.round(6).tolist())),
+        }
+
+        with torch.no_grad():
+            probs, value, _ = model.policy_net(state_tensor.unsqueeze(0))
+            probs = probs.cpu().numpy().flatten()
+            state_features = model.policy_net.state_net(state_tensor.unsqueeze(0))
+            sf_stats = {
+                'mean': state_features.mean().item(),
+                'std': state_features.std().item(),
+                'min': state_features.min().item(),
+                'max': state_features.max().item(),
+            }
+
+        all_sf_means.append(sf_stats['mean'])
+        all_sf_stds.append(sf_stats['std'])
+        all_probs.append(probs.tolist())
+
+        action_names_local = ["HOLD_SHORT", "HOLD", "HOLD_LONG", "BUY_SMALL", "BUY_NORMAL",
+                              "SELL_SMALL", "SELL_ALL"]
+        chosen = action_names_local[actual_action] if 0 <= actual_action < 7 else str(actual_action)
+
+        print(f"\n  Тест {test_idx}: action={chosen}, reward={actual_reward:+.2f}")
+        print(f"   State value: {value.item():+.4f}")
+        print(f"   Input state: mean={state_stats['mean']:+.4f}, std={state_stats['std']:.4f}, "
+              f"nonzero={state_stats['n_nonzero']}/{len(state_np)}, unique={state_stats['n_unique']}")
+        print(f"   State features: mean={sf_stats['mean']:+.4f}, std={sf_stats['std']:.4f}, "
+              f"range=[{sf_stats['min']:+.3f}, {sf_stats['max']:+.3f}]")
+        print(f"   Распределение вероятностей:")
+        for i, p in enumerate(probs):
+            bar = "█" * int(p * 30)
+            marker = " ← actual" if i == actual_action else ""
+            print(f"   {action_names_local[i]:<15} {p:.3f} {bar}{marker}")
+
+    # 🆕 v8: Диагностика различимости state
+    print(f"\n  📊 ДИАГНОСТИКА РАЗЛИЧИМОСТИ STATE:")
+    print(f"   State features mean по 5 тестам: {[f'{m:+.4f}' for m in all_sf_means]}")
+    print(f"   State features std  по 5 тестам: {[f'{s:.4f}' for s in all_sf_stds]}")
+    sf_mean_range = max(all_sf_means) - min(all_sf_means)
+    sf_std_range = max(all_sf_stds) - min(all_sf_stds)
+    print(f"   Range of means: {sf_mean_range:.6f}")
+    print(f"   Range of stds:  {sf_std_range:.6f}")
+
+    # Проверяем, различает ли модель state
+    probs_diffs = []
+    for i in range(len(all_probs)):
+        for j in range(i+1, len(all_probs)):
+                diff = sum(abs(a - b) for a, b in zip(all_probs[i], all_probs[j])) / len(all_probs[i])
+                probs_diffs.append(diff)
+    avg_prob_diff = sum(probs_diffs) / len(probs_diffs) if probs_diffs else 0
+    print(f"   Avg probability difference between states: {avg_prob_diff:.6f}")
+
+    if sf_mean_range < 0.001 and sf_std_range < 0.001:
+        print(f"   ❌ State_net НЕ РАЗЛИЧАЕТ state — все features одинаковые!")
+        print(f"      Причина: LayerNorm + Dropout коллапсировали state_net")
+        print(f"      Решение: проверьте архитектуру state_net (уберите LayerNorm)")
+    elif avg_prob_diff < 0.01:
+        print(f"   ⚠️ State различимы, но model выдаёт почти одинаковые probabilities")
+        print(f"      Причина: policy gradient не работает или temperature слишком высокая")
+    else:
+        print(f"   ✓ State различимы, model выдаёт разные probabilities")
+else:
+    print("   Недостаточно опытов в памяти для теста")
 
 # ============================================================
 # СОХРАНЕНИЕ

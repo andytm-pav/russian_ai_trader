@@ -157,6 +157,327 @@ class MoexFetcher:
         if self.use_cache:
             self.cache[key] = (data, time.time())
 
+    # ============================================================
+    # 🆕 FRESH DATA API — без кэша, с инкрементальной историей
+    # ============================================================
+    # Требования:
+    # 1. Все расчёты (momentum, SMA, RSI) — ТОЛЬКО на данных текущего запроса
+    # 2. При запросе каждые N сек — тянем интервал [last_seen+1s, now]
+    # 3. Если timestamp данных устарел — инициировать дозапрос
+    # 4. При ошибке MOEX — возвращаем последние корректные с флагом stale
+
+    def get_fresh_market_data(self, tickers: List[str],
+                              last_seen_times: Optional[Dict[str, float]] = None,
+                              poll_interval_seconds: int = 10) -> Dict[str, Dict]:
+        """
+        Получение СВЕЖИХ рыночных данных без кэша.
+
+        Принципы:
+          • Запрос всегда делает свежий HTTP-запрос к MOEX (кэш игнорируется)
+          • Возвращает цены + timestamp + флаг staleness
+          • poll_interval_seconds используется для проверки актуальности:
+            если данных нет > poll_interval, они считаются stale
+
+        Args:
+            tickers: список тикеров
+            last_seen_times: dict {ticker: unix_ts_last_seen} — для детекта пробелов
+            poll_interval_seconds: интервал опроса (для staleness-проверки)
+
+        Returns:
+            {
+                ticker: {
+                    'price': float,
+                    'volume': float,
+                    'bid': float,
+                    'offer': float,
+                    'spread': float,
+                    'market_cap': float,
+                    'num_trades': int,
+                    'server_time': float,  # время данных с MOEX
+                    'fetch_time': float,   # локальное время запроса
+                    'is_stale': bool,      # True если данные устарели
+                    'source': str,         # 'moex' / 'cache_fallback'
+                },
+                ...
+            }
+        """
+        if not tickers:
+            return {}
+
+        last_seen_times = last_seen_times or {}
+        now_local = time.time()
+        results = {}
+        batch_size = 50
+
+        # Запрос всегда свежий (мимо кэша)
+        for i in range(0, len(tickers), batch_size):
+            batch = tickers[i:i + batch_size]
+
+            url = f"{self.base_url}/engines/stock/markets/shares/boards/TQBR/securities.json"
+            params = {
+                'securities': ','.join(batch),
+                'iss.meta': 'off',
+                'iss.only': 'marketdata',
+                'marketdata.columns': 'SECID,LAST,MARKETPRICE,LCURRENTPRICE,VALTODAY,VOLTODAY,SPREAD,ISSUECAPITALIZATION,NUMTRADES,BID,OFFER,SYSTIME,LASTCHANGE',
+                'limit': len(batch)
+            }
+
+            try:
+                # 🚫 НЕТ cache check — всегда свежий запрос
+                response = self.session.get(url, params=params, timeout=15)
+                response.raise_for_status()
+                data = response.json()
+
+                if 'marketdata' not in data:
+                    logger.warning(f"Fresh data: нет marketdata в ответе для batch {i//batch_size}")
+                    continue
+
+                columns = data['marketdata']['columns']
+
+                for row in data['marketdata']['data']:
+                    try:
+                        ticker = row[columns.index('SECID')]
+                        if not ticker:
+                            continue
+
+                        # Серверное время данных
+                        # ⚠ ВАЖНО: MOEX ISS возвращает SYSTIME в МСК времени (UTC+3) в формате
+                        # "2026-07-15 13:14:55" — это НАИВНЫЙ datetime без timezone info.
+                        # Если вызвать datetime.fromisoformat(...).timestamp(), он интерпретирует
+                        # время как ЛОКАЛЬНОЕ — что даст сдвиг на часовом поясе пользователя.
+                        # Например, на машине в Самаре (UTC+4) MSK 13:14 → local 14:14,
+                        # но .timestamp() даст значение на 1 час меньше → данные всегда stale.
+                        # Решение: парсим как MSK (UTC+3), затем конвертируем в Unix timestamp.
+                        server_time = now_local
+                        if 'SYSTIME' in columns:
+                            idx = columns.index('SYSTIME')
+                            if idx < len(row) and row[idx] is not None:
+                                try:
+                                    dt_str = str(row[idx])
+                                    from datetime import timezone as _tz
+                                    # Парсим наивный datetime
+                                    if 'T' in dt_str:
+                                        # ISO формат с возможным Z
+                                        if dt_str.endswith('Z'):
+                                            dt_obj = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+                                            server_time = dt_obj.timestamp()
+                                        else:
+                                            dt_obj = datetime.fromisoformat(dt_str)
+                                            # Если нет tzinfo — считаем что это MSK (UTC+3)
+                                            if dt_obj.tzinfo is None:
+                                                MSK_TZ = _tz(timedelta(hours=3))
+                                                dt_obj = dt_obj.replace(tzinfo=MSK_TZ)
+                                            server_time = dt_obj.timestamp()
+                                    else:
+                                        # Формат "2026-07-15 13:14:55" — MOEX ISS default
+                                        dt_obj = datetime.fromisoformat(dt_str)
+                                        MSK_TZ = _tz(timedelta(hours=3))
+                                        dt_obj = dt_obj.replace(tzinfo=MSK_TZ)
+                                        server_time = dt_obj.timestamp()
+                                except Exception as e:
+                                    logger.debug(f"SYSTIME parse failed for {ticker}: {dt_str} — {e}")
+                                    server_time = now_local
+
+                        # Цена с fallback
+                        last_val = None
+                        for price_field in ['LAST', 'MARKETPRICE', 'LCURRENTPRICE']:
+                            if price_field in columns:
+                                idx = columns.index(price_field)
+                                if idx < len(row) and row[idx] is not None:
+                                    try:
+                                        val = float(row[idx])
+                                        if val > 0:
+                                            last_val = val
+                                            break
+                                    except (ValueError, TypeError):
+                                        pass
+
+                        if last_val is None and 'BID' in columns and 'OFFER' in columns:
+                            bid_idx = columns.index('BID')
+                            off_idx = columns.index('OFFER')
+                            if (bid_idx < len(row) and off_idx < len(row)
+                                    and row[bid_idx] and row[off_idx]):
+                                try:
+                                    last_val = (float(row[bid_idx]) + float(row[off_idx])) / 2
+                                except (ValueError, TypeError):
+                                    pass
+
+                        # Объём
+                        volume = 0.0
+                        if 'VALTODAY' in columns:
+                            idx = columns.index('VALTODAY')
+                            if idx < len(row) and row[idx] is not None:
+                                try:
+                                    volume = float(row[idx])
+                                except (ValueError, TypeError):
+                                    pass
+
+                        # BID/OFFER/SPREAD
+                        bid = 0.0
+                        offer = 0.0
+                        spread = 0.0
+                        for fname, fkey in [('bid', 'BID'), ('offer', 'OFFER'), ('spread', 'SPREAD')]:
+                            if fkey in columns:
+                                idx = columns.index(fkey)
+                                if idx < len(row) and row[idx] is not None:
+                                    try:
+                                        val = float(row[idx])
+                                        if fname == 'bid':
+                                            bid = val
+                                        elif fname == 'offer':
+                                            offer = val
+                                        elif fname == 'spread':
+                                            spread = val
+                                    except (ValueError, TypeError):
+                                        pass
+
+                        # Market cap
+                        market_cap = 0.0
+                        if 'ISSUECAPITALIZATION' in columns:
+                            idx = columns.index('ISSUECAPITALIZATION')
+                            if idx < len(row) and row[idx] is not None:
+                                try:
+                                    market_cap = float(row[idx])
+                                except (ValueError, TypeError):
+                                    pass
+
+                        # Num trades
+                        num_trades = 0
+                        if 'NUMTRADES' in columns:
+                            idx = columns.index('NUMTRADES')
+                            if idx < len(row) and row[idx] is not None:
+                                try:
+                                    num_trades = int(row[idx])
+                                except (ValueError, TypeError):
+                                    pass
+
+                        # Проверка актуальности:
+                        # Если server_time < (now - poll_interval) — данные stale
+                        is_stale = (server_time < (now_local - poll_interval_seconds - 5))
+
+                        # Детект gap: если last_seen > 0 и между last_seen и server_time
+                        # есть зазор больше 2*poll_interval — это потенциальный gap
+                        gap_detected = False
+                        last_seen = last_seen_times.get(ticker, 0)
+                        if last_seen > 0:
+                            gap_seconds = server_time - last_seen
+                            if gap_seconds > 2.5 * poll_interval_seconds:
+                                gap_detected = True
+
+                        results[ticker] = {
+                            'price': last_val if last_val else 0.0,
+                            'volume': volume,
+                            'bid': bid,
+                            'offer': offer,
+                            'spread': spread,
+                            'market_cap': market_cap,
+                            'num_trades': num_trades,
+                            'server_time': server_time,
+                            'fetch_time': now_local,
+                            'is_stale': is_stale,
+                            'gap_detected': gap_detected,
+                            'source': 'moex',
+                        }
+
+                        # 🆕 Сохраняем как fallback (на случай следующей ошибки)
+                        self._save_to_cache(f"fresh_fallback_{ticker}", results[ticker])
+
+                    except (IndexError, ValueError) as e:
+                        logger.debug(f"Fresh data: ошибка обработки строки: {e}")
+                        continue
+
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Fresh data: ошибка сети batch {i//batch_size}: {e}")
+                # 🆕 Fallback на последние корректные данные, НО С ФЛАГОМ STALE
+                for ticker in batch:
+                    fallback = self._get_from_cache(f"fresh_fallback_{ticker}")
+                    if fallback:
+                        # Помечаем как stale
+                        stale_copy = dict(fallback)
+                        stale_copy['is_stale'] = True
+                        stale_copy['source'] = 'cache_fallback'
+                        stale_copy['fetch_time'] = now_local
+                        results[ticker] = stale_copy
+                        logger.debug(f"Fresh data: {ticker} — STALE fallback (cache)")
+                    # else: тикер просто не появится в результатах
+
+            except Exception as e:
+                logger.error(f"Fresh data: непредвиденная ошибка batch {i//batch_size}: {e}")
+
+        # Логирование сводки
+        stale_count = sum(1 for r in results.values() if r.get('is_stale'))
+        gap_count = sum(1 for r in results.values() if r.get('gap_detected'))
+        cache_count = sum(1 for r in results.values() if r.get('source') == 'cache_fallback')
+        if stale_count > 0 or gap_count > 0 or cache_count > 0:
+            logger.info(
+                f"Fresh data: {len(results)}/{len(tickers)} tickers | "
+                f"stale={stale_count} | gaps={gap_count} | cache_fallback={cache_count}"
+            )
+        else:
+            logger.debug(f"Fresh data: {len(results)}/{len(tickers)} tickers — all fresh")
+
+        return results
+
+    def get_fresh_macro_data(self) -> Dict[str, Any]:
+        """
+        Получение СВЕЖИХ макро-данных (индексы, brent, usd_rub, vix) без кэша.
+        Возвращает значения + timestamp + is_stale флаг.
+        """
+        now_local = time.time()
+        result = {
+            'imoex': 0.0, 'imoex_change': 0.0,
+            'rtsi': 0.0, 'rtsi_change': 0.0,
+            'rvi': self.default_rvi, 'rvi_change': 0.0,
+            'brent': 0.0, 'brent_change': 0.0,
+            'usd_rub': 0.0, 'usd_rub_change': 0.0,
+            'vix': 0.0,
+            'fetch_time': now_local,
+            'server_time': now_local,
+            'is_stale': False,
+            'source': 'moex',
+        }
+
+        try:
+            indices = self.get_market_indices()  # всегда свежий запрос
+            if indices:
+                result['imoex'] = indices.get('IMOEX', 0.0)
+                result['imoex_change'] = indices.get('IMOEX_change', 0.0)
+                result['rtsi'] = indices.get('RTSI', 0.0)
+                result['rtsi_change'] = indices.get('RTSI_change', 0.0)
+                result['rvi'] = indices.get('RVI', self.default_rvi)
+                result['rvi_change'] = indices.get('RVI_change', 0.0)
+
+            # Brent
+            brent = self.get_brent_price()
+            if brent:
+                result['brent'] = brent
+                result['brent_change'] = self.get_brent_change()
+
+            # USD/RUB
+            usd = self.get_usd_rub()
+            if usd:
+                result['usd_rub'] = usd
+                result['usd_rub_change'] = self.get_usd_rub_change()
+
+            # VIX
+            vix = self.get_vix()
+            if vix:
+                result['vix'] = vix
+
+            # Сохраняем fallback
+            self._save_to_cache("fresh_macro_fallback", dict(result))
+
+        except Exception as e:
+            logger.warning(f"Fresh macro: ошибка, используем fallback: {e}")
+            fallback = self._get_from_cache("fresh_macro_fallback")
+            if fallback:
+                result = dict(fallback)
+                result['is_stale'] = True
+                result['source'] = 'cache_fallback'
+                result['fetch_time'] = now_local
+
+        return result
+
     def get_prices_batch(self, tickers: List[str]) -> Dict[str, Optional[float]]:
         """Получение цен для нескольких тикеров одним запросом"""
         if not tickers:
@@ -177,7 +498,7 @@ class MoexFetcher:
                 'limit': len(batch)
             }
 
-            data = self._make_request(url, params, timeout=15)
+            data = self._make_request(url, params, timeout=30)
             if not data or 'marketdata' not in data:
                 continue
 
@@ -216,7 +537,7 @@ class MoexFetcher:
                 'limit': 100
             }
 
-            response = self.session.get(url, params=params, timeout=15)
+            response = self.session.get(url, params=params, timeout=30)
             response.raise_for_status()
             data = response.json()
 
@@ -288,7 +609,7 @@ class MoexFetcher:
                     'securities': ','.join(batch),
                     'iss.meta': 'off',
                     'iss.only': 'marketdata',
-                    'marketdata.columns': 'SECID,LAST,VALTODAY,VOLTODAY,SPREAD,ISSUECAPITALIZATION,NUMTRADES',
+                    'marketdata.columns': 'SECID,LAST,MARKETPRICE,LCURRENTPRICE,VALTODAY,VOLTODAY,SPREAD,ISSUECAPITALIZATION,NUMTRADES,BID,OFFER',
                     'limit': len(batch)
                 }
 
@@ -306,14 +627,40 @@ class MoexFetcher:
                                 # Получаем все необходимые данные
                                 data_row = {}
 
-                                # LAST цена
-                                if 'LAST' in md_columns:
-                                    idx = md_columns.index('LAST')
-                                    if idx < len(md_row) and md_row[idx] is not None:
+                                # LAST цена с fallback на MARKETPRICE, LCURRENTPRICE, BID/OFFER
+                                last_val = None
+                                for price_field in ['LAST', 'MARKETPRICE', 'LCURRENTPRICE']:
+                                    if price_field in md_columns:
+                                        idx = md_columns.index(price_field)
+                                        if idx < len(md_row) and md_row[idx] is not None:
+                                            try:
+                                                val = float(md_row[idx])
+                                                if val > 0:
+                                                    last_val = val
+                                                    break
+                                            except (ValueError, TypeError):
+                                                pass
+                                # Fallback на midspread (BID+OFFER)/2
+                                if last_val is None and 'BID' in md_columns and 'OFFER' in md_columns:
+                                    bid_idx = md_columns.index('BID')
+                                    off_idx = md_columns.index('OFFER')
+                                    if (bid_idx < len(md_row) and off_idx < len(md_row)
+                                            and md_row[bid_idx] and md_row[off_idx]):
                                         try:
-                                            data_row['price'] = float(md_row[idx])
+                                            last_val = (float(md_row[bid_idx]) + float(md_row[off_idx])) / 2
                                         except (ValueError, TypeError):
-                                            data_row['price'] = 0.0
+                                            pass
+                                data_row['price'] = last_val if last_val else 0.0
+
+                                # BID/OFFER для микроструктуры
+                                for ms_field in ['BID', 'OFFER']:
+                                    if ms_field in md_columns:
+                                        idx = md_columns.index(ms_field)
+                                        if idx < len(md_row) and md_row[idx] is not None:
+                                            try:
+                                                data_row[ms_field.lower()] = float(md_row[idx])
+                                            except (ValueError, TypeError):
+                                                data_row[ms_field.lower()] = 0.0
 
                                 # VALTODAY (объем в рублях)
                                 if 'VALTODAY' in md_columns:
@@ -410,6 +757,8 @@ class MoexFetcher:
                         'market_cap': market_data.get('market_cap', 0.0),
                         'num_trades': market_data.get('num_trades', 0),
                         'spread_pct': (market_data.get('spread', 0.0) / current_price * 100) if current_price > 0 else 0.0,
+                        'bid': market_data.get('bid', 0.0),
+                        'offer': market_data.get('offer', 0.0),
                         'update_time': datetime.now().isoformat()
                     }
 
@@ -770,6 +1119,9 @@ class MoexFetcher:
         """Получение всех макро-данных"""
         indices = self.get_market_indices()
 
+        # CNYRUB — курс юаня к рублю (наш анализ: β=-0.15, значим)
+        cnyrub = self._get_currency_rate('CNYRUB_TOM')
+
         macro_data = {
             'imoex': indices.get('IMOEX', 0.0),
             'imoex_change': indices.get('IMOEX_change', 0.0),
@@ -786,6 +1138,8 @@ class MoexFetcher:
             'brent_change': self.get_brent_change(),
             'usd_rub': self.get_usd_rub() or 0.0,
             'usd_rub_change': self.get_usd_rub_change(),
+            'cny_rub': cnyrub or 0.0,
+            'cny_rub_change': 0.0,
             'cbr_rate': self._get_cbr_key_rate() or 0.0,
             'vix': self.get_vix() or 0.0,
             'shares_turnover': self.get_shares_turnover(),
@@ -984,6 +1338,36 @@ class MoexFetcher:
             return rvi_value
 
         return self.default_rvi
+
+    def _get_currency_rate(self, secid: str) -> Optional[float]:
+        """Получение курса любой валюты с MOEX SELT (универсальный метод)"""
+        cache_key = f"currency_{secid}"
+        cached = self._get_from_cache(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            url = f"{self.base_url}/engines/currency/markets/selt/securities/{secid}.json"
+            params = {
+                'iss.meta': 'off',
+                'iss.only': 'marketdata',
+                'marketdata.columns': 'SECID,LAST,MARKETPRICE'
+            }
+            data = self._make_request(url, params, timeout=10)
+            if data and 'marketdata' in data and data['marketdata']['data']:
+                row = data['marketdata']['data'][0]
+                cols = data['marketdata']['columns']
+                for field in ['LAST', 'MARKETPRICE']:
+                    if field in cols:
+                        idx = cols.index(field)
+                        if idx < len(row) and row[idx] is not None:
+                            value = self._safe_float(row[idx])
+                            if value > 0:
+                                self._save_to_cache(cache_key, value)
+                                return value
+        except Exception as e:
+            logger.debug(f"{secid} недоступен: {e}")
+        return None
 
     def get_usd_rub(self) -> Optional[float]:
         """Получение курса USD/RUB (приоритет: MOEX → ЦБ РФ)"""

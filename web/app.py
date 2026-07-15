@@ -100,6 +100,7 @@ app.layout = dbc.Container([
                 dbc.NavLink("📊 Дашборд", href="/", active="exact", id="nav-dashboard"),
                 dbc.NavLink("💼 Портфель", href="/portfolio", active="exact", id="nav-portfolio"),
                 dbc.NavLink("📈 Графики", href="/charts", active="exact", id="nav-charts"),
+                dbc.NavLink("📰 Новости", href="/news", active="exact", id="nav-news"),
                 dbc.NavLink("⚙️ Настройки", href="/settings", active="exact", id="nav-settings"),
                 dbc.NavLink("📋 Логи", href="/logs", active="exact", id="nav-logs")
             ], pills=True, vertical=False, className="mb-4")
@@ -244,6 +245,77 @@ dashboard_layout = dbc.Container([
                 ])
             ])
         ])
+    ]),
+
+    # 🆕 Карточки новых модулей (Вариант F + D + Hawkes + Chaos)
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🎯 Вариант F: Entry Cascading Confirmer", className="bg-info text-white"),
+                dbc.CardBody([
+                    html.Div(id="entry-confirmer-status",
+                             style={'maxHeight': '200px', 'overflowY': 'auto'})
+                ])
+            ])
+        ], width=6),
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🔄 Вариант D: Rolling Exit Manager", className="bg-warning text-white"),
+                dbc.CardBody([
+                    html.Div(id="rolling-exit-status",
+                             style={'maxHeight': '200px', 'overflowY': 'auto'})
+                ])
+            ])
+        ], width=6)
+    ], className="mb-4"),
+
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("⚡ Hawkes Process (per-ticker thresholds)", className="bg-danger text-white"),
+                dbc.CardBody([
+                    html.Div(id="hawkes-status",
+                             style={'maxHeight': '250px', 'overflowY': 'auto'})
+                ])
+            ])
+        ], width=6),
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🌀 Chaos Metrics (Hurst, D₂, RQA, kurtosis)", className="bg-success text-white"),
+                dbc.CardBody([
+                    html.Div(id="chaos-metrics-status",
+                             style={'maxHeight': '250px', 'overflowY': 'auto'})
+                ])
+            ])
+        ], width=6)
+    ], className="mb-4"),
+
+    # 🆕 Таблица rolling exit позиций (детально)
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🔍 Rolling Exit: активные позиции (детально)"),
+                dbc.CardBody([
+                    html.Div(id="rolling-exit-positions-table",
+                             className="table-responsive",
+                             style={'maxHeight': '300px', 'overflowY': 'auto'})
+                ])
+            ])
+        ])
+    ], className="mb-4"),
+
+    # 🆕 Таблица хаос-метрик топ-тикеров
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("📊 Хаос-метрики: топ-тикеры по волатильности"),
+                dbc.CardBody([
+                    html.Div(id="chaos-metrics-table",
+                             className="table-responsive",
+                             style={'maxHeight': '300px', 'overflowY': 'auto'})
+                ])
+            ])
+        ])
     ])
 ])
 
@@ -274,6 +346,118 @@ charts_layout = dbc.Container([
     dbc.Row([
         dbc.Col([dbc.Card([dbc.CardHeader("📉 Технические индикаторы"), dbc.CardBody([dcc.Graph(id="indicators-chart")])])], width=6),
         dbc.Col([dbc.Card([dbc.CardHeader("📰 Новостной сентимент"), dbc.CardBody([dcc.Graph(id="sentiment-chart")])])], width=6)
+    ])
+])
+
+
+# ============================================================
+# 📰 Страница "Новости и сентимент"
+# ============================================================
+news_layout = dbc.Container([
+    dbc.Row([
+        dbc.Col([
+            html.H2("📰 Новости, вызвавшие сентимент", className="mb-3"),
+            html.P("Лента новостей с ML-анализом тональности. Только новости с ненулевым сентиментом "
+                   "влияют на торговые решения. Кэш обновляется каждые 30 секунд.",
+                   className="text-muted mb-4")
+        ])
+    ]),
+
+    # —— Сводная статистика ——
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("📊 Сводка по сентименту", className="bg-info text-white"),
+                dbc.CardBody([
+                    html.Div(id="news-sentiment-stats",
+                             className="d-flex flex-wrap gap-3 justify-content-around")
+                ])
+            ])
+        ])
+    ], className="mb-4"),
+
+    # —— Топ-3 позитивных и негативных ——
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🟢 Топ-3 позитивных новости", className="bg-success text-white"),
+                dbc.CardBody([
+                    html.Div(id="news-top-positive",
+                             style={'maxHeight': '220px', 'overflowY': 'auto'})
+                ])
+            ])
+        ], width=6),
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🔴 Топ-3 негативных новости", className="bg-danger text-white"),
+                dbc.CardBody([
+                    html.Div(id="news-top-negative",
+                             style={'maxHeight': '220px', 'overflowY': 'auto'})
+                ])
+            ])
+        ], width=6)
+    ], className="mb-4"),
+
+    # —— Фильтры ——
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🔍 Фильтры"),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Тикер:", className="form-label"),
+                            dcc.Dropdown(
+                                id='news-ticker-filter',
+                                options=[{'label': 'Все тикеры', 'value': 'ALL'}],
+                                value='ALL',
+                                clearable=False
+                            )
+                        ], width=4),
+                        dbc.Col([
+                            html.Label("Сентимент:", className="form-label"),
+                            dcc.Dropdown(
+                                id='news-label-filter',
+                                options=[
+                                    {'label': 'Все', 'value': 'ALL'},
+                                    {'label': '🟢 Позитивный', 'value': 'POSITIVE'},
+                                    {'label': '🔴 Негативный', 'value': 'NEGATIVE'},
+                                    {'label': '⚪ Нейтральный', 'value': 'NEUTRAL'},
+                                ],
+                                value='ALL',
+                                clearable=False
+                            )
+                        ], width=4),
+                        dbc.Col([
+                            html.Label("Мин. |sentiment|:", className="form-label"),
+                            dcc.Slider(
+                                id='news-min-sentiment-slider',
+                                min=0, max=0.9, step=0.05, value=0.05,
+                                marks={0: '0', 0.3: '0.3', 0.6: '0.6', 0.9: '0.9'},
+                                tooltip={'placement': 'bottom', 'always_visible': False}
+                            )
+                        ], width=4)
+                    ])
+                ])
+            ])
+        ])
+    ], className="mb-4"),
+
+    # —— Таблица новостей ——
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader([
+                    "📋 Лента новостей с сентиментом",
+                    html.Span(id="news-count-badge", className="badge bg-secondary ms-2")
+                ]),
+                dbc.CardBody([
+                    html.Div(id="news-feed-table",
+                             className="table-responsive",
+                             style={'maxHeight': '600px', 'overflowY': 'auto'})
+                ])
+            ])
+        ])
     ])
 ])
 # Часть 2 из 4: settings_layout, logs_layout
@@ -511,6 +695,299 @@ settings_layout = dbc.Container([
                 ])
             ])
         ])
+    ]),
+
+    # 🆕 Screen Universe (выбор тикеров)
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🌍 Screen Universe — отбор тикеров"),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Топ-N тикеров:", className="form-label"),
+                            dbc.Input(id="su-top-n-input", type="number", value=60, min=10, max=200, step=10)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Мин. объём/день (₽):", className="form-label"),
+                            dbc.Input(id="su-min-vol-input", type="number", value=50000000, min=1000000, step=1000000)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Мин. цена (₽):", className="form-label"),
+                            dbc.Input(id="su-min-price-input", type="number", value=5.0, min=1.0, step=1.0)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Мин. волатильность (%):", className="form-label"),
+                            dbc.Input(id="su-min-volat-input", type="number", value=0.3, min=0.1, step=0.1)
+                        ], width=3),
+                    ], className="mb-3"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Вес ликвидности:", className="form-label"),
+                            dcc.Slider(id="su-liq-weight-slider", min=0, max=1, step=0.1, value=0.5,
+                                       marks={0: '0', 0.5: '0.5', 1: '1'})
+                        ], width=6),
+                        dbc.Col([
+                            html.Label("Вес волатильности:", className="form-label"),
+                            dcc.Slider(id="su-vol-weight-slider", min=0, max=1, step=0.1, value=0.5,
+                                       marks={0: '0', 0.5: '0.5', 1: '1'})
+                        ], width=6)
+                    ], className="mb-3"),
+                    dbc.Button("💾 Сохранить screen_universe",
+                               id="save-screen-universe-btn", color="primary", className="w-100"),
+                    html.Div(id="screen-universe-status", className="mt-2 text-center")
+                ])
+            ])
+        ])
+    ], className="mb-4"),
+
+    # 🆕 Вариант F: Entry Cascading
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🎯 Вариант F: Entry Cascading Confirmer"),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Checklist(
+                                options=[{"label": "Включить", "value": "enabled"}],
+                                value=["enabled"], id="ec-enabled-check", switch=True
+                            )
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Min confidence:", className="form-label"),
+                            dcc.Slider(id="ec-min-conf-slider", min=0.2, max=0.8, step=0.05, value=0.45,
+                                       marks={0.2: '0.2', 0.45: '0.45', 0.6: '0.6', 0.8: '0.8'})
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Max positions:", className="form-label"),
+                            dbc.Input(id="ec-max-pos-input", type="number", value=5, min=1, max=20)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Max weight %:", className="form-label"),
+                            dbc.Input(id="ec-max-weight-input", type="number", value=20, min=5, max=50, step=5)
+                        ], width=3),
+                    ], className="mb-3"),
+                    html.Hr(),
+                    html.H6("Hawkes-триггер", className="text-info"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Bull/Bear ratio ≥:", className="form-label"),
+                            dbc.Input(id="ec-bull-bear-input", type="number", value=1.5, min=1.0, step=0.1)
+                        ], width=4),
+                        dbc.Col([
+                            html.Label("Min bull expected:", className="form-label"),
+                            dbc.Input(id="ec-min-bull-input", type="number", value=0.5, min=0.1, step=0.1)
+                        ], width=4),
+                        dbc.Col([
+                            html.Label("Min P(bull):", className="form-label"),
+                            dbc.Input(id="ec-min-pbull-input", type="number", value=0.5, min=0.1, max=0.9, step=0.1)
+                        ], width=4),
+                    ], className="mb-3"),
+                    html.Hr(),
+                    html.H6("Техническое подтверждение", className="text-info"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Wait (мин):", className="form-label"),
+                            dbc.Input(id="ec-tech-wait-input", type="number", value=0, min=0, max=60, step=5)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("RSI min:", className="form-label"),
+                            dbc.Input(id="ec-rsi-min-input", type="number", value=50, min=20, max=70)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("RSI max:", className="form-label"),
+                            dbc.Input(id="ec-rsi-max-input", type="number", value=70, min=50, max=90)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Min mom %:", className="form-label"),
+                            dbc.Input(id="ec-min-mom-input", type="number", value=0.1, min=0, step=0.1)
+                        ], width=3),
+                    ], className="mb-3"),
+                    html.Hr(),
+                    html.H6("Хаос-фильтр", className="text-info"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Min RQA DET:", className="form-label"),
+                            dbc.Input(id="ec-min-det-input", type="number", value=0.25, min=0, max=1, step=0.05)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Min L_max:", className="form-label"),
+                            dbc.Input(id="ec-min-lmax-input", type="number", value=4, min=1, max=50)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Max kurtosis:", className="form-label"),
+                            dbc.Input(id="ec-max-kurt-input", type="number", value=100, min=10, max=500, step=10)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Min η (branching):", className="form-label"),
+                            dbc.Input(id="ec-min-eta-input", type="number", value=0.3, min=0, max=0.95, step=0.05)
+                        ], width=3),
+                    ], className="mb-3"),
+                    dbc.Button("💾 Сохранить entry_cascading",
+                               id="save-entry-cascading-btn", color="primary", className="w-100"),
+                    html.Div(id="entry-cascading-status", className="mt-2 text-center")
+                ])
+            ])
+        ])
+    ], className="mb-4"),
+
+    # 🆕 Вариант D: Rolling Exit
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🔄 Вариант D: Rolling Exit Manager"),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Checklist(
+                                options=[{"label": "Включить", "value": "enabled"}],
+                                value=["enabled"], id="re-enabled-check", switch=True
+                            )
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Min hold (ч):", className="form-label"),
+                            dbc.Input(id="re-min-hold-input", type="number", value=0, min=0, max=24, step=1)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Max hold (ч):", className="form-label"),
+                            dbc.Input(id="re-max-hold-input", type="number", value=120, min=24, max=240, step=12)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Phase exit:", className="form-label"),
+                            dbc.Checklist(
+                                options=[{"label": "Включить", "value": "enabled"}],
+                                value=["enabled"], id="re-phase-check", switch=True
+                            )
+                        ], width=3),
+                    ], className="mb-3"),
+                    html.Hr(),
+                    html.H6("Пороги по hold_time", className="text-warning"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Early (ч):", className="form-label"),
+                            dbc.Input(id="re-early-h-input", type="number", value=4, min=1, max=12)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Early threshold:", className="form-label"),
+                            dbc.Input(id="re-early-t-input", type="number", value=0.65, min=0.3, max=0.9, step=0.05)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Mid (ч):", className="form-label"),
+                            dbc.Input(id="re-mid-h-input", type="number", value=24, min=8, max=72)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Mid threshold:", className="form-label"),
+                            dbc.Input(id="re-mid-t-input", type="number", value=0.55, min=0.3, max=0.9, step=0.05)
+                        ], width=3),
+                    ], className="mb-3"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Late (ч):", className="form-label"),
+                            dbc.Input(id="re-late-h-input", type="number", value=72, min=24, max=168)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Late threshold:", className="form-label"),
+                            dbc.Input(id="re-late-t-input", type="number", value=0.45, min=0.2, max=0.8, step=0.05)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Force threshold:", className="form-label"),
+                            dbc.Input(id="re-force-t-input", type="number", value=0.30, min=0.1, max=0.6, step=0.05)
+                        ], width=3),
+                        dbc.Col([], width=3),
+                    ], className="mb-3"),
+                    html.Hr(),
+                    html.H6("Hard stops", className="text-danger"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Base SL %:", className="form-label"),
+                            dbc.Input(id="re-base-sl-input", type="number", value=2.5, min=1, max=10, step=0.5)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Kurt penalty max %:", className="form-label"),
+                            dbc.Input(id="re-kurt-pen-input", type="number", value=5.0, min=0, max=20, step=0.5)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Profit taking %:", className="form-label"),
+                            dbc.Input(id="re-pt-input", type="number", value=5.0, min=2, max=20, step=0.5)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Trailing ATR ×:", className="form-label"),
+                            dbc.Input(id="re-trailing-input", type="number", value=1.5, min=0.5, max=5, step=0.5)
+                        ], width=3),
+                    ], className="mb-3"),
+                    dbc.Button("💾 Сохранить rolling_exit",
+                               id="save-rolling-exit-btn", color="primary", className="w-100"),
+                    html.Div(id="rolling-exit-cfg-status", className="mt-2 text-center")
+                ])
+            ])
+        ])
+    ], className="mb-4"),
+
+    # 🆕 Hawkes
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("⚡ Hawkes Process"),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Default threshold %:", className="form-label"),
+                            dbc.Input(id="hw-default-thr-input", type="number", value=0.5, min=0.05, max=5, step=0.05)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Refit interval (циклов):", className="form-label"),
+                            dbc.Input(id="hw-refit-input", type="number", value=100, min=10, max=1000, step=10)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Forecast horizon (ч):", className="form-label"),
+                            dbc.Input(id="hw-horizon-input", type="number", value=4, min=1, max=48)
+                        ], width=3),
+                        dbc.Col([
+                            html.Label("Max iter EM:", className="form-label"),
+                            dbc.Input(id="hw-max-iter-input", type="number", value=30, min=10, max=200, step=10)
+                        ], width=3),
+                    ], className="mb-3"),
+                    html.Hr(),
+                    html.H6("Per-ticker thresholds (калибровка по волатильности)",
+                            className="text-info"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Label("Split vol %:", className="form-label"),
+                            dbc.Input(id="hw-split-input", type="number", value=0.5, min=0.1, max=2, step=0.1)
+                        ], width=4),
+                        dbc.Col([
+                            html.Label("Low-vol multiplier:", className="form-label"),
+                            dbc.Input(id="hw-low-mult-input", type="number", value=0.5, min=0.1, max=1, step=0.1)
+                        ], width=4),
+                        dbc.Col([
+                            html.Label("High-vol multiplier:", className="form-label"),
+                            dbc.Input(id="hw-high-mult-input", type="number", value=0.8, min=0.3, max=2, step=0.1)
+                        ], width=4),
+                    ], className="mb-3"),
+                    dbc.Button("💾 Сохранить hawkes",
+                               id="save-hawkes-btn", color="primary", className="w-100"),
+                    html.Div(id="hawkes-cfg-status", className="mt-2 text-center")
+                ])
+            ])
+        ])
+    ], className="mb-4"),
+
+    # 🆕 Обновление тикеров
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🔄 Обновить список тикеров (MOEX)"),
+                dbc.CardBody([
+                    html.P("Пересобрать config/tickers.json из 60 самых ликвидных+волатильных акций MOEX TQBR. "
+                           "Скрипт: scripts/select_liquid_volatile.py",
+                           className="small text-muted"),
+                    dbc.Button("🔄 Обновить тикеры",
+                               id="refresh-tickers-btn", color="warning", className="w-100"),
+                    html.Div(id="refresh-tickers-status", className="mt-2 text-center")
+                ])
+            ])
+        ])
     ])
 ])
 
@@ -567,11 +1044,12 @@ models_log_layout = dbc.Container([
     [Input("nav-dashboard", "n_clicks"),
      Input("nav-portfolio", "n_clicks"),
      Input("nav-charts", "n_clicks"),
+     Input("nav-news", "n_clicks"),
      Input("nav-settings", "n_clicks"),
      Input("nav-logs", "n_clicks")],
     prevent_initial_call=True
 )
-def update_page_content(dash_clicks, port_clicks, charts_clicks, settings_clicks, logs_clicks):
+def update_page_content(dash_clicks, port_clicks, charts_clicks, news_clicks, settings_clicks, logs_clicks):
     """Обновление контента страницы"""
     ctx_triggered = ctx.triggered_id
 
@@ -581,6 +1059,8 @@ def update_page_content(dash_clicks, port_clicks, charts_clicks, settings_clicks
         return portfolio_layout
     elif ctx_triggered == "nav-charts":
         return charts_layout
+    elif ctx_triggered == "nav-news":
+        return news_layout
     elif ctx_triggered == "nav-settings":
         return settings_layout
     elif ctx_triggered == "nav-logs":
@@ -682,12 +1162,19 @@ def create_positions_table(positions: List[Dict]) -> html.Table:
 
     header = html.Thead(html.Tr([
         html.Th("Тикер"), html.Th("Кол-во"), html.Th("Ср. цена"),
-        html.Th("Тек. цена"), html.Th("Стоимость"), html.Th("PnL"), html.Th("Вес")
+        html.Th("Тек. цена"), html.Th("Стоимость"), html.Th("PnL"), html.Th("Вес"),
+        html.Th("Стратегия"), html.Th("Hold")
     ]))
 
     rows = []
     for pos in positions:
         pnl_class = "text-success" if pos.get('pnl', 0) >= 0 else "text-danger"
+        # Расчёт времени удержания
+        import time as _time
+        hold_hours = 0
+        if pos.get('buy_time'):
+            hold_hours = (_time.time() - pos['buy_time']) / 3600
+        hold_str = f"{hold_hours:.1f}ч" if hold_hours < 24 else f"{hold_hours/24:.1f}д"
         rows.append(html.Tr([
             html.Td(pos['ticker']),
             html.Td(f"{pos['quantity']:,}"),
@@ -695,7 +1182,9 @@ def create_positions_table(positions: List[Dict]) -> html.Table:
             html.Td(f"{pos.get('current_price', 0):.2f}"),
             html.Td(f"{pos.get('position_value', 0):,.0f} ₽"),
             html.Td(html.Span(f"{pos.get('pnl_percent', 0):+.1f}%", className=pnl_class)),
-            html.Td(f"{pos.get('weight', 0):.1f}%")
+            html.Td(f"{pos.get('weight', 0):.1f}%"),
+            html.Td(pos.get('strategy', '—')),
+            html.Td(hold_str)
         ]))
 
     return html.Table([header, html.Tbody(rows)], className="table table-sm table-hover")
@@ -981,6 +1470,234 @@ def add_rss_source(n_clicks, new_url, new_name):
     return f"✅ Добавлен: {new_source['name']}", sources_list, "", ""
 
 
+# 🆕 Callback: сохранение screen_universe
+@app.callback(
+    Output("screen-universe-status", "children"),
+    Input("save-screen-universe-btn", "n_clicks"),
+    [State("su-top-n-input", "value"),
+     State("su-min-vol-input", "value"),
+     State("su-min-price-input", "value"),
+     State("su-min-volat-input", "value"),
+     State("su-liq-weight-slider", "value"),
+     State("su-vol-weight-slider", "value")]
+)
+def save_screen_universe(n_clicks, top_n, min_vol, min_price, min_volat, liq_w, vol_w):
+    if n_clicks is None:
+        return ""
+    if broker_instance is None:
+        return "❌ Брокер не инициализирован"
+    try:
+        config = {
+            'top_n': int(top_n or 60),
+            'min_avg_daily_volume_rub': int(min_vol or 50000000),
+            'min_price': float(min_price or 5.0),
+            'min_volatility_pct': float(min_volat or 0.3),
+            'history_days': 30,
+            'liquidity_weight': float(liq_w or 0.5),
+            'volatility_weight': float(vol_w or 0.5),
+        }
+        result = broker_instance.update_advanced_module_config('screen_universe', config)
+        return "✅ Сохранено" if result.get('success') else f"❌ {result.get('error')}"
+    except Exception as e:
+        return f"❌ Ошибка: {e}"
+
+
+# 🆕 Callback: сохранение entry_cascading
+@app.callback(
+    Output("entry-cascading-status", "children"),
+    Input("save-entry-cascading-btn", "n_clicks"),
+    [State("ec-enabled-check", "value"),
+     State("ec-min-conf-slider", "value"),
+     State("ec-max-pos-input", "value"),
+     State("ec-max-weight-input", "value"),
+     State("ec-bull-bear-input", "value"),
+     State("ec-min-bull-input", "value"),
+     State("ec-min-pbull-input", "value"),
+     State("ec-tech-wait-input", "value"),
+     State("ec-rsi-min-input", "value"),
+     State("ec-rsi-max-input", "value"),
+     State("ec-min-mom-input", "value"),
+     State("ec-min-det-input", "value"),
+     State("ec-min-lmax-input", "value"),
+     State("ec-max-kurt-input", "value"),
+     State("ec-min-eta-input", "value")]
+)
+def save_entry_cascading(n_clicks, enabled, min_conf, max_pos, max_weight,
+                          bull_bear, min_bull, min_pbull,
+                          tech_wait, rsi_min, rsi_max, min_mom,
+                          min_det, min_lmax, max_kurt, min_eta):
+    if n_clicks is None:
+        return ""
+    if broker_instance is None:
+        return "❌ Брокер не инициализирован"
+    try:
+        config = {
+            'enabled': 'enabled' in (enabled or []),
+            'hawkes_trigger': {
+                'bull_to_bear_ratio': float(bull_bear or 1.5),
+                'min_bull_expected': float(min_bull or 0.5),
+                'min_prob_bull': float(min_pbull or 0.5),
+            },
+            'technical_confirmation': {
+                'wait_minutes': int(tech_wait or 0),
+                'rsi_min': int(rsi_min or 50),
+                'rsi_max': int(rsi_max or 70),
+                'bb_position_min': 0.4,
+                'bb_position_max': 0.8,
+                'min_momentum_pct': float(min_mom or 0.1),
+            },
+            'chaos_filter': {
+                'min_rqa_DET': float(min_det or 0.25),
+                'min_rqa_L_max': int(min_lmax or 4),
+                'max_kurtosis': float(max_kurt or 100),
+                'min_hawkes_branching_ratio': float(min_eta or 0.3),
+            },
+            'portfolio_constraints': {
+                'max_positions': int(max_pos or 5),
+                'max_position_weight_pct': int(max_weight or 20),
+                'max_per_sector': 2,
+                'max_correlation_with_held': 0.7,
+                'min_confidence': float(min_conf or 0.45),
+            },
+        }
+        result = broker_instance.update_advanced_module_config('entry_cascading', config)
+        return "✅ Сохранено" if result.get('success') else f"❌ {result.get('error')}"
+    except Exception as e:
+        return f"❌ Ошибка: {e}"
+
+
+# 🆕 Callback: сохранение rolling_exit
+@app.callback(
+    Output("rolling-exit-cfg-status", "children"),
+    Input("save-rolling-exit-btn", "n_clicks"),
+    [State("re-enabled-check", "value"),
+     State("re-min-hold-input", "value"),
+     State("re-max-hold-input", "value"),
+     State("re-phase-check", "value"),
+     State("re-early-h-input", "value"),
+     State("re-early-t-input", "value"),
+     State("re-mid-h-input", "value"),
+     State("re-mid-t-input", "value"),
+     State("re-late-h-input", "value"),
+     State("re-late-t-input", "value"),
+     State("re-force-t-input", "value"),
+     State("re-base-sl-input", "value"),
+     State("re-kurt-pen-input", "value"),
+     State("re-pt-input", "value"),
+     State("re-trailing-input", "value")]
+)
+def save_rolling_exit(n_clicks, enabled, min_hold, max_hold, phase_check,
+                       early_h, early_t, mid_h, mid_t, late_h, late_t, force_t,
+                       base_sl, kurt_pen, pt, trailing):
+    if n_clicks is None:
+        return ""
+    if broker_instance is None:
+        return "❌ Брокер не инициализирован"
+    try:
+        config = {
+            'enabled': 'enabled' in (enabled or []),
+            'evaluation_interval_cycles': 1,
+            'thresholds_by_hold_time': {
+                'early_hours': int(early_h or 4),
+                'early_threshold': float(early_t or 0.65),
+                'mid_hours': int(mid_h or 24),
+                'mid_threshold': float(mid_t or 0.55),
+                'late_hours': int(late_h or 72),
+                'late_threshold': float(late_t or 0.45),
+                'force_threshold': float(force_t or 0.30),
+                'max_hold_hours_hard_cap': int(max_hold or 120),
+            },
+            'hard_stops': {
+                'base_stop_loss_pct': float(base_sl or 2.5),
+                'kurtosis_penalty_factor': 0.02,
+                'kurtosis_baseline': 3,
+                'kurtosis_penalty_max': float(kurt_pen or 5.0),
+                'profit_taking_threshold_pct': float(pt or 5.0),
+                'profit_taking_min_sell_score': 0.40,
+            },
+            'phase_exit': {
+                'enabled': 'enabled' in (phase_check or []),
+                'phase1_ratio': 0.5,
+                'phase2_ratio': 0.3,
+                'phase3_ratio': 0.2,
+                'phase2_confirm_cycles': 1,
+                'phase3_trailing_atr_mult': float(trailing or 1.5),
+            },
+            'minimum_hold_hours_before_sell': int(min_hold or 0),
+            'min_pnl_pct_for_profit_sell': 0.5,
+        }
+        result = broker_instance.update_advanced_module_config('rolling_exit', config)
+        return "✅ Сохранено" if result.get('success') else f"❌ {result.get('error')}"
+    except Exception as e:
+        return f"❌ Ошибка: {e}"
+
+
+# 🆕 Callback: сохранение hawkes
+@app.callback(
+    Output("hawkes-cfg-status", "children"),
+    Input("save-hawkes-btn", "n_clicks"),
+    [State("hw-default-thr-input", "value"),
+     State("hw-refit-input", "value"),
+     State("hw-horizon-input", "value"),
+     State("hw-max-iter-input", "value"),
+     State("hw-split-input", "value"),
+     State("hw-low-mult-input", "value"),
+     State("hw-high-mult-input", "value")]
+)
+def save_hawkes(n_clicks, default_thr, refit, horizon, max_iter,
+                 split, low_mult, high_mult):
+    if n_clicks is None:
+        return ""
+    if broker_instance is None:
+        return "❌ Брокер не инициализирован"
+    try:
+        # default_thr в %, конвертируем в долях (0.5% → 0.005)
+        config = {
+            'event_threshold_pct': float(default_thr or 0.5) / 100,
+            'window_size': 4000,
+            'refit_interval': int(refit or 100),
+            'forecast_horizon_hours': int(horizon or 4),
+            'max_iter': int(max_iter or 30),
+            'per_ticker_thresholds': {
+                'vol_threshold_split': float(split or 0.5),
+                'low_vol_multiplier': float(low_mult or 0.5),
+                'high_vol_multiplier': float(high_mult or 0.8),
+            },
+        }
+        result = broker_instance.update_advanced_module_config('hawkes', config)
+        return "✅ Сохранено" if result.get('success') else f"❌ {result.get('error')}"
+    except Exception as e:
+        return f"❌ Ошибка: {e}"
+
+
+# 🆕 Callback: обновление тикеров
+@app.callback(
+    Output("refresh-tickers-status", "children"),
+    Input("refresh-tickers-btn", "n_clicks")
+)
+def refresh_tickers(n_clicks):
+    if n_clicks is None:
+        return ""
+    try:
+        import subprocess
+        result = subprocess.run(
+            ['python3', '/home/z/my-project/scripts/select_liquid_volatile.py'],
+            capture_output=True, text=True, timeout=300
+        )
+        if result.returncode == 0:
+            # Читаем обновлённый файл
+            with open('config/tickers.json', 'r', encoding='utf-8') as f:
+                t = json.load(f)
+            n = len(t.get('watchlist', []))
+            return f"✅ Обновлено: {n} тикеров в config/tickers.json"
+        else:
+            return f"❌ Ошибка: {result.stderr[:200]}"
+    except subprocess.TimeoutExpired:
+        return "❌ Таймаут (300с). Попробуйте запустить вручную."
+    except Exception as e:
+        return f"❌ Ошибка: {e}"
+
+
 @app.callback(
     Output("logs-tab-content", "children"),
     Input("logs-tabs", "active_tab")
@@ -1208,6 +1925,326 @@ def update_system_stats(n_intervals):
     except Exception as e:
         logger.error(f"Ошибка обновления статистики: {e}")
         return [html.P(f"Ошибка: {e}"), html.P("Ошибка загрузки")]
+
+
+# 🆕 Коллбэк для новых модулей (Entry F, Rolling D, Hawkes, Chaos)
+@app.callback(
+    [Output("entry-confirmer-status", "children"),
+     Output("rolling-exit-status", "children"),
+     Output("hawkes-status", "children"),
+     Output("chaos-metrics-status", "children"),
+     Output("rolling-exit-positions-table", "children"),
+     Output("chaos-metrics-table", "children")],
+    [Input("interval-component", "n_intervals")]
+)
+def update_advanced_modules(n_intervals):
+    """Обновление карточек новых модулей"""
+    if broker_instance is None:
+        return [html.P("Нет данных")] * 6
+
+    try:
+        adv = broker_instance.get_advanced_modules_summary()
+
+        # === Entry Confirmer ===
+        ec = adv.get('entry_confirmer')
+        if ec:
+            ec_stats = ec.get('stats', {})
+            ec_cfg = ec.get('config', {})
+            pc = ec_cfg.get('portfolio_constraints', {})
+            cf = ec_cfg.get('chaos_filter', {})
+            ht = ec_cfg.get('hawkes_trigger', {})
+            tc = ec_cfg.get('technical_confirmation', {})
+            phase_dist = ec_stats.get('phase_distribution', {})
+            entry_html = html.Div([
+                html.P([
+                    html.Span(f"{'✅ Активен' if ec['enabled'] else '❌ Отключён'}",
+                              className="text-success" if ec['enabled'] else "text-danger"),
+                    html.Span(f" | Трекинг: {ec_stats.get('tracked_tickers', 0)} тикеров",
+                              className="ms-2 text-muted"),
+                ]),
+                html.P(f"🎯 Фазы: {dict(phase_dist) if phase_dist else 'нет активных'}"),
+                html.Hr(),
+                html.P([
+                    html.Strong("Hawkes-триггер: "),
+                    f"bull/bear ≥ {ht.get('bull_to_bear_ratio', 1.5)}, "
+                    f"min_bull ≥ {ht.get('min_bull_expected', 0.5)}, "
+                    f"P(bull) ≥ {ht.get('min_prob_bull', 0.5)}"
+                ], className="small"),
+                html.P([
+                    html.Strong("Тех. подтверждение: "),
+                    f"RSI [{tc.get('rsi_min', 50)}-{tc.get('rsi_max', 70)}], "
+                    f"BB [{tc.get('bb_position_min', 0.4)}-{tc.get('bb_position_max', 0.8)}], "
+                    f"wait={tc.get('wait_minutes', 0)}м"
+                ], className="small"),
+                html.P([
+                    html.Strong("Хаос-фильтр: "),
+                    f"DET≥{cf.get('min_rqa_DET', 0.25)}, "
+                    f"L_max≥{cf.get('min_rqa_L_max', 4)}, "
+                    f"kurt≤{cf.get('max_kurtosis', 100)}, "
+                    f"η≥{cf.get('min_hawkes_branching_ratio', 0.3)}"
+                ], className="small"),
+                html.P([
+                    html.Strong("Портфель: "),
+                    f"max_pos={pc.get('max_positions', 5)}, "
+                    f"max_weight={pc.get('max_position_weight_pct', 20)}%, "
+                    f"max_per_sector={pc.get('max_per_sector', 2)}, "
+                    f"min_conf={pc.get('min_confidence', 0.45)}"
+                ], className="small"),
+                html.P(f"⏱ Кулдаун: {ec_cfg.get('cooldown_seconds', 60)}с",
+                       className="small text-muted"),
+            ])
+        else:
+            entry_html = html.P("Модуль не инициализирован", className="text-muted")
+
+        # === Rolling Exit ===
+        re_data = adv.get('rolling_exit')
+        if re_data:
+            re_stats = re_data.get('stats', {})
+            re_cfg = re_data.get('config', {})
+            th = re_cfg.get('thresholds_by_hold_time', {})
+            hs = re_cfg.get('hard_stops', {})
+            ph = re_cfg.get('phase_exit', {})
+            phase_dist = re_stats.get('phase_distribution', {})
+            rolling_html = html.Div([
+                html.P([
+                    html.Span(f"{'✅ Активен' if re_data['enabled'] else '❌ Отключён'}",
+                              className="text-success" if re_data['enabled'] else "text-danger"),
+                    html.Span(f" | Позиций: {re_stats.get('active_positions', 0)}",
+                              className="ms-2 text-muted"),
+                ]),
+                html.P(f"🔄 Фазы: {dict(phase_dist) if phase_dist else 'нет активных'}"),
+                html.Hr(),
+                html.P([
+                    html.Strong("Пороги по hold_time: "),
+                    f"early({th.get('early_hours', 4)}ч)={th.get('early_threshold', 0.65)}, "
+                    f"mid({th.get('mid_hours', 24)}ч)={th.get('mid_threshold', 0.55)}, "
+                    f"late({th.get('late_hours', 72)}ч)={th.get('late_threshold', 0.45)}, "
+                    f"force={th.get('force_threshold', 0.30)}"
+                ], className="small"),
+                html.P([
+                    html.Strong("Hard stops: "),
+                    f"base_SL={hs.get('base_stop_loss_pct', 2.5)}%, "
+                    f"kurt_pen≤{hs.get('kurtosis_penalty_max', 5.0)}%, "
+                    f"PT={hs.get('profit_taking_threshold_pct', 5.0)}%"
+                ], className="small"),
+                html.P([
+                    html.Strong("Фазовый выход: "),
+                    f"P1={ph.get('phase1_ratio', 0.5)*100:.0f}%, "
+                    f"P2={ph.get('phase2_ratio', 0.3)*100:.0f}%, "
+                    f"P3={ph.get('phase3_ratio', 0.2)*100:.0f}%, "
+                    f"trailing_ATR×{ph.get('phase3_trailing_atr_mult', 1.5)}"
+                ], className="small"),
+                html.P(f"⏱ Min hold: {re_cfg.get('minimum_hold_hours_before_sell', 0)}ч",
+                       className="small text-muted"),
+            ])
+        else:
+            rolling_html = html.P("Модуль не инициализирован", className="text-muted")
+
+        # === Hawkes ===
+        hawkes_data = adv.get('hawkes')
+        if hawkes_data:
+            hs = hawkes_data.get('stats', {})
+            per_ticker = hawkes_data.get('per_ticker', [])
+            hawkes_html = html.Div([
+                html.P([
+                    html.Span(f"📊 Трекинг: {hs.get('tickers_tracked', 0)} тикеров",
+                              className="text-info"),
+                    html.Span(f" | Обучено: {hs.get('tickers_fitted', 0)}",
+                              className="ms-2 text-muted"),
+                    html.Span(f" | Per-ticker: {hawkes_data.get('per_ticker_count', 0)}",
+                              className="ms-2 text-muted"),
+                ]),
+                html.P([
+                    html.Span(f"🟢 Bullish events: {hs.get('total_bullish_events', 0)}",
+                              className="text-success"),
+                    html.Span(f" | 🔴 Bearish events: {hs.get('total_bearish_events', 0)}",
+                              className="text-danger ms-2"),
+                ]),
+                html.P(f"⚙ Default threshold: {hawkes_data.get('default_threshold', 0.005)}",
+                       className="small text-muted"),
+                html.Hr(),
+                html.P(html.Strong("Топ-тикеры по η (branching ratio):"),
+                       className="small mb-1"),
+                html.Div([
+                    html.Table([
+                        html.Thead(html.Tr([
+                            html.Th("Тикер", className="small"),
+                            html.Th("Vol %", className="small"),
+                            html.Th("Порог", className="small"),
+                            html.Th("η_bull", className="small"),
+                            html.Th("η_bear", className="small"),
+                        ])),
+                        html.Tbody([
+                            html.Tr([
+                                html.Td(t.get('ticker', ''), className="small"),
+                                html.Td(f"{t.get('volatility_pct', 0):.2f}", className="small"),
+                                html.Td(f"{t.get('threshold', 0):.4f}", className="small"),
+                                html.Td(f"{t.get('eta_bull', 0):.2f}", className="small text-success"),
+                                html.Td(f"{t.get('eta_bear', 0):.2f}", className="small text-danger"),
+                            ]) for t in per_ticker[:8]
+                        ])
+                    ], className="table table-sm table-hover")
+                ]) if per_ticker else html.P("Нет обученных тикеров",
+                                              className="text-muted small"),
+            ])
+        else:
+            hawkes_html = html.P("Hawkes не инициализирован", className="text-muted")
+
+        # === Chaos Metrics ===
+        chaos_data = adv.get('chaos_metrics')
+        if chaos_data and isinstance(chaos_data, dict) and chaos_data.get('total_tickers', 0) > 0:
+            total = chaos_data.get('total_tickers', 0)
+            top = chaos_data.get('top_by_volatility', [])
+            chaos_status_html = html.Div([
+                html.P([
+                    html.Span(f"🌀 Рассчитано: {total} тикеров",
+                              className="text-success"),
+                    html.Span(f" | Метрик: Hurst, D₂, RQA (RR/DET/L_max/LAM), kurtosis, ATR",
+                              className="ms-2 text-muted small"),
+                ]),
+                html.Hr(),
+                html.P(html.Strong("Топ-5 по волатильности:"), className="small mb-1"),
+                html.Div([
+                    html.Table([
+                        html.Thead(html.Tr([
+                            html.Th("Тикер", className="small"),
+                            html.Th("Vol %", className="small"),
+                            html.Th("Hurst", className="small"),
+                            html.Th("D₂", className="small"),
+                            html.Th("DET", className="small"),
+                            html.Th("L_max", className="small"),
+                            html.Th("Kurt", className="small"),
+                            html.Th("ATR %", className="small"),
+                        ])),
+                        html.Tbody([
+                            html.Tr([
+                                html.Td(t.get('ticker', ''), className="small"),
+                                html.Td(f"{t.get('volatility_pct', 0):.2f}", className="small"),
+                                html.Td(_hurst_color(t.get('hurst', 0.5)), className="small"),
+                                html.Td(f"{t.get('fractal_dim', 0):.2f}", className="small"),
+                                html.Td(f"{t.get('rqa_DET', 0):.2f}", className="small"),
+                                html.Td(str(t.get('rqa_L_max', 0)), className="small"),
+                                html.Td(_kurt_color(t.get('kurtosis', 0)), className="small"),
+                                html.Td(f"{t.get('atr_pct', 0):.2f}", className="small"),
+                            ]) for t in top[:5]
+                        ])
+                    ], className="table table-sm table-hover")
+                ]),
+            ])
+        else:
+            chaos_status_html = html.P("Хаос-метрики не рассчитаны",
+                                        className="text-muted")
+
+        # === Rolling Exit Positions Table ===
+        re_positions = re_data.get('active_positions', {}) if re_data else {}
+        if re_positions:
+            re_rows = []
+            for ticker, info in sorted(re_positions.items(),
+                                         key=lambda x: -x[1].get('hold_hours', 0)):
+                phase = info.get('phase', 1)
+                phase_class = {1: 'badge bg-success', 2: 'badge bg-warning',
+                               3: 'badge bg-danger', 0: 'badge bg-secondary'}.get(phase, 'badge bg-secondary')
+                phase_name = {1: 'Full', 2: '50% sold', 3: 'Trailing', 0: 'Closed'}.get(phase, str(phase))
+                score = info.get('last_sell_score', 0)
+                score_class = "text-success" if score < 0.4 else "text-warning" if score < 0.6 else "text-danger"
+                re_rows.append(html.Tr([
+                    html.Td(html.Strong(ticker)),
+                    html.Td(html.Span(phase_name, className=phase_class)),
+                    html.Td(f"{info.get('hold_hours', 0):.1f}ч"),
+                    html.Td(f"{info.get('entry_price', 0):.2f}"),
+                    html.Td(f"{info.get('stop_loss_price', 0):.2f}"),
+                    html.Td(f"{info.get('dynamic_target', 0):.2f}"),
+                    html.Td(html.Span(f"{score:.2f}", className=score_class)),
+                    html.Td(f"H={info.get('hurst', 0.5):.2f}"),
+                    html.Td(f"DET={info.get('rqa_det', 0):.2f}"),
+                    html.Td(f"L={info.get('rqa_l_max', 0)}"),
+                    html.Td(f"k={info.get('kurtosis', 0):.0f}"),
+                ]))
+            re_table = html.Div([
+                html.Table([
+                    html.Thead(html.Tr([
+                        html.Th("Тикер"), html.Th("Фаза"), html.Th("Hold"),
+                        html.Th("Entry"), html.Th("Stop"), html.Th("Target"),
+                        html.Th("Score"), html.Th("Hurst"), html.Th("DET"),
+                        html.Th("L_max"), html.Th("Kurt"),
+                    ])),
+                    html.Tbody(re_rows)
+                ], className="table table-sm table-hover table-striped")
+            ], className="table-responsive")
+        else:
+            re_table = html.P("Нет активных позиций в rolling exit",
+                               className="text-muted text-center p-3")
+
+        # === Chaos Metrics Full Table ===
+        if chaos_data and chaos_data.get('all_tickers'):
+            chaos_rows = []
+            for t in chaos_data['all_tickers'][:20]:  # топ-20
+                hurst = t.get('hurst', 0.5)
+                kurt = t.get('kurtosis', 0)
+                regime = _classify_hurst(hurst)
+                chaos_rows.append(html.Tr([
+                    html.Td(html.Strong(t.get('ticker', ''))),
+                    html.Td(f"{t.get('last_price', 0):.2f}"),
+                    html.Td(f"{t.get('volatility_pct', 0):.2f}"),
+                    html.Td(_hurst_color(hurst)),
+                    html.Td(regime),
+                    html.Td(f"{t.get('fractal_dim', 0):.2f}"),
+                    html.Td(f"{t.get('rqa_DET', 0):.2f}"),
+                    html.Td(str(t.get('rqa_L_max', 0))),
+                    html.Td(f"{t.get('rqa_LAM', 0):.2f}"),
+                    html.Td(_kurt_color(kurt)),
+                    html.Td(f"{t.get('atr_pct', 0):.2f}"),
+                    html.Td(str(t.get('n_points', 0))),
+                ]))
+            chaos_table = html.Div([
+                html.Table([
+                    html.Thead(html.Tr([
+                        html.Th("Тикер"), html.Th("Цена"), html.Th("Vol %"),
+                        html.Th("Hurst"), html.Th("Режим"), html.Th("D₂"),
+                        html.Th("DET"), html.Th("L_max"), html.Th("LAM"),
+                        html.Th("Kurt"), html.Th("ATR %"), html.Th("N"),
+                    ])),
+                    html.Tbody(chaos_rows)
+                ], className="table table-sm table-hover table-striped")
+            ], className="table-responsive")
+        else:
+            chaos_table = html.P("Хаос-метрики не рассчитаны", className="text-muted")
+
+        return [entry_html, rolling_html, hawkes_html, chaos_status_html,
+                re_table, chaos_table]
+
+    except Exception as e:
+        logger.error(f"Ошибка обновления новых модулей: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return [html.P(f"Ошибка: {e}", className="text-danger")] * 6
+
+
+def _hurst_color(h):
+    """Цветной Херст."""
+    if h > 0.55:
+        return html.Span(f"{h:.3f}", className="text-success")  # персистентный
+    elif h < 0.45:
+        return html.Span(f"{h:.3f}", className="text-danger")  # антиперсистентный
+    return html.Span(f"{h:.3f}", className="text-muted")
+
+
+def _kurt_color(k):
+    """Цветной kurtosis."""
+    if k > 50:
+        return html.Span(f"{k:.0f}", className="text-danger")  # экстремальные хвосты
+    elif k > 10:
+        return html.Span(f"{k:.0f}", className="text-warning")
+    return html.Span(f"{k:.0f}", className="text-success")
+
+
+def _classify_hurst(h):
+    """Классификация режима по Херсту."""
+    if h > 0.55:
+        return html.Span("персист.", className="text-success")
+    elif h < 0.45:
+        return html.Span("антиперс.", className="text-danger")
+    return html.Span("нейтр.", className="text-muted")
 # Часть 4 из 4: коллбэки графиков, портфеля, утилиты
 
 # Коллбэк графика цены и объема
@@ -1511,7 +2548,10 @@ def create_real_positions_table(positions):
     strategy_colors = {
         'news_aggressive': 'badge bg-danger', 'momentum': 'badge bg-warning',
         'mean_reversion': 'badge bg-info', 'balanced': 'badge bg-primary',
-        'conservative': 'badge bg-success', 'unknown': 'badge bg-secondary'
+        'conservative': 'badge bg-success', 'unknown': 'badge bg-secondary',
+        'cascading_entry': 'badge bg-info', 'price_prediction': 'badge bg-primary',
+        'swing': 'badge bg-warning', 'breakout': 'badge bg-danger',
+        'tech_conservative': 'badge bg-success',
     }
 
     rows = []
@@ -2150,12 +3190,26 @@ def update_models_logs(n_intervals):
             coach_advice = entry.get('coach_advice', '—')
             match = '✅' if entry.get('matched', False) else '❌'
             match_color = 'text-success' if entry.get('matched', False) else 'text-danger'
+            action_str = str(entry.get('action', ''))
+            # 🆕 v14: Цвета для новых типов действий
+            if 'ENTRY_PASS' in action_str:
+                action_class = 'badge bg-success'
+            elif 'REJECT' in action_str:
+                action_class = 'badge bg-danger'
+            elif 'EXIT_HOLD' in action_str:
+                action_class = 'badge bg-info'
+            elif 'SELL' in action_str:
+                action_class = 'badge bg-danger'
+            elif 'BUY' in action_str:
+                action_class = 'badge bg-success'
+            else:
+                action_class = 'badge bg-warning'
             model_rows.append(html.Tr([
                 html.Td(entry.get('time', ''), style={'fontSize': '11px'}),
                 html.Td(html.Strong(entry.get('ticker', '')), style={'fontSize': '11px'}),
-                html.Td(html.Span(entry.get('action', ''), className=f"badge {'bg-danger' if 'SELL' in str(entry.get('action', '')) else 'bg-success' if 'BUY' in str(entry.get('action', '')) else 'bg-warning'}"), style={'fontSize': '11px'}),
+                html.Td(html.Span(action_str, className=action_class), style={'fontSize': '11px'}),
                 html.Td(f"{entry.get('state_value', 0):.2f}", style={'fontSize': '11px'}),
-                html.Td(coach_advice, style={'fontSize': '11px'}),
+                html.Td(coach_advice, style={'fontSize': '11px', 'maxWidth': '300px', 'wordBreak': 'break-word'}),
                 html.Td(html.Span(match, className=match_color), style={'fontSize': '11px', 'textAlign': 'center'})
             ]))
 
@@ -2165,8 +3219,8 @@ def update_models_logs(n_intervals):
     ]))
 
     model_header = html.Thead(html.Tr([
-        html.Th("Время"), html.Th("Тикер"), html.Th("Действие"), html.Th("Value"),
-        html.Th("Совет коуча"), html.Th("Совпало?")
+        html.Th("Время"), html.Th("Тикер"), html.Th("Действие"), html.Th("Value/Conf"),
+        html.Th("Причина / Параметры"), html.Th("OK?")
     ]))
 
     coach_table = html.Table([coach_header, html.Tbody(coach_rows)], className="table table-sm table-hover table-striped") if coach_rows else html.P("Нет рекомендаций коуча", className="text-muted")
@@ -2194,6 +3248,288 @@ def update_model_actions_header(table_children):
             return f"🤖 Действия модели — совпадений: {matched}/{total} ({pct:.1f}%)"
 
     return "🤖 Действия модели"
+
+# ============================================================
+# 📰 Коллбэки вкладки "Новости и сентимент"
+# ============================================================
+
+@app.callback(
+    Output("news-ticker-filter", "options"),
+    Input("interval-component", "n_intervals"),
+    prevent_initial_call=False
+)
+def update_news_ticker_filter_options(n_intervals):
+    """Обновление выпадающего списка тикеров на основе ленты новостей."""
+    if broker_instance is None:
+        return [{'label': 'Все тикеры', 'value': 'ALL'}]
+    try:
+        # Получаем ленту, чтобы собрать все тикеры
+        feed = broker_instance.get_news_sentiment_feed(limit=100, min_abs_sentiment=0.0)
+        tickers_seen = set()
+        for item in feed:
+            for t in item.get('tickers', []):
+                tickers_seen.add(t)
+
+        options = [{'label': 'Все тикеры', 'value': 'ALL'}]
+        options += [{'label': t, 'value': t} for t in sorted(tickers_seen)]
+        return options
+    except Exception as e:
+        logger.error(f"Ошибка обновления фильтра тикеров новостей: {e}")
+        return [{'label': 'Все тикеры', 'value': 'ALL'}]
+
+
+@app.callback(
+    [Output("news-sentiment-stats", "children"),
+     Output("news-top-positive", "children"),
+     Output("news-top-negative", "children")],
+    Input("interval-component", "n_intervals"),
+    prevent_initial_call=False
+)
+def update_news_sentiment_overview(n_intervals):
+    """Обновление сводной статистики и топов позитивных/негативных новостей."""
+    if broker_instance is None:
+        return [
+            html.P("Брокер не инициализирован", className="text-muted"),
+            html.P("Нет данных", className="text-muted"),
+            html.P("Нет данных", className="text-muted"),
+        ]
+
+    try:
+        stats = broker_instance.get_news_sentiment_stats()
+
+        # —— Сводка ——
+        total = stats.get('total', 0)
+        pos = stats.get('positive', 0)
+        neg = stats.get('negative', 0)
+        neu = stats.get('neutral', 0)
+        avg = stats.get('avg_sentiment', 0.0)
+
+        avg_class = "text-success" if avg > 0.05 else "text-danger" if avg < -0.05 else "text-muted"
+
+        stats_html = html.Div([
+            html.Div([
+                html.H5(f"{total}", className="mb-0"),
+                html.Small("Всего новостей", className="text-muted")
+            ], className="text-center p-2"),
+            html.Div([
+                html.H5(f"🟢 {pos}", className="mb-0 text-success"),
+                html.Small("Позитивных", className="text-muted")
+            ], className="text-center p-2"),
+            html.Div([
+                html.H5(f"🔴 {neg}", className="mb-0 text-danger"),
+                html.Small("Негативных", className="text-muted")
+            ], className="text-center p-2"),
+            html.Div([
+                html.H5(f"⚪ {neu}", className="mb-0 text-muted"),
+                html.Small("Нейтральных", className="text-muted")
+            ], className="text-center p-2"),
+            html.Div([
+                html.H5(html.Span(f"{avg:+.3f}", className=avg_class), className="mb-0"),
+                html.Small("Средний сентимент", className="text-muted")
+            ], className="text-center p-2"),
+        ], className="d-flex flex-wrap gap-3 justify-content-around")
+
+        # —— Топ-3 позитивных ——
+        top_pos = stats.get('top_positive', [])
+        if top_pos:
+            pos_html = html.Div([
+                _render_news_card(n, positive=True) for n in top_pos
+            ])
+        else:
+            pos_html = html.P("Нет позитивных новостей", className="text-muted")
+
+        # —— Топ-3 негативных ——
+        top_neg = stats.get('top_negative', [])
+        if top_neg:
+            neg_html = html.Div([
+                _render_news_card(n, positive=False) for n in top_neg
+            ])
+        else:
+            neg_html = html.P("Нет негативных новостей", className="text-muted")
+
+        return [stats_html, pos_html, neg_html]
+
+    except Exception as e:
+        logger.error(f"Ошибка обновления обзорной статистики новостей: {e}")
+        return [
+            html.P(f"Ошибка: {e}", className="text-danger"),
+            html.P("Ошибка", className="text-danger"),
+            html.P("Ошибка", className="text-danger"),
+        ]
+
+
+def _render_news_card(news: Dict, positive: bool = True) -> html.Div:
+    """Рендер одной новости в виде компактной карточки."""
+    sentiment = news.get('sentiment', 0.0)
+    title = news.get('title', '(без заголовка)')
+    source = news.get('source', '—')
+    tickers = news.get('tickers', [])
+    timestamp = news.get('timestamp', '')
+
+    # Парсим время
+    time_str = ''
+    if timestamp:
+        try:
+            dt = datetime.fromisoformat(str(timestamp).replace('Z', '+00:00'))
+            time_str = dt.strftime('%d.%m %H:%M')
+        except Exception:
+            time_str = str(timestamp)[:16]
+
+    border_color = '#28a745' if positive else '#dc3545'
+    sent_color = 'text-success' if positive else 'text-danger'
+
+    ticker_badges = html.Div([
+        html.Span(t, className="badge bg-info me-1") for t in tickers[:3]
+    ], className="mt-1") if tickers else None
+
+    return html.Div([
+        html.Div([
+            html.Span(f"{sentiment:+.3f}", className=f"{sent_color} fw-bold me-2"),
+            html.Small(f"{time_str} · {source}", className="text-muted")
+        ], className="d-flex justify-content-between align-items-center"),
+        html.P(title, className="mb-1 small"),
+        ticker_badges
+    ], className="mb-2 p-2", style={
+        'borderLeft': f'3px solid {border_color}',
+        'backgroundColor': 'rgba(255,255,255,0.03)',
+        'borderRadius': '4px'
+    })
+
+
+@app.callback(
+    [Output("news-feed-table", "children"),
+     Output("news-count-badge", "children")],
+    [Input("interval-component", "n_intervals"),
+     Input("news-ticker-filter", "value"),
+     Input("news-label-filter", "value"),
+     Input("news-min-sentiment-slider", "value")],
+    prevent_initial_call=False
+)
+def update_news_feed_table(n_intervals, ticker_filter, label_filter, min_sentiment):
+    """Обновление таблицы ленты новостей с сентиментом."""
+    if broker_instance is None:
+        return [html.P("Брокер не инициализирован", className="text-muted p-3"), "0"]
+
+    try:
+        feed = broker_instance.get_news_sentiment_feed(
+            limit=100,
+            min_abs_sentiment=float(min_sentiment or 0.0),
+            ticker_filter=ticker_filter,
+            label_filter=label_filter or 'ALL'
+        )
+
+        if not feed:
+            return [
+                html.Div([
+                    html.P("Нет новостей по выбранным фильтрам", className="text-muted text-center p-4"),
+                    html.Small("Попробуйте уменьшить мин. |sentiment| или изменить фильтр",
+                               className="text-muted d-block text-center")
+                ], className="p-3"),
+                "0"
+            ]
+
+        header = html.Thead(html.Tr([
+            html.Th("Время"),
+            html.Th("Источник"),
+            html.Th("Тикеры"),
+            html.Th("Заголовок"),
+            html.Th("Сентимент"),
+            html.Th("Лейбл"),
+        ]))
+
+        rows = []
+        for news in feed:
+            sentiment = news.get('sentiment', 0.0)
+            label = news.get('sentiment_label', 'NEUTRAL')
+            override = news.get('sentiment_override', '')
+
+            # Цвет сентимента
+            if label == 'POSITIVE':
+                sent_class = "text-success fw-bold"
+                label_badge = html.Span("🟢 POS", className="badge bg-success")
+            elif label == 'NEGATIVE':
+                sent_class = "text-danger fw-bold"
+                label_badge = html.Span("🔴 NEG", className="badge bg-danger")
+            else:
+                sent_class = "text-muted"
+                label_badge = html.Span("⚪ NEU", className="badge bg-secondary")
+
+            # 🆕 Бейдж context-override
+            override_badge = None
+            if override:
+                override_badge = html.Span(
+                    "⚡ override",
+                    className="badge bg-warning ms-1",
+                    title=override,
+                    style={'fontSize': '9px'}
+                )
+
+            # Время
+            timestamp = news.get('timestamp', '')
+            time_str = ''
+            if timestamp:
+                try:
+                    dt = datetime.fromisoformat(str(timestamp).replace('Z', '+00:00'))
+                    time_str = dt.strftime('%d.%m %H:%M')
+                except Exception:
+                    time_str = str(timestamp)[:16]
+
+            # Тикеры
+            tickers = news.get('tickers', [])
+            if tickers:
+                tickers_html = html.Div([
+                    html.Span(t, className="badge bg-info me-1 mb-1") for t in tickers[:4]
+                ])
+            else:
+                tickers_html = html.Span("—", className="text-muted")
+
+            # Заголовок (с tooltip)
+            title = news.get('title', '(без заголовка)')
+            summary = news.get('summary', '')
+            link = news.get('link', '')
+
+            # Тримим заголовок до 120 символов
+            title_display = title[:120] + ('…' if len(title) > 120 else '')
+
+            if link:
+                title_html = html.A(title_display, href=link, target="_blank",
+                                     className="text-decoration-none",
+                                     style={'color': '#00ccff'})
+            else:
+                title_html = html.Span(title_display)
+
+            # Tooltip с summary
+            if summary:
+                tooltip_text = summary[:300] + ('…' if len(summary) > 300 else '')
+                title_html = html.Div([
+                    title_html,
+                    html.Small(tooltip_text, className="text-muted d-block",
+                               style={'fontSize': '10px', 'maxHeight': '40px',
+                                      'overflow': 'hidden', 'marginTop': '2px'})
+                ])
+
+            rows.append(html.Tr([
+                html.Td(html.Small(time_str), className="text-muted"),
+                html.Td(html.Small(news.get('source', '—'))),
+                html.Td(tickers_html),
+                html.Td(title_html, style={'maxWidth': '500px'}),
+                html.Td(html.Span(f"{sentiment:+.3f}", className=sent_class)),
+                html.Td(html.Div([label_badge, override_badge] if override_badge else [label_badge])),
+            ]))
+
+        table = html.Table([header, html.Tbody(rows)],
+                           className="table table-sm table-hover table-striped")
+
+        count_badge = f"{len(feed)} новост."
+
+        return [table, count_badge]
+
+    except Exception as e:
+        logger.error(f"Ошибка обновления таблицы новостей: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return [html.P(f"Ошибка: {e}", className="text-danger p-3"), "0"]
+
 
 if __name__ == '__main__':
     print("Запуск веб-интерфейса...")

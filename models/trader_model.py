@@ -99,7 +99,10 @@ DEFAULT_CONFIG = {
     "dropout_rate_2": 0.3,
     "weight_decay": 0.01,
     "gradient_clip_value": 0.5,
-    "entropy_bonus_coeff": 0.01,
+    "entropy_bonus_coeff": 0.08,
+    "softmax_temperature": 1.2,
+    "logit_clip_value": 10.0,
+    "value_soft_clamp_range": 20.0,
 
     "exploration_rate": 0.3,
     "confidence_boost_factor": 0.4,
@@ -171,32 +174,37 @@ class TradingPolicyNetwork(nn.Module):
         self.state_dim = state_dim
         self.action_dim = action_dim
 
+        # 🆕 v13: Убраны temperature, logit_clip, soft_clamp — они были патчами симптомов
+        # Cross-entropy loss в supervised pre-training решает проблему collapse напрямую
+
+        # 🆕 v9: BatchNorm1d вместо LayerNorm — нормализует по батчу, сохраняя различия
+        # между примерами. LayerNorm нормализовал каждый пример → все state выглядели одинаково.
         self.state_net = nn.Sequential(
             nn.Linear(state_dim, DEFAULT_CONFIG["policy_hidden_dim_1"]),
-            nn.LayerNorm(DEFAULT_CONFIG["policy_hidden_dim_1"]),
+            nn.BatchNorm1d(DEFAULT_CONFIG["policy_hidden_dim_1"]),
             nn.ReLU(),
-            nn.Dropout(DEFAULT_CONFIG["dropout_rate_2"]),
+            nn.Dropout(DEFAULT_CONFIG["dropout_rate_1"]),
 
             nn.Linear(DEFAULT_CONFIG["policy_hidden_dim_1"], DEFAULT_CONFIG["policy_hidden_dim_2"]),
-            nn.LayerNorm(DEFAULT_CONFIG["policy_hidden_dim_2"]),
+            nn.BatchNorm1d(DEFAULT_CONFIG["policy_hidden_dim_2"]),
             nn.ReLU(),
-            nn.Dropout(DEFAULT_CONFIG["dropout_rate_2"]),
+            nn.Dropout(DEFAULT_CONFIG["dropout_rate_1"]),
 
             nn.Linear(DEFAULT_CONFIG["policy_hidden_dim_2"], DEFAULT_CONFIG["policy_hidden_dim_3"]),
             nn.ReLU()
         )
 
+        # 🆕 v13: Стандартный softmax (без temperature) — cross-entropy решает collapse
         self.action_net = nn.Sequential(
             nn.Linear(DEFAULT_CONFIG["policy_hidden_dim_3"] + 3, DEFAULT_CONFIG["policy_hidden_dim_4"]),
             nn.ReLU(),
             nn.Linear(DEFAULT_CONFIG["policy_hidden_dim_4"], action_dim),
-            nn.Softmax(dim=-1)
         )
 
         self.value_net = nn.Sequential(
             nn.Linear(DEFAULT_CONFIG["policy_hidden_dim_3"], DEFAULT_CONFIG["policy_hidden_dim_4"]),
             nn.ReLU(),
-            nn.Linear(DEFAULT_CONFIG["policy_hidden_dim_4"], 1)
+            nn.Linear(DEFAULT_CONFIG["policy_hidden_dim_4"], 1),
         )
 
         self.predictor = nn.Sequential(
@@ -206,20 +214,35 @@ class TradingPolicyNetwork(nn.Module):
         )
 
     def forward(self, state, news_features=None):
+        # 🆕 v9.1: BatchNorm1d требует batch>1 в train mode
+        was_training = self.training
+        if was_training and state.shape[0] == 1:
+            self.state_net.eval()
         state_features = self.state_net(state)
+        if was_training and state.shape[0] == 1:
+            self.state_net.train()
 
-        # Предсказание движения цены
         price_pred = self.predictor(state_features)
         price_pred_probs = torch.softmax(price_pred, dim=-1)
 
-        # Конкатенация признаков состояния с прогнозом
         combined = torch.cat([state_features, price_pred_probs], dim=-1)
+        action_logits = self.action_net(combined)
+        action_probs = torch.softmax(action_logits, dim=-1)
+        action_probs = torch.clamp(action_probs, min=1e-6, max=1.0 - 1e-6)
+        action_probs = action_probs / action_probs.sum(dim=-1, keepdim=True)
 
-        # action_net получает на вход объединённый вектор
-        action_probs = self.action_net(combined)
         state_value = self.value_net(state_features)
 
         return action_probs, state_value, price_pred
+
+    def set_temperature(self, T: float):
+        """Установка температуры softmax (для калибровки)."""
+        with torch.no_grad():
+            self.temperature.fill_(T)
+
+    def get_temperature(self) -> float:
+        """Получение текущей температуры."""
+        return float(self.temperature.item())
 
 
 class AdvancedTraderModel:
@@ -854,10 +877,26 @@ class AdvancedTraderModel:
         reserved_slots = feature_config.get('reserved_slots', 0)
         features.extend([0.0] * reserved_slots)
 
-        # === 15. Market features из конфига ===
+        # === 15. Market features из конфига (с нормализацией) ===
         market_feature_names = feature_config.get('market_features', [])
+        # 🆕 v9: Нормализация market_features — раньше добавлялись как есть
+        # shares_turnover=5e11, market_cap_total=5e13 → state mean=2.2e11 → state_net коллапсировал
+        market_feature_norm = {
+            'shares_turnover': norm.get('shares_turnover_divisor', 1e12),
+            'market_cap_total': norm.get('market_cap_divisor_total', 1e14),
+            'imoex_normalized': 1.0,           # уже нормализовано
+            'rvi_normalized': 1.0,             # уже нормализовано
+            'moexog_normalized': 1.0,          # уже нормализовано
+            'cbr_rate_normalized': 1.0,        # уже нормализовано
+            'vix': norm.get('vix_divisor', 50.0),
+            'spread_pct': 100.0,               # уже в процентах, делим на 100
+            'market_mood': 10.0,               # нормализация mood
+            'liquidity_ratio': 1.0,            # уже в [0, 1]
+        }
         for name in market_feature_names:
-            features.append(market_data.get(name, 0.0))
+            raw_val = market_data.get(name, 0.0)
+            divisor = market_feature_norm.get(name, 1.0)
+            features.append(raw_val / divisor if divisor > 0 else 0.0)
 
         # === 16. Рыночная ликвидность и активность (2) ===
         features.append(market_data.get('market_liquidity_ratio', 0.0))
@@ -1106,13 +1145,74 @@ class AdvancedTraderModel:
                 len(self.memory) % self.memory_config['autosave_interval'] == 0):
             self.save_memory()
 
+    def learn_supervised(self, batch_size: int = 32):
+        """🆕 v13: Supervised learning через cross-entropy loss.
+        Использует teacher_action из sentiment_data — модель учится
+        имитировать lookahead-учителя напрямую, без policy gradient.
+        """
+        if len(self.memory) < batch_size:
+            return None
+
+        try:
+            # Выбираем опыт с teacher_action
+            supervised_exp = [e for e in self.memory
+                             if isinstance(e, dict)
+                             and isinstance(e.get('sentiment_data'), dict)
+                             and e['sentiment_data'].get('teacher_action') is not None]
+
+            if len(supervised_exp) < batch_size:
+                return None
+
+            indices = np.random.choice(len(supervised_exp), batch_size, replace=False)
+            batch = [supervised_exp[i] for i in indices]
+
+            states = torch.stack([exp['state'] for exp in batch]).to(self.device)
+            # Teacher action — это то, что модель должна предсказать
+            teacher_actions = torch.LongTensor([
+                exp['sentiment_data']['teacher_action'] for exp in batch
+            ]).to(self.device)
+            # Confidence учителя — вес для каждого примера
+            teacher_confidence = torch.FloatTensor([
+                exp['sentiment_data'].get('teacher_confidence', 0.5) for exp in batch
+            ]).to(self.device)
+
+            self.policy_net.train()
+
+            # 🆕 v13.1: Прямой forward через state_net → predictor → action_net
+            # Без двойного вызова state_net (исправление size mismatch 64 vs 67)
+            state_features = self.policy_net.state_net(states)
+            price_pred = self.policy_net.predictor(state_features)
+            price_pred_probs = torch.softmax(price_pred, dim=-1)
+            combined = torch.cat([state_features, price_pred_probs], dim=-1)
+            action_logits = self.policy_net.action_net(combined)
+
+            # Cross-entropy loss с весами (confidence учителя)
+            log_probs = torch.log_softmax(action_logits, dim=-1)
+            target_log_probs = log_probs.gather(1, teacher_actions.unsqueeze(1)).squeeze()
+            loss = -(target_log_probs * teacher_confidence).mean()
+
+            self.policy_optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(),
+                                          DEFAULT_CONFIG["gradient_clip_value"])
+            self.policy_optimizer.step()
+
+            self.policy_net.eval()
+            return loss.item()
+
+        except Exception as e:
+            logger.error(f"Ошибка supervised learning: {e}")
+            self.policy_net.eval()
+            return None
+
     def learn_from_experience(self, batch_size: int = 32):
 
         self.decay_exploration()
-        """Обучение на опыте"""
+        """Обучение на опыте (policy gradient — для Stage 2 и fine-tuning)"""
         if len(self.memory) < batch_size * 2:
             return None
 
+        # 🆕 v13: Стандартный random sampling (stratified убран — был патчем симптома)
         indices = np.random.choice(len(self.memory), batch_size, replace=False)
         batch = [self.memory[i] for i in indices]
 
@@ -1144,12 +1244,37 @@ class AdvancedTraderModel:
 
             total_loss = value_loss + policy_loss - entropy_bonus
 
+            # 🆕 v7: Диагностика policy gradient
+            with torch.no_grad():
+                adv_mean = advantages.abs().mean().item()
+                adv_std = advantages.std().item()
+                cur_val_mean = current_values.mean().item()
+                tgt_val_mean = target_values.mean().item()
+                prob_max = current_probs.max(dim=-1)[0].mean().item()
+                ent_val = entropy.item()
+
             self.policy_optimizer.zero_grad()
             total_loss.backward()
             torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), DEFAULT_CONFIG["gradient_clip_value"])
             self.policy_optimizer.step()
 
             self.policy_net.eval()
+
+            # 🆕 Логирование диагностики каждые 50 шагов обучения
+            if not hasattr(self, '_learn_step_counter'):
+                self._learn_step_counter = 0
+            self._learn_step_counter += 1
+            if self._learn_step_counter % 50 == 0:
+                logger.info(f"LEARN #{self._learn_step_counter} | "
+                           f"loss={total_loss.item():+.4f} | "
+                           f"policy_loss={policy_loss.item():+.4f} | "
+                           f"value_loss={value_loss.item():+.4f} | "
+                           f"entropy={ent_val:.4f} | "
+                           f"adv_mean={adv_mean:.4f} | "
+                           f"adv_std={adv_std:.4f} | "
+                           f"cur_val={cur_val_mean:+.3f} | "
+                           f"tgt_val={tgt_val_mean:+.3f} | "
+                           f"prob_max={prob_max:.3f}")
 
             return total_loss.item()
 

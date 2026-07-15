@@ -77,20 +77,78 @@ class TechnicalTraderCore:
 
         logger.info("Инициализировано ядро технического анализа")
 
-    def update_price_data(self, ticker: str, price: float, volume: int = 0):
-        """Обновление исторических данных по цене"""
+    def update_price_data(self, ticker: str, price: float, volume: int = 0,
+                          timestamp: Optional[float] = None,
+                          is_stale: bool = False):
+        """
+        Обновление исторических данных по цене.
+
+        🆕 Принимает timestamp (Unix-секунды) и is_stale флаг:
+          • Если timestamp уже есть в истории — НЕ добавляем дубликат
+          • Если is_stale=True — помечаем последнюю запись как устаревшую,
+            но НЕ пересчитываем индикаторы (они останутся от последних свежих данных)
+          • При следующем свежем update — кэш индикаторов инвалидируется
+
+        Args:
+            ticker: тикер
+            price: цена
+            volume: объём
+            timestamp: Unix timestamp данных (если None — используется now)
+            is_stale: True если данные устарели (используются только для отображения)
+        """
         if ticker not in self.price_history:
             self.price_history[ticker] = {
                 'prices': [],
                 'volumes': [],
                 'timestamps': [],
-                'max_length': 100
+                'max_length': 100,
+                'last_stale': False,  # флаг: последний апдейт был stale
             }
 
         data = self.price_history[ticker]
+
+        # 🆕 Если есть timestamp — проверяем дубликат
+        if timestamp is not None:
+            ts_dt = datetime.fromtimestamp(timestamp)
+            # Проверяем: если последняя запись имеет тот же timestamp — пропускаем
+            if data['timestamps'] and len(data['timestamps']) > 0:
+                last_ts = data['timestamps'][-1]
+                if isinstance(last_ts, datetime):
+                    last_ts_sec = last_ts.timestamp()
+                else:
+                    try:
+                        last_ts_sec = float(last_ts)
+                    except Exception:
+                        last_ts_sec = 0
+
+                # Если разница < 1 секунды — считаем дубликат, пропускаем
+                if abs(timestamp - last_ts_sec) < 1.0:
+                    # Обновляем только stale-флаг (чтобы знать, что данные устарели)
+                    data['last_stale'] = is_stale
+                    return
+        else:
+            ts_dt = datetime.now()
+
+        # 🆕 Если данные stale — НЕ обновляем историю (индикаторы не пересчитываем)
+        # Но сохраняем флаг, чтобы веб-дашборд знал, что текущая цена может быть устаревшей
+        if is_stale:
+            data['last_stale'] = True
+            # Обновляем только последнюю цену в "виртуальном" виде — не трогая историю
+            if not hasattr(data, 'last_stale_price'):
+                data['last_stale_price'] = price
+            else:
+                data['last_stale_price'] = price
+            # Не инвалидируем кэш индикаторов — пусть используются последние свежие
+            return
+
+        # Свежие данные — добавляем в историю
         data['prices'].append(price)
         data['volumes'].append(volume)
-        data['timestamps'].append(datetime.now())
+        data['timestamps'].append(ts_dt)
+        data['last_stale'] = False
+        # Очищаем виртуальную stale-цену
+        if 'last_stale_price' in data:
+            del data['last_stale_price']
 
         # Ограничиваем длину истории
         if len(data['prices']) > data['max_length']:
@@ -98,7 +156,7 @@ class TechnicalTraderCore:
             data['volumes'] = data['volumes'][-data['max_length']:]
             data['timestamps'] = data['timestamps'][-data['max_length']:]
 
-        # Очищаем кэш индикаторов
+        # Очищаем кэш индикаторов (т.к. пришли новые свежие данные)
         if ticker in self.indicators_cache:
             del self.indicators_cache[ticker]
 
@@ -155,6 +213,13 @@ class TechnicalTraderCore:
                     indicators['bb_lower'] = lower[-1] if not np.isnan(lower[-1]) else prices[-1] * 0.9
                     indicators['bb_width'] = (indicators['bb_upper'] - indicators['bb_lower']) / indicators[
                         'bb_middle'] if indicators['bb_middle'] > 0 else 0
+                    # 🆕 v14.5: bb_position — позиция цены внутри полос Боллинджера [0..1]
+                    bb_range = indicators['bb_upper'] - indicators['bb_lower']
+                    if bb_range > 0:
+                        bb_pos = (prices[-1] - indicators['bb_lower']) / bb_range
+                        indicators['bb_position'] = max(0.0, min(1.0, bb_pos))
+                    else:
+                        indicators['bb_position'] = 0.5
 
             # 3. MACD
             if len(prices) >= 26:

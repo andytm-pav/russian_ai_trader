@@ -3,7 +3,6 @@
   "max_positions": 10,
   "max_position_weight_percent": 30,
   "timestamp_format": "%Y-%m-%dT%H:%M:%S.%f",
-
   "strategy_selection_timeout": 10,
   "cycle_timeout": 90,
   "cycle_intervals": {
@@ -12,24 +11,20 @@
     "save_state": 20,
     "top_tickers": 120
   },
-
   "reset_model_on_start": false,
-
   "trailing_stop_enabled": true,
   "trailing_stop_activation_percent": 3.0,
   "trailing_stop_distance_percent": 2.0,
   "partial_take_enabled": true,
   "partial_take_percent": 3.0,
   "partial_take_ratio": 0.5,
-
   "trading_hours": {
-    "main_session": "06:50-18:50",
-    "evening_session": "19:00-23:50",
+    "main_session": "00:00-23:59",
+    "evening_session": "00:00-23:59",
     "weekend_trading_enabled": true,
     "trade_on_weekend": true,
-    "force_247": false
+    "force_247": true
   },
-
   "market_data": {
     "default_rvi": 20.0,
     "rvi_ticker": "RVI",
@@ -37,26 +32,45 @@
     "liquidity_threshold": 1000000000,
     "liquidity_history_size": 20,
     "market_mood_change_threshold": 5.0,
-    "index_tickers": ["IMOEX", "RTSI", "MOEXBMI", "MOEXFN", "MOEXOG", "MOEXTL"]
+    "index_tickers": [
+      "IMOEX",
+      "RTSI",
+      "MOEXBMI",
+      "MOEXFN",
+      "MOEXOG",
+      "MOEXTL"
+    ]
   },
-
   "moex_fetcher": {
     "cache_ttl": 300,
     "max_requests_per_minute": 50,
     "use_cache": true
   },
-
   "moex_schedule": {
     "periods": {
-      "auction_open": {"start": "09:50", "end": "09:59"},
-      "continuous_trading": {"start": "10:00", "end": "18:40"},
-      "auction_close": {"start": "18:40", "end": "18:50"},
-      "evening_auction_open": {"start": "19:00", "end": "19:05"},
-      "evening_continuous": {"start": "19:05", "end": "23:50"}
+      "auction_open": {
+        "start": "09:50",
+        "end": "09:59"
+      },
+      "continuous_trading": {
+        "start": "10:00",
+        "end": "18:40"
+      },
+      "auction_close": {
+        "start": "18:40",
+        "end": "18:50"
+      },
+      "evening_auction_open": {
+        "start": "19:00",
+        "end": "19:05"
+      },
+      "evening_continuous": {
+        "start": "19:05",
+        "end": "23:50"
+      }
     },
     "pre_market_start": "06:30",
     "post_market_start": "19:00",
-
     "clearing": {
       "fixation_time": "16:00",
       "clearing_17": "17:00",
@@ -70,7 +84,6 @@
         "limits_cash": "16:45"
       }
     },
-
     "commission": {
       "charge_day": "T+1",
       "charge_time": "14:00",
@@ -83,7 +96,6 @@
       "min_commission_rub": 0.01,
       "rounding_decimals": 2,
       "use_margin_commission": false,
-
       "tbank": {
         "enabled": true,
         "settlement_time": "14:00",
@@ -99,12 +111,10 @@
       }
     }
   },
-
   "default_spread": 0.01,
   "default_rsi": 50,
   "default_volatility": 0.1,
   "default_bb_position": 0.5,
-
   "back_office": {
     "enable_auto_liquidity_check": true,
     "min_liquidity_ratio": 0.2,
@@ -115,7 +125,6 @@
     "alert_on_low_liquidity": true,
     "daily_report_enabled": true
   },
-
   "use_atr_for_stops": true,
   "atr_multiplier": 2.0,
   "max_adv_percent": 5.0,
@@ -130,8 +139,8 @@
   "trades_lookback_seconds": 3600,
   "max_positions_per_horizon": {
     "day_session": 5,
-    "three_days": 3,
-    "week": 2
+    "three_days": 4,
+    "week": 3
   },
   "target_positions": 4,
   "daily_profit_fixation": {
@@ -145,12 +154,15 @@
   "model_confidence_threshold": 0.55,
   "rss_update_interval_seconds": 60,
   "price_update_interval_seconds": 30,
-  "portfolio_rebalance_hours": [10, 14, 16],
+  "portfolio_rebalance_hours": [
+    10,
+    14,
+    16
+  ],
   "logging_level": "DEBUG",
   "simulation_mode": true,
   "paper_trading": true,
   "enable_background_training": true,
-
   "liquidity_check_multiplier": 10.0,
   "min_daily_volume_rub": 1000000,
   "liquidity_filter": {
@@ -159,13 +171,64 @@
     "min_daily_trades": 100,
     "max_spread_percent": 2.0,
     "min_price": 10.0,
-    "allowed_boards": ["TQBR"],
-    "exclude_sectors": ["ETF"]
+    "allowed_boards": [
+      "TQBR"
+    ],
+    "exclude_sectors": [
+      "ETF"
+    ],
+    "min_tickers_after_filter": 10,
+    "weekend_volume_divisor": 5,
+    "weekend_trades_divisor": 3,
+    "weekend_min_trades": 30
   },
   "price_history_file": "data/price_history.json",
-
   "min_ticker_price": 10.0,
-
+  "microstructure": {
+    "enabled": true,
+    "max_tickers_per_cycle": 20,
+    "imbalance_buy_threshold": 0.3,
+    "imbalance_sell_threshold": -0.3,
+    "max_spread_pct_for_signal": 0.2,
+    "low_liquidity_spread_pct": 0.5
+  },
+  "price_predictor": {
+    "enabled": true,
+    "max_hold_hours": 120,
+    "cascade": {
+      "level_0_horizon_hours": 120,
+      "level_0_name": "5_days",
+      "level_0_sell_threshold": 0.5,
+      "level_1_horizon_hours": 48,
+      "level_1_name": "2_days",
+      "level_1_sell_threshold": 0.55,
+      "level_1_max_hold_hours": 48,
+      "level_2_horizon_hours": 24,
+      "level_2_name": "1_day",
+      "level_2_sell_threshold": 0.6,
+      "level_2_max_hold_hours": 120,
+      "level_3_horizon_hours": 1,
+      "level_3_name": "1_hour",
+      "level_3_sell_threshold": 0.65,
+      "level_3_max_hold_hours": 120,
+      "level_4_horizon_hours": 0.25,
+      "level_4_name": "15_min",
+      "level_4_sell_threshold": 0.7,
+      "level_4_max_hold_hours": 120,
+      "level_5_horizon_hours": 0.0167,
+      "level_5_name": "1_min",
+      "level_5_sell_threshold": 0.75,
+      "level_5_max_hold_hours": 120
+    }
+  },
+  "history_loader": {
+    "months_back": 3,
+    "max_points_per_ticker": 2000,
+    "rate_limit_seconds": 0.15,
+    "top_tickers_limit": 50,
+    "history_file": "data/price_history_extended.json",
+    "chaos_cache_file": "data/chaos_metrics_cache.json"
+  },
   "profit_optimization": {
     "extreme_pnl_threshold": 0.08,
     "max_reward": 10.0,
@@ -191,11 +254,9 @@
     "min_risk_multiplier": 0.5,
     "max_risk_multiplier": 2.0
   },
-
   "portfolio_manager": {
     "preserve_buy_time_on_partial_sell": true
   },
-
   "time_horizons": {
     "day_session": {
       "weight": 0.4,
@@ -212,5 +273,155 @@
       "target_hours": 7,
       "description": "30% - 1 неделя"
     }
+  },
+  "hawkes": {
+    "event_threshold_pct": 0.003,
+    "window_size": 4000,
+    "refit_interval": 100,
+    "forecast_horizon_hours": 4,
+    "max_iter": 30,
+    "per_ticker_thresholds": {
+      "default_low_vol": 0.0003,
+      "default_high_vol": 0.0015,
+      "vol_threshold_split": 0.5,
+      "low_vol_multiplier": 0.25,
+      "high_vol_multiplier": 0.4
+    },
+    "bootstrap": {
+      "enabled": true,
+      "interval_minutes": 10,
+      "days_back": 5,
+      "max_tickers": 30
+    }
+  },
+  "screen_universe": {
+    "top_n": 60,
+    "min_avg_daily_volume_rub": 50000000,
+    "min_price": 5.0,
+    "min_volatility_pct": 0.3,
+    "history_days": 30,
+    "liquidity_weight": 0.5,
+    "volatility_weight": 0.5
+  },
+  "pre_train": {
+    "max_tickers": 20,
+    "train_start": "2023-06-01",
+    "train_end": "2024-05-31",
+    "train2_start": "2024-06-01",
+    "train2_end": "2025-05-31",
+    "val_start": "2025-06-01",
+    "val_end": "2026-06-23",
+    "stress_svo_start": "2022-01-15",
+    "stress_svo_end": "2022-04-15",
+    "stress_covid_start": "2020-02-01",
+    "stress_covid_end": "2020-04-30",
+    "validation": {
+      "epsilon_greedy": 0.15,
+      "teacher_guidance_prob": 0.3,
+      "anti_stuck_window": 30,
+      "anti_stuck_force_buy": true,
+      "min_buy_ratio_pct": 10
+    },
+    "rewards": {
+      "match_multiplier": 2.0,
+      "partial_match_multiplier": 0.8,
+      "hold_match_multiplier": 1.2,
+      "mismatch_multiplier": -2.0,
+      "sell_without_position_penalty": -2.0,
+      "reward_clip_min": -5.0,
+      "reward_clip_max": 5.0
+    },
+    "min_hold_steps_after_buy": 3
+  },
+  "entry_cascading": {
+    "enabled": true,
+    "hawkes_trigger": {
+      "bull_to_bear_ratio": 1.5,
+      "min_bull_expected": 0.5,
+      "min_prob_bull": 0.5
+    },
+    "technical_confirmation": {
+      "wait_minutes": 0,
+      "min_momentum_pct": 0.1,
+      "rsi_min": 50,
+      "rsi_max": 70,
+      "bb_position_min": 0.4,
+      "bb_position_max": 0.8,
+      "rsi_oversold_threshold": 40,
+      "bb_position_oversold_max": 0.3
+    },
+    "microstructure_confirmation": {
+      "wait_minutes": 0,
+      "min_imbalance": 0.2,
+      "max_spread_pct": 0.3,
+      "min_volume_ratio_5m": 1.2
+    },
+    "chaos_filter": {
+      "min_rqa_DET": 0.25,
+      "min_rqa_L_max": 4,
+      "max_kurtosis": 100,
+      "min_hawkes_branching_ratio": 0.3
+    },
+    "portfolio_constraints": {
+      "max_positions": 5,
+      "max_position_weight_pct": 20,
+      "max_per_sector": 2,
+      "max_correlation_with_held": 0.7,
+      "min_confidence": 0.3
+    },
+    "cooldown_seconds_between_entries": 60,
+    "fallback": {
+      "enabled": true,
+      "min_cycles_without_entry": 10,
+      "min_confidence": 0.6
+    }
+  },
+  "rolling_exit": {
+    "enabled": true,
+    "evaluation_interval_cycles": 1,
+    "sell_score_components": {
+      "weight_pred_1h_down": 0.3,
+      "weight_at_local_max": 0.2,
+      "weight_hawkes_reversal": 0.2,
+      "weight_ms_reversal": 0.15,
+      "weight_rsi_momentum_decay": 0.15,
+      "penalty_strong_up_trend": 0.25
+    },
+    "thresholds_by_hold_time": {
+      "early_hours": 4,
+      "early_threshold": 0.65,
+      "mid_hours": 24,
+      "mid_threshold": 0.55,
+      "late_hours": 72,
+      "late_threshold": 0.45,
+      "force_threshold": 0.3,
+      "max_hold_hours_hard_cap": 120
+    },
+    "hard_stops": {
+      "base_stop_loss_pct": 2.5,
+      "kurtosis_penalty_factor": 0.02,
+      "kurtosis_baseline": 3,
+      "kurtosis_penalty_max": 5.0,
+      "profit_taking_threshold_pct": 5.0,
+      "profit_taking_min_sell_score": 0.4
+    },
+    "phase_exit": {
+      "enabled": true,
+      "phase1_ratio": 0.5,
+      "phase2_ratio": 0.3,
+      "phase3_ratio": 0.2,
+      "phase2_confirm_cycles": 1,
+      "phase3_trailing_atr_mult": 1.5
+    },
+    "minimum_hold_hours_before_sell": 0,
+    "min_pnl_pct_for_profit_sell": 0.5
+  },
+  "fresh_data": {
+    "enabled": true,
+    "poll_interval_seconds": 10,
+    "max_consecutive_stale_cycles": 5,
+    "staleness_tolerance_seconds": 5,
+    "gap_detection_multiplier": 2.5,
+    "fallback_to_cache_on_error": true
   }
 }

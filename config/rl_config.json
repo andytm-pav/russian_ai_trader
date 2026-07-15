@@ -60,7 +60,7 @@
   "exploration": {
     "initial_exploration_rate": 0.15,
     "final_exploration_rate": 0.03,
-    "action_exploration_rate": 0.20,
+    "action_exploration_rate": 0.2,
     "min_exploration_rate": 0.05,
     "max_exploration_rate": 0.3
   },
@@ -147,7 +147,7 @@
   },
   "strategy_selection_timeout": 10,
   "llm_coach": {
-    "enabled": true,
+    "enabled": false,
     "timeout_seconds": 20,
     "coach_interval_cycles": 10,
     "coach_action_weight": 0.3,

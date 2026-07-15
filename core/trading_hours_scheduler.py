@@ -26,8 +26,19 @@ class TradingScheduler:
         # ✅ ДОБАВЛЕНО
         self.scheduler_thread = None
         self.scheduler_running = False
+        # 🆕 force_247 — для тестирования вне торговых часов
+        self.force_247 = self._load_force_247()
 
-        logger.info("Инициализирован планировщик торговых сессий")
+        logger.info(f"Инициализирован планировщик торговых сессий (force_247={self.force_247})")
+
+    def _load_force_247(self) -> bool:
+        """Загрузка флага force_247 из config/settings.json."""
+        try:
+            with open("config/settings.json", "r", encoding="utf-8") as f:
+                s = json.load(f)
+                return bool(s.get("trading_hours", {}).get("force_247", False))
+        except Exception:
+            return False
 
     def _load_config(self, config_path: str) -> Dict:
         """Загрузка конфигурации торговых сессий"""
@@ -138,6 +149,8 @@ class TradingScheduler:
 
     def is_trading_time(self, check_datetime: Optional[datetime] = None) -> bool:
         """Проверка, идет ли сейчас торговая сессия"""
+        if self.force_247:
+            return True
         if check_datetime is None:
             check_datetime = datetime.now(self.moscow_tz)
 
@@ -305,13 +318,28 @@ class TradingScheduler:
     # ✅ НОВЫЙ МЕТОД
     def can_trade_now(self) -> Dict[str, bool]:
         """Проверка доступности торговых операций"""
+        if self.force_247:
+            return {
+                'can_place_orders': True,
+                'can_cancel_orders': True,
+                'can_modify_orders': True,
+                'current_period': 'continuous_trading',
+            }
         period = self.get_current_moex_period()
 
+        # Читаем из конфига, разрешён ли placement ордеров в weekend_session
+        weekend_config = self.config.get('weekend_sessions', {})
+        weekend_allows_orders = weekend_config.get('allow_order_placement', False)
+
+        allowed_periods = ['auction_open', 'continuous_trading', 'auction_close',
+                          'evening_auction_open', 'evening_continuous']
+        if weekend_allows_orders:
+            allowed_periods.append('weekend_session')
 
         return {
-            'can_place_orders': period in ['auction_open', 'continuous_trading', 'auction_close', 'evening_auction_open', 'evening_continuous'],
-            'can_cancel_orders': period in ['auction_open', 'continuous_trading', 'auction_close','evening_auction_open', 'evening_continuous'],
-            'can_modify_orders': period in ['continuous_trading', 'evening_continuous'],
+            'can_place_orders': period in allowed_periods,
+            'can_cancel_orders': period in ['auction_open', 'continuous_trading', 'auction_close','evening_auction_open', 'evening_continuous'] + (['weekend_session'] if weekend_allows_orders else []),
+            'can_modify_orders': period in ['continuous_trading', 'evening_continuous'] + (['weekend_session'] if weekend_allows_orders else []),
             'current_period': period
         }
 

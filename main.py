@@ -60,18 +60,7 @@ def main():
     # 2. Инициализация SmartBroker
     broker = SmartPortfolioBroker(settings, scheduler)
 
-    # Инициализация LLM-коуча
-    if settings.get("llm_coach", {}).get("enabled", False):
-        try:
-            from models.llm_coach import LLMCoach
-            coach = LLMCoach(settings["llm_coach"])
-            if coach.is_available():
-                broker.set_coach(coach)
-                logger.info("LLM-коуч подключён к брокеру")
-            else:
-                logger.warning("LLM-коуч недоступен")
-        except Exception as e:
-            logger.error(f"Ошибка инициализации LLM-коуча: {e}")
+    # LLM-коуч ОТКЛЮЧЕН — заменён на каскадный предсказатель + микроструктуру
 
     # 3. Запуск веб-сервера в отдельном потоке
     web_thread = threading.Thread(
@@ -123,7 +112,8 @@ def main():
 
                     # Периодический лог (каждые 10 циклов)
                     if cycle_counter % 10 == 0:
-                        total_value = broker.portfolio.get_total_value({})
+                        prices = broker._get_current_prices()
+                        total_value = broker.portfolio.get_total_value(prices)
                         logger.info(
                             f"📊 СТАТИСТИКА | Цикл #{cycle_counter} | Портфель: {total_value:,.0f}₽ | Кэш: {broker.portfolio.cash:,.0f}₽ | Позиций: {len(broker.portfolio.positions)}")
 
