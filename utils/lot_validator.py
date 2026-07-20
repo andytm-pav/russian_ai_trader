@@ -18,6 +18,9 @@ class LotValidator:
 
         Возвращает: (скорректированное_количество, требуется_корректировка)
         """
+        # 🆕 Принудительное приведение к целому для всех случаев (страховка от float)
+        quantity = int(quantity)
+
         if lot_size <= 1:
             return quantity, False
 
