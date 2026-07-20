@@ -599,6 +599,38 @@
       "failure_count": 0,
       "success_rate": 0.5,
       "total_trades": 0
+    },
+    "MBNK": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "SOFL": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "OZPH": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "UWGN": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
     }
   },
   "ticker_stats": {
@@ -1201,9 +1233,41 @@
       "avg_hold_time": 0.0,
       "success_rate": 0.5,
       "last_trade": null
+    },
+    "MBNK": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "SOFL": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "OZPH": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "UWGN": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
     }
   },
-  "market_sentiment": -0.06965939921330061,
+  "market_sentiment": -0.15245337197095046,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
@@ -1228,10 +1292,10 @@
       "win_rate": 0.5
     },
     "swing": {
-      "total_trades": 1,
+      "total_trades": 2,
       "profitable_trades": 0,
-      "total_pnl": -4.9350000000000005,
-      "avg_pnl": -4.9350000000000005,
+      "total_pnl": -10.669999999999956,
+      "avg_pnl": -5.334999999999978,
       "win_rate": 0.0
     },
     "mean_reversion": {
@@ -1256,11 +1320,11 @@
       "win_rate": 0.5
     },
     "cascading_entry": {
-      "total_trades": 7,
-      "profitable_trades": 1,
-      "total_pnl": -15.779999999999962,
-      "avg_pnl": -2.2542857142857087,
-      "win_rate": 0.14285714285714285
+      "total_trades": 43,
+      "profitable_trades": 15,
+      "total_pnl": -68.60916666666624,
+      "avg_pnl": -1.5955620155038661,
+      "win_rate": 0.3488372093023256
     }
   },
   "strategies": {
@@ -1422,5 +1486,5 @@
       }
     }
   },
-  "save_time": "2026-07-15T22:36:22.346771"
+  "save_time": "2026-07-20T14:12:20.157532"
 }

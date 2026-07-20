@@ -388,6 +388,33 @@ class RollingExitManager:
                 )
 
         # ─── ОБЫЧНОЕ РЕШЕНИЕ (Phase 1) ───
+
+        # 🆕 v16 Фаза 3.2: Trailing stop для Phase 1 — фиксация прибыли при развороте
+        # Если цена выросла > activation_pct от входа, активируем trailing
+        trailing_cfg = self.phase_cfg.get('trailing_phase1', {})
+        trailing_p1_enabled = trailing_cfg.get('enabled', True)
+        trailing_p1_activation = trailing_cfg.get('activation_pct', 2.0)
+        trailing_p1_distance = trailing_cfg.get('distance_pct', 1.0)
+
+        if trailing_p1_enabled and pos.entry_price > 0:
+            profit_pct = (current_price - pos.entry_price) / pos.entry_price * 100
+            if profit_pct >= trailing_p1_activation:
+                # Обновляем trailing stop
+                new_trailing = max(pos.trailing_stop_price,
+                                   current_price * (1 - trailing_p1_distance / 100))
+                pos.trailing_stop_price = new_trailing
+                pos.trailing_stop_active = True
+
+                if current_price <= pos.trailing_stop_price and pos.trailing_stop_price > pos.entry_price:
+                    # Trailing сработал — продаём всю позицию (profit-taking)
+                    return ExitDecision(
+                        ticker=pos.ticker, action='SELL_FULL',
+                        sell_score=sell_score, threshold=threshold,
+                        qty_to_sell=pos.entry_qty,
+                        reason=f"phase1_trailing_stop {current_price:.2f} ≤ {pos.trailing_stop_price:.2f} "
+                               f"(profit was +{profit_pct:.1f}%)"
+                    )
+
         if sell_score >= threshold:
             if phase_enabled:
                 # Phase 1 → продаём 50%, переходим в phase 2

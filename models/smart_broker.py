@@ -90,6 +90,11 @@ class SmartPortfolioBroker:
         self.model = trader_model_instance
         self.model.market_period = "closed"
 
+        # 🆕 v16 Фаза 1.4: Risk Enforcer — стоп-лоссы и запрет усреднения
+        from core.risk_enforcer import RiskEnforcer
+        risk_cfg = self.settings.get('risk_management', {})
+        self.risk_enforcer = RiskEnforcer(risk_cfg)
+
         # ✅ ЗАГРУЗКА НАСТРОЕК Т-БАНКА
         moex_config = settings.get('moex_schedule', {})
         commission_config = moex_config.get('commission', {})
@@ -2902,6 +2907,37 @@ class SmartPortfolioBroker:
         """Проверка стоп-лоссов и тейк-профитов с трейлинг-стопом"""
         cfg = self.settings
 
+        # 🆕 v16 Фаза 1.4: Risk Enforcer — принудительные стоп-лоссы
+        # Выполняется ПЕРВЫМ, до обычных stop_loss/take_profit
+        try:
+            if hasattr(self, 'risk_enforcer') and self.risk_enforcer:
+                stop_loss_sells = self.risk_enforcer.get_stop_loss_sells(
+                    self.portfolio.positions, prices
+                )
+                for sell in stop_loss_sells:
+                    ticker = sell['ticker']
+                    qty = sell['qty']
+                    price = sell['price']
+                    if ticker in prices and qty > 0:
+                        success, pnl = self.portfolio.sell(ticker, qty, price)
+                        if success:
+                            logger.warning(
+                                f"🚨 [RISK_ENFORCER] STOP-LOSS executed: {ticker} {qty} @ {price:.2f} "
+                                f"(pnl={pnl:+.0f}₽, loss={sell['loss_pct']:+.1f}%)"
+                            )
+                            self.risk_manager.update_trade_result(
+                                ticker=ticker, action='STOP_LOSS',
+                                quantity=qty, price=price, pnl=pnl
+                            )
+                            # Удаляем из rolling_exit
+                            if self.rolling_exit:
+                                try:
+                                    self.rolling_exit.reset_ticker(ticker)
+                                except Exception:
+                                    pass
+        except Exception as e:
+            logger.error(f"RiskEnforcer stop-loss error: {e}")
+
         # Параметры трейлинг-стопа из конфига
         trailing_stop_enabled = cfg.get('trailing_stop_enabled', True)
         trailing_stop_activation = cfg.get('trailing_stop_activation_percent', 3.0)
@@ -3342,6 +3378,8 @@ class SmartPortfolioBroker:
             'sector_weights': dict(sector_weights),
             'ticker_sectors': self.ticker_sectors,
             'correlation_matrix': getattr(self, '_correlation_matrix', {}),
+            # 🆕 v16 Фаза 3.1: Передаём price_predictor для ML-стратегии
+            'price_predictor': getattr(self, 'price_predictor', None),
         }
 
         signals = self.entry_confirmer.screen(
@@ -3488,7 +3526,17 @@ class SmartPortfolioBroker:
         """Исполнение сигнала входа от EntryCascadingConfirmer."""
         ticker = signal.ticker
         if ticker in self.portfolio.positions:
-            return
+            # 🆕 v16 Фаза 1.4: Запрет усреднения убытка через RiskEnforcer
+            price = prices.get(ticker, 0)
+            if price > 0 and hasattr(self, 'risk_enforcer') and self.risk_enforcer:
+                allowed, reason = self.risk_enforcer.check_buy_allowed(
+                    ticker, self.portfolio.positions, price
+                )
+                if not allowed:
+                    logger.info(f"[ENTRY_F] {ticker}: {reason}")
+                    return
+            else:
+                return
         if ticker not in prices:
             return
         price = prices[ticker]
@@ -3504,8 +3552,9 @@ class SmartPortfolioBroker:
         total_value = self.portfolio.get_total_value(prices)
         target_value = total_value * signal.target_weight
         qty = int(target_value / price) if price > 0 else 0
-        if lot_size > 1:
-            qty = (qty // lot_size) * lot_size
+        # 🆕 v16 Фаза 1.1: Используем LotValidator вместо ручного округления
+        from utils.lot_validator import LotValidator
+        qty, _ = LotValidator.validate_and_adjust_quantity(qty, lot_size)
         if qty <= 0:
             qty = lot_size  # минимальный лот
 
@@ -3514,6 +3563,8 @@ class SmartPortfolioBroker:
         if cost > self.portfolio.cash:
             # Уменьшаем qty
             qty = int(self.portfolio.cash / price / lot_size) * lot_size
+            # 🆕 v16: Повторная валидация лотности
+            qty, _ = LotValidator.validate_and_adjust_quantity(qty, lot_size)
             if qty <= 0:
                 logger.debug(f"[ENTRY] {ticker} insufficient cash for even 1 lot")
                 return

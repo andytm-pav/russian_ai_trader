@@ -68,6 +68,23 @@ class EntryCascadingConfirmer:
         logger.info(f"EntryCascadingConfirmer init: enabled={self.enabled}, "
                     f"cooldown={self.cooldown}s")
 
+    # 🆕 v16 Фаза 2.4: Группы тикеров для диверсификации
+    # Тикеры одной компании (разные классы акций) считаются как одна позиция
+    TICKER_GROUPS = {
+        'SBER': ['SBER', 'SBERP'],
+        'SNGS': ['SNGS', 'SNGSP'],
+        'TATN': ['TATN', 'TATNP'],
+        'MTLR': ['MTLR', 'MTLRP'],
+        'MSRS': ['MSRS', 'MSRSS'],
+    }
+
+    def _get_ticker_group(self, ticker: str) -> Optional[str]:
+        """Возвращает группу тикера или None."""
+        for group, members in self.TICKER_GROUPS.items():
+            if ticker in members:
+                return group
+        return None
+
     def screen(self, universe: List[str],
                get_hawkes_forecast, get_indicators, get_microstructure,
                get_chaos_metrics, get_price,
@@ -107,6 +124,61 @@ class EntryCascadingConfirmer:
                 if time.time() - last_entry < self.cooldown:
                     self._screen_log.append({'ticker': ticker, 'result': 'skip', 'reason': f'кулдаун {self.cooldown}с'})
                     continue
+
+                # 🆕 v16 Фаза 2.2: Запрет BUY в вечерней сессии (после 19:00 MSK)
+                # В тестах можно отключить через ec._test_mode_skip_evening_check = True
+                if not getattr(self, '_test_mode_skip_evening_check', False):
+                    evening_cutoff_hour = 19  # MSK
+                    from datetime import datetime, timezone, timedelta
+                    MSK = timezone(timedelta(hours=3))
+                    now_msk = datetime.now(MSK)
+                    if now_msk.hour >= evening_cutoff_hour:
+                        self._screen_log.append({
+                            'ticker': ticker, 'result': 'skip',
+                            'reason': f'вечерняя сессия {now_msk.strftime("%H:%M")} MSK >= {evening_cutoff_hour}:00'
+                        })
+                        continue
+
+                # 🆕 v16 Фаза 2.1: Контроль ликвидности
+                # Проверяем микроструктуру: spread и volume
+                ms_preview = None
+                if get_microstructure:
+                    try:
+                        ms_preview = get_microstructure(ticker) or {}
+                    except Exception:
+                        ms_preview = {}
+
+                if ms_preview:
+                    spread_pct = ms_preview.get('spread_pct', 0)
+                    vol_30m = ms_preview.get('volume_30m_avg', 0)
+                    liq_cfg_max_spread = self.ms_cfg.get('max_spread_pct_entry', 0.5) if hasattr(self, 'ms_cfg') else 0.5
+                    liq_cfg_min_vol = self.ms_cfg.get('min_volume_30m_rub', 1_000_000) if hasattr(self, 'ms_cfg') else 1_000_000
+
+                    if spread_pct > liq_cfg_max_spread:
+                        self._screen_log.append({
+                            'ticker': ticker, 'result': 'skip',
+                            'reason': f'low_liq spread={spread_pct:.2f}%>{liq_cfg_max_spread}%'
+                        })
+                        continue
+
+                    if 0 < vol_30m < liq_cfg_min_vol:
+                        self._screen_log.append({
+                            'ticker': ticker, 'result': 'skip',
+                            'reason': f'low_liq vol_30m={vol_30m:.0f}<{liq_cfg_min_vol}'
+                        })
+                        continue
+
+                # 🆕 v16 Фаза 2.4: Диверсификация SBER/SBERP (считать как одну позицию)
+                # Если SBER уже в портфеле — не покупать SBERP, и наоборот
+                ticker_group = self._get_ticker_group(ticker)
+                if ticker_group:
+                    held_in_group = [t for t in held_tickers if self._get_ticker_group(t) == ticker_group and t != ticker]
+                    if held_in_group:
+                        self._screen_log.append({
+                            'ticker': ticker, 'result': 'skip',
+                            'reason': f'group {ticker_group} уже в портфеле: {held_in_group}'
+                        })
+                        continue
 
                 signal = self._evaluate_ticker(
                     ticker, price,
@@ -471,7 +543,38 @@ class EntryCascadingConfirmer:
                       chaos_strength * 0.10)
         confidence = max(0, min(1, confidence))
 
-        min_conf = self.portfolio_cfg.get('min_confidence', 0.6)
+        # 🆕 v16 Фаза 3.1: 5-я фаза — ML-стратегия прогноза цены
+        try:
+            from core.ml_price_strategy import ml_price_strategy
+            if ml_price_strategy and ml_price_strategy.enabled:
+                # Нужен price_predictor — пробуем получить из portfolio_state
+                price_predictor = portfolio_state.get('price_predictor')
+                if price_predictor:
+                    ml_result = ml_price_strategy.evaluate(
+                        ticker=ticker,
+                        current_price=price,
+                        price_predictor=price_predictor,
+                        chaos_metrics=chaos,
+                        hawkes_forecast={'bull_expected': bull, 'bear_expected': 0,
+                                         'prob_bull': prob_bull, 'net_signal': bull},
+                    )
+
+                    if ml_result['action'] == 'BLOCK':
+                        self._phases[ticker] = {'phase': 0,
+                                              'last_entry_time': self._phases.get(ticker, {}).get('last_entry_time', 0)}
+                        logger.debug(f"[ENTRY] {ticker} ML BLOCK: {ml_result['reason']}")
+                        return None
+
+                    if ml_result['action'] == 'BOOST':
+                        old_conf = confidence
+                        confidence = min(1.0, confidence * ml_result['confidence_multiplier'])
+                        reasons.append(f"ml_boost={ml_result['predicted_return_pct']:+.1f}%")
+                        logger.debug(f"[ENTRY] {ticker} ML BOOST: {old_conf:.2f} → {confidence:.2f} "
+                                    f"({ml_result['reason']})")
+        except Exception as e:
+            logger.debug(f"ML strategy integration error: {e}")
+
+        min_conf = self.portfolio_cfg.get('min_confidence', 0.5)  # 🆕 v16 Фаза 2.3: 0.6 → 0.5
         if confidence < min_conf:
             self._phases[ticker] = {'phase': 0, 'last_entry_time': self._phases.get(ticker, {}).get('last_entry_time', 0)}
             logger.debug(f"[ENTRY] {ticker} confidence {confidence:.2f} < {min_conf}")

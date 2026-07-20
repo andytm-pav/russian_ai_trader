@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from collections import defaultdict
 
 from utils.logger import get_logger
+from utils.lot_validator import LotValidator
 
 logger = get_logger("PORTFOLIO")
 
@@ -46,6 +47,25 @@ class PortfolioManager:
         self.total_commission = 0.0
         self.total_trades = 0
         self.total_pnl = 0.0
+
+        # 🆕 v16 Фаза 1.2: Anti-overtrading
+        # Загружаем из конфига, дефолты — консервативные
+        anti_overtrading_cfg = self.settings.get('anti_overtrading', {})
+        self.max_trades_per_hour = anti_overtrading_cfg.get('max_trades_per_hour', 5)
+        self.min_seconds_between_trades = anti_overtrading_cfg.get('min_seconds_between_trades', 600)
+        self._last_trade_timestamp = 0.0  # timestamp последней сделки
+
+        # 🆕 v16 Фаза 1.5: Limit-ордера (проскальзывание)
+        execution_cfg = self.settings.get('execution', {})
+        self.buy_price_markup = execution_cfg.get('buy_price_markup', 0.001)   # +0.1% к цене
+        self.sell_price_markdown = execution_cfg.get('sell_price_markdown', 0.001)  # -0.1%
+        self.log_slippage = execution_cfg.get('log_slippage', True)
+        self.slippage_warning_threshold = execution_cfg.get('slippage_warning_threshold', 0.003)
+
+        # 🆕 v16 Фаза 1.4: Stop-loss на позициях (читается в smart_broker)
+        risk_cfg = self.settings.get('risk_management', {})
+        self.max_position_loss_pct = risk_cfg.get('max_position_loss_pct', 5.0)
+        self.no_averaging_below_loss_pct = risk_cfg.get('no_averaging_below_loss_pct', 3.0)
 
         # ========== ЗАГРУЗКА КОНФИГА (ПЕРЕЗАПИСЫВАЕТ ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ) ==========
         self._load_commission_config()
@@ -260,15 +280,43 @@ class PortfolioManager:
             lot_size = kwargs.get('lot_size', 1)
             min_step = kwargs.get('min_step', 0.01)
 
+            # 🆕 v16 Фаза 1.2: Anti-overtrading — проверка интервала между сделками
+            now_ts = time.time()
+            seconds_since_last = now_ts - self._last_trade_timestamp
+            if self._last_trade_timestamp > 0 and seconds_since_last < self.min_seconds_between_trades:
+                logger.warning(
+                    f"Anti-overtrading: прошло {seconds_since_last:.0f}с < {self.min_seconds_between_trades}с "
+                    f"с последней сделки — BUY {ticker} отменён"
+                )
+                return False
+
+            # 🆕 v16 Фаза 1.5: Limit-ордер — корректируем цену с markup
+            # (эмулируем лимит-ордер чуть выше рынка для гарантии исполнения)
+            original_price = price
+            limit_price = price * (1.0 + self.buy_price_markup)
+            # Округляем до min_step
+            if min_step > 0:
+                limit_price = round(limit_price / min_step) * min_step
+            if self.log_slippage and abs(limit_price - original_price) / original_price > 1e-6:
+                logger.info(f"Limit BUY: market={original_price:.4f} → limit={limit_price:.4f} "
+                           f"(markup {self.buy_price_markup*100:.2f}%)")
+            price = limit_price
+
+            # 🆕 v16 Фаза 1.1: LotValidator — корректная проверка лотности (работает для float)
+            adjusted_qty, was_adjusted = LotValidator.validate_and_adjust_quantity(int(quantity), lot_size)
+            if was_adjusted:
+                logger.info(f"Лотность: qty {quantity} → {adjusted_qty} (lot={lot_size})")
+                quantity = adjusted_qty
+            if quantity == 0:
+                logger.error(f"BUY {ticker}: после проверки лотности qty=0 (lot={lot_size}) — отмена")
+                return False
+
             # Проверка кратности цены
             if min_step > 0 and price % min_step != 0:
                 price = round(price / min_step) * min_step
                 logger.info(f"Цена скорректирована до {price:.4f}")
 
-            # Проверка лотности количества
-            if lot_size > 1 and quantity % lot_size != 0:
-                quantity = max(lot_size, (quantity // lot_size) * lot_size)
-                logger.info(f"Количество скорректировано до {quantity}")
+            # (старая проверка лотности удалена — заменена на LotValidator выше)
 
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
@@ -424,6 +472,9 @@ class PortfolioManager:
 
             self.save_portfolio()
 
+            # 🆕 v16 Фаза 1.2: Anti-overtrading — обновляем timestamp последней сделки
+            self._last_trade_timestamp = time.time()
+
             logger.info(f"КУПЛЕНО: {ticker} {quantity} @ {price:.2f} = {cost:,.0f}₽, "
                         f"комиссия: {commission_buy:.2f}₽, "
                         f"кэш: {self.cash:,.0f}₽, резерв: {self.reserved_cash:,.0f}₽")
@@ -446,13 +497,34 @@ class PortfolioManager:
             lot_size = pos.get('lot_size', 1)
             strategy = pos.get('strategy')
 
-            # Проверка лотности количества
-            if lot_size > 1 and quantity % lot_size != 0:
-                quantity = (quantity // lot_size) * lot_size
-                if quantity == 0:
-                    logger.error(f"После округления количество стало нулевым")
+            # 🆕 v16 Фаза 1.5: Limit-ордер для SELL — markdown для гарантии исполнения
+            original_price = price
+            min_step = pos.get('min_step', 0.01)
+            limit_price = price * (1.0 - self.sell_price_markdown)
+            if min_step > 0:
+                limit_price = round(limit_price / min_step) * min_step
+            if self.log_slippage and abs(limit_price - original_price) / original_price > 1e-6:
+                logger.info(f"Limit SELL: market={original_price:.4f} → limit={limit_price:.4f} "
+                           f"(markdown {self.sell_price_markdown*100:.2f}%)")
+            price = limit_price
+
+            # 🆕 v16 Фаза 1.1: LotValidator для SELL (работает с float qty)
+            # Если остаток позиции < 1 лота — продаём всё (закрытие позиции)
+            current_qty = pos['qty']
+            if lot_size > 1 and current_qty < lot_size:
+                # Мусорная позиция (< 1 лота) — закрываем полностью
+                logger.info(f"SELL {ticker}: остаток {current_qty} < 1 лота ({lot_size}) — закрываем позицию")
+                quantity = current_qty
+            else:
+                adjusted_qty, was_adjusted = LotValidator.validate_and_adjust_quantity(int(quantity), lot_size)
+                if was_adjusted:
+                    logger.info(f"Лотность SELL: qty {quantity} → {adjusted_qty} (lot={lot_size})")
+                    quantity = adjusted_qty
+                if quantity == 0 and current_qty >= lot_size:
+                    # Если qty_to_sell < 0.5 лота, но позиция больше — пропускаем продажу
+                    logger.warning(f"SELL {ticker}: qty после лотности = 0, пропуск "
+                                  f"(requested={quantity}, lot={lot_size})")
                     return False, 0.0
-                logger.info(f"Количество скорректировано до {quantity}")
 
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
@@ -463,7 +535,20 @@ class PortfolioManager:
                 logger.error(f"Недостаточно акций: нужно {quantity}, есть {pos['qty']}")
                 return False, 0.0
 
-            # Проверка минимального времени удержания (учебный костыль)
+            # 🆕 v16 Фаза 1.3: Min hold time из settings (не training_wheels)
+            risk_cfg = self.settings.get('risk_management', {})
+            min_hold_hours = risk_cfg.get('minimum_hold_hours_before_sell', 0)
+            if min_hold_hours > 0:
+                buy_time = pos.get('buy_time', 0)
+                hold_seconds = time.time() - buy_time
+                if hold_seconds < min_hold_hours * 3600:
+                    logger.warning(
+                        f"SELL {ticker}: hold {hold_seconds/60:.1f}мин < {min_hold_hours}ч — отмена "
+                        f"(phase exit слишком рано)"
+                    )
+                    return False, 0.0
+
+            # Проверка минимального времени удержания (учебный костыль) — оставлено для обратной совместимости
             min_hold = self.training_wheels.get('trade_limits', {}).get('min_hold_time_seconds', 0)
             if min_hold > 0:
                 buy_time = pos.get('buy_time', 0)
@@ -562,6 +647,9 @@ class PortfolioManager:
             })
 
             self.save_portfolio()
+
+            # 🆕 v16 Фаза 1.2: Anti-overtrading — обновляем timestamp последней сделки
+            self._last_trade_timestamp = time.time()
 
             logger.info(f"ПРОДАНО: {ticker} {quantity} @ {price:.2f} = {revenue:,.0f}₽, "
                         f"комиссия покупки: {commission_buy_for_part:.2f}₽, "

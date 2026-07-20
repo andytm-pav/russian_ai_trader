@@ -354,7 +354,9 @@
       "wait_minutes": 0,
       "min_imbalance": 0.2,
       "max_spread_pct": 0.3,
-      "min_volume_ratio_5m": 1.2
+      "min_volume_ratio_5m": 1.2,
+      "max_spread_pct_entry": 0.5,
+      "min_volume_30m_rub": 1000000
     },
     "chaos_filter": {
       "min_rqa_DET": 0.25,
@@ -367,13 +369,20 @@
       "max_position_weight_pct": 20,
       "max_per_sector": 2,
       "max_correlation_with_held": 0.7,
-      "min_confidence": 0.3
+      "min_confidence": 0.5
     },
     "cooldown_seconds_between_entries": 60,
     "fallback": {
       "enabled": true,
       "min_cycles_without_entry": 10,
       "min_confidence": 0.6
+    },
+    "ml_strategy": {
+      "enabled": true,
+      "horizon_hours": 1,
+      "min_predicted_return_pct": 0.5,
+      "max_predicted_return_pct": 5.0,
+      "block_if_predicted_loss_pct": 1.0
     }
   },
   "rolling_exit": {
@@ -411,7 +420,12 @@
       "phase2_ratio": 0.3,
       "phase3_ratio": 0.2,
       "phase2_confirm_cycles": 1,
-      "phase3_trailing_atr_mult": 1.5
+      "phase3_trailing_atr_mult": 1.5,
+      "trailing_phase1": {
+        "enabled": true,
+        "activation_pct": 2.0,
+        "distance_pct": 1.0
+      }
     },
     "minimum_hold_hours_before_sell": 0,
     "min_pnl_pct_for_profit_sell": 0.5
@@ -423,5 +437,42 @@
     "staleness_tolerance_seconds": 5,
     "gap_detection_multiplier": 2.5,
     "fallback_to_cache_on_error": true
+  },
+  "anti_overtrading": {
+    "max_trades_per_hour": 5,
+    "min_seconds_between_trades": 600
+  },
+  "risk_management": {
+    "max_position_loss_pct": 5.0,
+    "no_averaging_below_loss_pct": 3.0,
+    "enforce_stop_loss": true,
+    "enforce_no_averaging": true,
+    "minimum_hold_hours_before_sell": 1
+  },
+  "execution": {
+    "buy_price_markup": 0.001,
+    "sell_price_markdown": 0.001,
+    "log_slippage": true,
+    "slippage_warning_threshold": 0.003
+  },
+  "adaptive_thresholds": {
+    "enabled": true,
+    "window_size": 20,
+    "min_win_rate": 0.4,
+    "max_win_rate": 0.6,
+    "adjustment_step": 0.05,
+    "min_confidence_floor": 0.3,
+    "min_confidence_ceiling": 0.7,
+    "initial_min_confidence": 0.5
+  },
+  "multi_timeframe": {
+    "enabled": true,
+    "timeframes": [
+      5,
+      60,
+      1440
+    ],
+    "agreement_boost": 1.3,
+    "conflict_penalty": 0.7
   }
 }
