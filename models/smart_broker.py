@@ -3173,6 +3173,14 @@ class SmartPortfolioBroker:
                 if current_qty <= 0:
                     continue
 
+                # 🆕 ПРОВЕРКА: если остаток меньше 1 лота — НЕ РЕГИСТРИРУЕМ (мусорный остаток)
+                lot_size = securities.get(ticker, {}).get('lot_size', 1)
+                if current_qty < lot_size:
+                    logger.debug(
+                        f"[ROLL_EXIT] {ticker}: skipping registration, residual {current_qty:.4f} < lot {lot_size}"
+                    )
+                    continue
+
                 if ticker not in active_in_re:
                     # Новая позиция — регистрируем в rolling_exit
                     chaos = {}
