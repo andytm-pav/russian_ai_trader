@@ -775,6 +775,22 @@
       "failure_count": 0,
       "success_rate": 0.5,
       "total_trades": 0
+    },
+    "ABIO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "GEMC": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
     }
   },
   "ticker_stats": {
@@ -1553,9 +1569,25 @@
       "avg_hold_time": 0.0,
       "success_rate": 0.5,
       "last_trade": null
+    },
+    "ABIO": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "GEMC": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
     }
   },
-  "market_sentiment": -0.15725901252755223,
+  "market_sentiment": -0.13731029390567837,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
@@ -1608,11 +1640,11 @@
       "win_rate": 1.0
     },
     "cascading_entry": {
-      "total_trades": 58,
-      "profitable_trades": 23,
-      "total_pnl": -19.358833333333045,
-      "avg_pnl": -0.33377298850574216,
-      "win_rate": 0.39655172413793105
+      "total_trades": 62,
+      "profitable_trades": 26,
+      "total_pnl": -5.91383333333302,
+      "avg_pnl": -0.09538440860214549,
+      "win_rate": 0.41935483870967744
     }
   },
   "strategies": {
@@ -1774,5 +1806,5 @@
       }
     }
   },
-  "save_time": "2026-07-21T19:05:27.305948"
+  "save_time": "2026-07-22T14:38:11.332992"
 }
