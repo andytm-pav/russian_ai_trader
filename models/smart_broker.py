@@ -3117,15 +3117,17 @@ class SmartPortfolioBroker:
                 hawkes_sig = 0.0
                 if self.hawkes:
                     hawkes_sig = self.hawkes.get_signal(ticker)
-                # 🆕 D₂ из хаос-метрик
-                d2 = 2.5
+                # 🆕 D₂ из хаос-метрик (передаём None если нет данных)
+                fractal_dim = None
                 if hasattr(self, 'chaos_metrics') and ticker in self.chaos_metrics:
-                    d2 = self.chaos_metrics[ticker].get('fractal_dim', 2.5)
+                    fractal_dim = self.chaos_metrics[ticker].get('fractal_dim')
+
                 prediction = self.price_predictor.predict(
                     ticker=ticker, entry_price=entry_price, current_price=price,
                     hold_time_hours=hold_time_h, model=self.model, state=full_state,
                     indicators=indicators, microstructure=ms_data,
                     hawkes_signal=hawkes_sig, hurst=hurst,
+                    fractal_dim=fractal_dim,  # ← передаём None или реальное значение
                 )
                 if prediction['action'] == 'SELL':
                     qty = pos['qty']
@@ -3273,9 +3275,13 @@ class SmartPortfolioBroker:
 
                             hawkes_sig = self.hawkes.get_signal(t) if self.hawkes else 0
 
+                            # 🆕 D₂ из chaos_metrics для второго вызова
+                            fractal_dim_2 = None
+                            if hasattr(self, 'chaos_metrics') and t in self.chaos_metrics:
+                                fractal_dim_2 = self.chaos_metrics[t].get('fractal_dim')
+
                             pred = self.price_predictor.predict(
-                                ticker=t,
-                                entry_price=entry_p,
+                                ticker=t, entry_price=entry_p,
                                 current_price=price,
                                 hold_time_hours=hold_h,
                                 model=self.model,
@@ -3284,6 +3290,7 @@ class SmartPortfolioBroker:
                                 microstructure=ms_data,
                                 hawkes_signal=hawkes_sig,
                                 hurst=hurst,
+                                fractal_dim=fractal_dim_2,
                             )
                             return pred
                         except Exception as e:

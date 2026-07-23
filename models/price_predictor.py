@@ -87,9 +87,20 @@ class PricePredictionCascade:
              cascade_cfg.get('level_5_max_hold_hours', 120)),
         ]
 
+        # 🆕 Параметры адаптации под D₂ (из конфига)
+        d2_cfg = config.get('d2_adaptation', {})
+        self.d2_default = d2_cfg.get('default', 2.5)
+        self.d2_high_threshold = d2_cfg.get('high_threshold', 2.5)
+        self.d2_low_threshold = d2_cfg.get('low_threshold', 2.0)
+        self.d2_high_factor = d2_cfg.get('high_factor', 0.7)
+        self.d2_low_factor = d2_cfg.get('low_factor', 1.3)
+
         self._predictions_history = defaultdict(list)
         self._cascade_level = {}
-        logger.info(f"PricePredictionCascade инициализирован (max_hold={self.max_hold_hours}ч = {self.max_hold_hours/24:.0f} дней)")
+        logger.info(f"PricePredictionCascade инициализирован (max_hold={self.max_hold_hours}ч, "
+                    f"D₂ адаптация: threshold_high={self.d2_high_threshold}, "
+                    f"factor_high={self.d2_high_factor}, threshold_low={self.d2_low_threshold}, "
+                    f"factor_low={self.d2_low_factor})")
 
     def _determine_horizon(self, ticker: str, entry_price: float,
                             current_price: float, hold_time_hours: float) -> Tuple[int, float, str, float]:
@@ -128,13 +139,20 @@ class PricePredictionCascade:
         horizon_hours, name, threshold, _ = self.CASCADE[level]
         return level, horizon_hours, name, threshold
 
-    def predict(self, ticker: str, entry_price: float, current_price: float,
-                hold_time_hours: float, model=None, state=None,
-                indicators: Dict = None, microstructure: Dict = None,
-                hawkes_signal: float = 0.0, hurst: float = 0.5) -> Dict:
+    def predict(self, ticker, entry_price, current_price,
+                hold_time_hours, model=None, state=None,
+                indicators=None, microstructure=None,
+                hawkes_signal=0.0, hurst=0.5,
+                fractal_dim: Optional[float] = None) -> Dict:
         """
         Прогноз движения цены на адаптивном горизонте.
-        
+
+
+    Args:
+        fractal_dim: Корреляционная размерность (D₂).
+                     Если None — используется значение из конфига (self.d2_default).
+                     > high_threshold → хаотичный рынок → укорачиваем горизонт
+                     < low_threshold → детерминированный → удлиняем горизонт
         Возвращает:
             {
                 'action': 'SELL' | 'HOLD',
@@ -151,6 +169,25 @@ class PricePredictionCascade:
         level, horizon_hours, horizon_name, sell_threshold = self._determine_horizon(
             ticker, entry_price, current_price, hold_time_hours
         )
+
+        # ─── АДАПТАЦИЯ ГОРИЗОНТА ПОД D₂ ───
+        if fractal_dim is None:
+            fractal_dim = self.d2_default
+
+        d2_factor = 1.0
+        if fractal_dim > self.d2_high_threshold:
+            d2_factor = self.d2_high_factor
+        elif fractal_dim < self.d2_low_threshold:
+            d2_factor = self.d2_low_factor
+
+        adjusted_horizon = horizon_hours * d2_factor
+        adjusted_horizon = max(0.0167, adjusted_horizon)  # минимум 1 минута
+
+        if d2_factor != 1.0:
+            logger.debug(
+                f"[D₂] {ticker}: D₂={fractal_dim:.2f} → horizon {horizon_hours:.2f}h → {adjusted_horizon:.2f}h")
+
+        horizon_hours = adjusted_horizon
 
         pnl_pct = ((current_price - entry_price) / entry_price) * 100 if entry_price > 0 else 0
 

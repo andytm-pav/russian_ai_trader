@@ -791,6 +791,30 @@
       "failure_count": 0,
       "success_rate": 0.5,
       "total_trades": 0
+    },
+    "GLRX": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "GECO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
+    },
+    "VSMO": {
+      "failed_trades": [],
+      "avg_loss": 0.0,
+      "last_failure": null,
+      "failure_count": 0,
+      "success_rate": 0.5,
+      "total_trades": 0
     }
   },
   "ticker_stats": {
@@ -1585,9 +1609,33 @@
       "avg_hold_time": 0.0,
       "success_rate": 0.5,
       "last_trade": null
+    },
+    "GLRX": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "GECO": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
+    },
+    "VSMO": {
+      "total_trades": 0,
+      "profitable_trades": 0,
+      "total_pnl": 0.0,
+      "avg_hold_time": 0.0,
+      "success_rate": 0.5,
+      "last_trade": null
     }
   },
-  "market_sentiment": -0.13731029390567837,
+  "market_sentiment": -0.07747470753667765,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
@@ -1640,11 +1688,11 @@
       "win_rate": 1.0
     },
     "cascading_entry": {
-      "total_trades": 62,
-      "profitable_trades": 26,
-      "total_pnl": -5.91383333333302,
-      "avg_pnl": -0.09538440860214549,
-      "win_rate": 0.41935483870967744
+      "total_trades": 68,
+      "profitable_trades": 30,
+      "total_pnl": -5.244274509803732,
+      "avg_pnl": -0.07712168396770194,
+      "win_rate": 0.4411764705882353
     }
   },
   "strategies": {
@@ -1806,5 +1854,5 @@
       }
     }
   },
-  "save_time": "2026-07-22T14:38:11.332992"
+  "save_time": "2026-07-23T15:14:45.312941"
 }
