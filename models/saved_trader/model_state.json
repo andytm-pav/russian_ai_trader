@@ -1091,11 +1091,11 @@
       "last_trade": null
     },
     "DOMRF": {
-      "total_trades": 1,
+      "total_trades": 2,
       "profitable_trades": 1,
       "total_pnl": 12.84,
-      "avg_hold_time": 1.0009132436911266,
-      "success_rate": 1.0,
+      "avg_hold_time": 11.307772078017393,
+      "success_rate": 0.5,
       "last_trade": null
     },
     "MOEX": {
@@ -1635,15 +1635,15 @@
       "last_trade": null
     }
   },
-  "market_sentiment": -0.07747470753667765,
+  "market_sentiment": -0.11319877412493863,
   "volatility_index": 1.0,
   "strategy_performance": {
     "news_aggressive": {
-      "total_trades": 0,
+      "total_trades": 1,
       "profitable_trades": 0,
-      "total_pnl": 0.0,
-      "avg_pnl": 0.0,
-      "win_rate": 0.5
+      "total_pnl": -18.199999999999907,
+      "avg_pnl": -18.199999999999907,
+      "win_rate": 0.0
     },
     "tech_conservative": {
       "total_trades": 1,
@@ -1688,11 +1688,11 @@
       "win_rate": 1.0
     },
     "cascading_entry": {
-      "total_trades": 68,
-      "profitable_trades": 30,
-      "total_pnl": -5.244274509803732,
-      "avg_pnl": -0.07712168396770194,
-      "win_rate": 0.4411764705882353
+      "total_trades": 72,
+      "profitable_trades": 31,
+      "total_pnl": -39.924212398002624,
+      "avg_pnl": -0.5545029499722587,
+      "win_rate": 0.4305555555555556
     }
   },
   "strategies": {
@@ -1854,5 +1854,5 @@
       }
     }
   },
-  "save_time": "2026-07-23T15:14:45.312941"
+  "save_time": "2026-07-23T23:31:30.134130"
 }

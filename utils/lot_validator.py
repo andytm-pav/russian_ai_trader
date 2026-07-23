@@ -18,8 +18,12 @@ class LotValidator:
 
         Возвращает: (скорректированное_количество, требуется_корректировка)
         """
-        # 🆕 Принудительное приведение к целому для всех случаев (страховка от float)
-        quantity = int(quantity)
+        # 🆕 v16.1: Принудительное приведение к int — float qty вызывал дробные продажи
+        # Даже если приходит 0.45 или 1.5 — становится 0 или 1, потом валидатор корректно работает
+        try:
+            quantity = int(quantity)
+        except (ValueError, TypeError):
+            return 0, True
 
         if lot_size <= 1:
             return quantity, False

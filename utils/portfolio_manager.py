@@ -276,7 +276,7 @@ class PortfolioManager:
             time_horizon: str = 'balanced', **kwargs) -> bool:
         """Покупка акций с указанием стратегии"""
         try:
-            # 🆕 Принудительное приведение к целому для всех случаев (страховка от float)
+            # 🆕 v16.1: Принудительное приведение к int — float qty вызывал дробные покупки
             quantity = int(quantity)
 
             # Получение информации о бумаге
@@ -294,16 +294,18 @@ class PortfolioManager:
                 return False
 
             # 🆕 v16 Фаза 1.5: Limit-ордер — корректируем цену с markup
+            # (эмулируем лимит-ордер чуть выше рынка для гарантии исполнения)
             original_price = price
             limit_price = price * (1.0 + self.buy_price_markup)
+            # Округляем до min_step
             if min_step > 0:
                 limit_price = round(limit_price / min_step) * min_step
             if self.log_slippage and abs(limit_price - original_price) / original_price > 1e-6:
                 logger.info(f"Limit BUY: market={original_price:.4f} → limit={limit_price:.4f} "
-                            f"(markup {self.buy_price_markup * 100:.2f}%)")
+                           f"(markup {self.buy_price_markup*100:.2f}%)")
             price = limit_price
 
-            # 🆕 v16 Фаза 1.1: LotValidator — корректная проверка лотности
+            # 🆕 v16 Фаза 1.1: LotValidator — корректная проверка лотности (работает для float)
             adjusted_qty, was_adjusted = LotValidator.validate_and_adjust_quantity(quantity, lot_size)
             if was_adjusted:
                 logger.info(f"Лотность: qty {quantity} → {adjusted_qty} (lot={lot_size})")
@@ -316,6 +318,8 @@ class PortfolioManager:
             if min_step > 0 and price % min_step != 0:
                 price = round(price / min_step) * min_step
                 logger.info(f"Цена скорректирована до {price:.4f}")
+
+            # (старая проверка лотности удалена — заменена на LotValidator выше)
 
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
@@ -487,7 +491,7 @@ class PortfolioManager:
     def sell(self, ticker: str, quantity: int, price: float) -> Tuple[bool, float]:
         """Продажа акций. Возвращает (успех, pnl)"""
         try:
-            # 🆕 Принудительное приведение к целому для всех случаев (страховка от float)
+            # 🆕 v16.1: Принудительное приведение к int — float qty вызывал дробные продажи
             quantity = int(quantity)
 
             # Получение информации о бумаге из позиции
@@ -498,7 +502,6 @@ class PortfolioManager:
             pos = self.positions[ticker]
             lot_size = pos.get('lot_size', 1)
             strategy = pos.get('strategy')
-            current_qty = pos['qty']
 
             # 🆕 v16 Фаза 1.5: Limit-ордер для SELL — markdown для гарантии исполнения
             original_price = price
@@ -508,33 +511,29 @@ class PortfolioManager:
                 limit_price = round(limit_price / min_step) * min_step
             if self.log_slippage and abs(limit_price - original_price) / original_price > 1e-6:
                 logger.info(f"Limit SELL: market={original_price:.4f} → limit={limit_price:.4f} "
-                            f"(markdown {self.sell_price_markdown * 100:.2f}%)")
+                           f"(markdown {self.sell_price_markdown*100:.2f}%)")
             price = limit_price
 
-            # ========== ВАЛИДАЦИЯ ЛОТНОСТИ ==========
-            # Всегда применяем LotValidator, даже для lot_size = 1 (там он просто вернёт quantity)
+            # 🆕 v16.1: LotValidator для SELL — БЕЗ ветки current_qty < lot_size
+            # (убрана ошибочная ветка, которая обходила валидатор для остатков меньше лота)
+            current_qty = pos['qty']
             adjusted_qty, was_adjusted = LotValidator.validate_and_adjust_quantity(quantity, lot_size)
             if was_adjusted:
                 logger.info(f"Лотность SELL: qty {quantity} → {adjusted_qty} (lot={lot_size})")
                 quantity = adjusted_qty
 
-            # 🔥 Специальная обработка: если после валидации quantity = 0, но позиция не пустая
-            # Это может быть мусорная позиция (< 0.5 лота) — продаём всё, что есть
+            # Если после валидации qty=0, но позиция есть — продаём весь остаток
             if quantity == 0 and current_qty > 0:
-                logger.info(f"SELL {ticker}: валидация дала 0, продаём весь остаток {current_qty} "
-                            f"(лот={lot_size})")
-                quantity = int(current_qty)  # Приводим к int на всякий случай
-                # Повторно валидируем, чтобы убедиться, что quantity кратно лоту
-                adjusted_qty, was_adjusted = LotValidator.validate_and_adjust_quantity(quantity, lot_size)
-                if was_adjusted:
-                    quantity = adjusted_qty
-                if quantity == 0:
-                    logger.warning(f"SELL {ticker}: даже после повторной валидации quantity=0, пропуск")
-                    return False, 0.0
+                logger.info(f"SELL {ticker}: qty после лотности=0, продаём весь остаток {int(current_qty)}")
+                quantity = int(current_qty)
+
+            if quantity == 0:
+                logger.warning(f"SELL {ticker}: qty=0 после всех проверок, отмена")
+                return False, 0.0
 
             # Проверка входных данных
             if quantity <= 0 or price <= 0:
-                logger.error(f"Некорректные данные для продажи {ticker}: qty={quantity}, price={price}")
+                logger.error(f"Некорректные данные для продажи {ticker}")
                 return False, 0.0
 
             if quantity > pos['qty']:
@@ -549,7 +548,7 @@ class PortfolioManager:
                 hold_seconds = time.time() - buy_time
                 if hold_seconds < min_hold_hours * 3600:
                     logger.warning(
-                        f"SELL {ticker}: hold {hold_seconds / 60:.1f}мин < {min_hold_hours}ч — отмена "
+                        f"SELL {ticker}: hold {hold_seconds/60:.1f}мин < {min_hold_hours}ч — отмена "
                         f"(phase exit слишком рано)"
                     )
                     return False, 0.0

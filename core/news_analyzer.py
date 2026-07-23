@@ -343,8 +343,26 @@ class NewsAnalyzer:
 
         if self.use_ml_sentiment and TRANSFORMERS_AVAILABLE:
             try:
+                # 🆕 v16.4: Проверяем дообученную модель
+                finetuned_path = None
+                try:
+                    from core.sentiment_finetuner import is_finetuned_available, get_finetuned_model_path
+                    if is_finetuned_available():
+                        finetuned_path = get_finetuned_model_path()
+                except ImportError:
+                    pass
+
                 model_path = self.models_data_dir / self.sentiment_model_name.replace('/', '_')
-                if model_path.exists() and any(model_path.iterdir()):
+
+                if finetuned_path:
+                    # Загружаем дообученную модель
+                    self.logger.info(f"Загрузка ДООБУЧЕННОЙ модели из: {finetuned_path}")
+                    self.sentiment_model = pipeline(
+                        "text-classification",
+                        model=finetuned_path,
+                        device=self.ml_device
+                    )
+                elif model_path.exists() and any(model_path.iterdir()):
                     self.sentiment_model = pipeline(
                         "text-classification",
                         model=str(model_path),

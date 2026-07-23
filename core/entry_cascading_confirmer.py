@@ -61,6 +61,17 @@ class EntryCascadingConfirmer:
         self.portfolio_cfg = config.get('portfolio_constraints', {})
         self.cooldown = config.get('cooldown_seconds_between_entries', 60)
 
+        # 🆕 v16.3: Конфигурируемые веса и параметры (вместо хардкода)
+        self.conf_weights = config.get('confidence_weights', {
+            'prob_bull': 0.35, 'trigger_strength': 0.20, 'tech_strength': 0.20,
+            'ms_strength': 0.15, 'chaos_strength': 0.10
+        })
+        self.trigger_normalizer = config.get('trigger_normalizer', 3.0)
+        self.ms_imbalance_normalizer = config.get('ms_imbalance_normalizer', 0.8)
+        self.base_stop_loss_pct = config.get('base_stop_loss_pct', 2.5)
+        self.min_target_weight = config.get('min_target_weight', 0.05)
+        self.target_weight_multiplier = config.get('target_weight_multiplier', 0.15)
+
         # Кэш фаз: {ticker: {'phase': int, 'trigger_time': float, 'trigger_price': float,
         #                    'tech_confirm_time': float, 'last_entry_time': float}}
         self._phases = {}
@@ -532,15 +543,15 @@ class EntryCascadingConfirmer:
             return None
 
         # Уверенность
-        trigger_strength = min(1.0, bull / 3.0) if hawkes_triggered else 0.5
+        trigger_strength = min(1.0, bull / self.trigger_normalizer) if hawkes_triggered else 0.5
         tech_strength = (1 - abs(rsi - 57) / 25) * (1 - abs(bb_pos - 0.55) / 0.4)
-        ms_strength = min(1.0, abs(imbalance) / 0.8) if ms_data_available else 0.5
+        ms_strength = min(1.0, abs(imbalance) / self.ms_imbalance_normalizer) if ms_data_available else 0.5
         chaos_strength = (det + min(l_max / 20, 1)) / 2
-        confidence = (prob_bull * 0.35 +
-                      trigger_strength * 0.20 +
-                      tech_strength * 0.20 +
-                      ms_strength * 0.15 +
-                      chaos_strength * 0.10)
+        confidence = (prob_bull * self.conf_weights.get('prob_bull', 0.35) +
+                      trigger_strength * self.conf_weights.get('trigger_strength', 0.20) +
+                      tech_strength * self.conf_weights.get('tech_strength', 0.20) +
+                      ms_strength * self.conf_weights.get('ms_strength', 0.15) +
+                      chaos_strength * self.conf_weights.get('chaos_strength', 0.10))
         confidence = max(0, min(1, confidence))
 
         # 🆕 v16 Фаза 3.1: 5-я фаза — ML-стратегия прогноза цены
@@ -582,14 +593,14 @@ class EntryCascadingConfirmer:
 
         # Stop-loss с учётом тяжёлых хвостов
         kurt_penalty = min(5.0, (kurt - 3) * 0.02)
-        stop_loss_pct = 2.5 + kurt_penalty
+        stop_loss_pct = self.base_stop_loss_pct + kurt_penalty
 
         # Take-profit = 2 × stop (RR = 2:1)
         take_profit_pct = stop_loss_pct * 2
 
         # Целевой вес
         max_weight = self.portfolio_cfg.get('max_position_weight_pct', 20) / 100
-        target_weight = min(max_weight, max(0.05, confidence * 0.15))
+        target_weight = min(max_weight, max(self.min_target_weight, confidence * self.target_weight_multiplier))
 
         # Сбрасываем фазу
         self._phases[ticker] = {'phase': 0, 'last_entry_time': time.time()}

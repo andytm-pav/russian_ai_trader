@@ -88,8 +88,8 @@ class SmartPortfolioBroker:
         self.auction_mode = False
         self.portfolio = PortfolioManager()
         self.model = trader_model_instance
+        # 🆕 v16.1: Переключаем модель в режим инференса для корректной работы BatchNorm с батчем размером 1
         self.model.policy_net.eval()
-
         self.model.market_period = "closed"
 
         # 🆕 v16 Фаза 1.4: Risk Enforcer — стоп-лоссы и запрет усреднения
@@ -112,7 +112,6 @@ class SmartPortfolioBroker:
         # Инициализируем глобальный логгер с настройками
         logger = get_logger('SMART_BROKER')
         logger.info(f"[SmartBroker] NewsFetcher инициализирован, статистика: {self.news_fetcher.stats}")
-        logger.info("Model policy_net set to eval mode for inference")
 
         # ========== ЗАГРУЗКА КОНФИГОВ (ДОЛЖНА БЫТЬ ПЕРВОЙ) ==========
         self.profit_config = settings.get("profit_optimization", {})
@@ -1506,6 +1505,8 @@ class SmartPortfolioBroker:
             'cbr_rate_normalized': macro_data.get('cbr_rate', 0.0) / norm.get('cbr_rate_divisor', 20.0),
             'vix': macro_data.get('vix', 0.0) / norm.get('vix_divisor', 50.0),
             'moexog_normalized': macro_data.get('moexog', 0) / norm.get('moexog_divisor', 10000.0),
+            # 🆕 v16.3 Вариант B: fractal_dim (D₂) для reserved_slots в state-векторе
+            'fractal_dim': self.chaos_metrics.get(ticker, {}).get('fractal_dim', 2.5) if hasattr(self, 'chaos_metrics') else 2.5,
         }
 
         state = self.model.build_state_vector(
@@ -1564,7 +1565,7 @@ class SmartPortfolioBroker:
             logger.error(f"⏰ ТАЙМАУТ выбора стратегии для {ticker}, использую {default_name}")
             action = 3  # HOLD
             final_strategy = default_name
-            strategy_confidence = 0.5
+            strategy_confidence = self.settings.get('smart_broker', {}).get('fallback_strategy_confidence', 0.5)
             sentiment_score = 0.0
         else:
             try:
@@ -1572,7 +1573,7 @@ class SmartPortfolioBroker:
             except:
                 action = 3  # HOLD
                 final_strategy = default_name
-                strategy_confidence = 0.5
+                strategy_confidence = self.settings.get('smart_broker', {}).get('fallback_strategy_confidence', 0.5)
                 sentiment_score = 0.0
 
         default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
@@ -1584,11 +1585,12 @@ class SmartPortfolioBroker:
         if hasattr(self.model, 'volatility_index'):
             volatility_factor = 1.0 + self.model.volatility_index
 
-        confidence_factor = 0.5 + strategy_confidence
+        confidence_factor = self.settings.get('smart_broker', {}).get('confidence_factor_base', 0.5) + strategy_confidence
         adjusted_stop_loss = base_stop_loss * volatility_factor / confidence_factor
         adjusted_take_profit = base_take_profit * volatility_factor * confidence_factor
 
-        adjusted_stop_loss = max(0.5, min(10.0, adjusted_stop_loss))
+        sb_cfg = self.settings.get('smart_broker', {})
+        adjusted_stop_loss = max(sb_cfg.get('stop_loss_min_pct', 0.5), min(sb_cfg.get('stop_loss_max_pct', 10.0), adjusted_stop_loss))
         adjusted_take_profit = max(1.0, min(20.0, adjusted_take_profit))
 
         stop_loss = price * (1 - adjusted_stop_loss / 100)
@@ -3117,17 +3119,16 @@ class SmartPortfolioBroker:
                 hawkes_sig = 0.0
                 if self.hawkes:
                     hawkes_sig = self.hawkes.get_signal(ticker)
-                # 🆕 D₂ из хаос-метрик (передаём None если нет данных)
+                # 🆕 v16.2: D₂ из хаос-метрик (передаём None если нет данных)
                 fractal_dim = None
                 if hasattr(self, 'chaos_metrics') and ticker in self.chaos_metrics:
                     fractal_dim = self.chaos_metrics[ticker].get('fractal_dim')
-
                 prediction = self.price_predictor.predict(
                     ticker=ticker, entry_price=entry_price, current_price=price,
                     hold_time_hours=hold_time_h, model=self.model, state=full_state,
                     indicators=indicators, microstructure=ms_data,
                     hawkes_signal=hawkes_sig, hurst=hurst,
-                    fractal_dim=fractal_dim,  # ← передаём None или реальное значение
+                    fractal_dim=fractal_dim,
                 )
                 if prediction['action'] == 'SELL':
                     qty = pos['qty']
@@ -3152,144 +3153,93 @@ class SmartPortfolioBroker:
     # 🆕 ВАРИАНТ D: Rolling Exit
     # ============================================================
     def _evaluate_rolling_exits(self, prices: Dict, securities: Dict):
-        """
-        Почасовая переоценка позиций через RollingExitManager.
-
-        Args:
-            prices: Текущие цены {ticker: price}
-            securities: Информация по бумагам {ticker: {lot_size, min_step, ...}}
-        """
+        """Почасовая переоценка позиций через RollingExitManager."""
         if not self.rolling_exit or not self.rolling_exit.enabled:
             return
 
         try:
-            # ========== ШАГ 1: ПОЛУЧАЕМ АКТИВНЫЕ ПОЗИЦИИ ИЗ ROLLING_EXIT ==========
+            # 🆕 Синхронизация: регистрируем позиции, которых нет в rolling_exit
             active_in_re = set(self.rolling_exit.get_active_positions().keys())
-
-            # ========== ШАГ 2: СИНХРОНИЗАЦИЯ — РЕГИСТРАЦИЯ НОВЫХ ПОЗИЦИЙ ==========
             for ticker, pos in self.portfolio.positions.items():
-                if ticker not in prices:
-                    continue
-
-                current_qty = pos.get('qty', 0)
-                if current_qty <= 0:
-                    continue
-
-                # 🆕 ПРОВЕРКА: если остаток меньше 1 лота — НЕ РЕГИСТРИРУЕМ (мусорный остаток)
-                lot_size = securities.get(ticker, {}).get('lot_size', 1)
-                if current_qty < lot_size:
-                    logger.debug(
-                        f"[ROLL_EXIT] {ticker}: skipping registration, residual {current_qty:.4f} < lot {lot_size}"
-                    )
-                    continue
-
-                if ticker not in active_in_re:
-                    # Новая позиция — регистрируем в rolling_exit
+                if ticker not in active_in_re and ticker in prices:
                     chaos = {}
                     if hasattr(self, 'chaos_metrics') and ticker in self.chaos_metrics:
                         chaos = self.chaos_metrics[ticker]
-
                     hawkes_sig = self.hawkes.get_signal(ticker) if self.hawkes else 0
                     ms = self.microstructure.get_microstructure(ticker, securities) or {}
-
                     try:
                         self.rolling_exit.on_buy(
                             ticker=ticker,
                             price=pos.get('avg_price', prices[ticker]),
-                            qty=current_qty,
+                            qty=pos.get('qty', 0),
                             chaos_metrics=chaos,
                             hawkes_signal_val=hawkes_sig,
                             ms_imbalance=ms.get('imbalance', 0),
                             strategy_stop_loss_pct=None,
                         )
-                        # Восстанавливаем время входа из портфеля
                         if 'buy_time' in pos and ticker in self.rolling_exit._positions:
                             self.rolling_exit._positions[ticker].entry_time = pos['buy_time']
-                        logger.info(f"[ROLL_EXIT] registered existing position {ticker} (qty={current_qty})")
+                        logger.info(f"[ROLL_EXIT] registered existing position {ticker}")
                     except Exception as e:
                         logger.warning(f"Failed to register {ticker} in rolling_exit: {e}")
                 else:
-                    # ========== ШАГ 3: СИНХРОНИЗАЦИЯ — ОБНОВЛЕНИЕ ENTRY_QTY ==========
-                    # Позиция уже зарегистрирована — синхронизируем entry_qty с реальным остатком
+                    # 🆕 v16.1: СИНХРОНИЗАЦИЯ entry_qty с реальным остатком в портфеле
+                    # При рассинхроне > 0.001 entry_qty принудительно обновляется
                     re_pos = self.rolling_exit._positions.get(ticker)
                     if re_pos is not None:
-                        # Защита от float: синхронизируем, если расхождение > 0.001
+                        current_qty = pos.get('qty', 0)
                         if abs(re_pos.entry_qty - current_qty) > 0.001:
                             logger.debug(
                                 f"[ROLL_EXIT] {ticker}: syncing entry_qty "
                                 f"{re_pos.entry_qty:.2f} → {current_qty:.2f}"
                             )
                             re_pos.entry_qty = current_qty
-
-                            # Если остаток стал 0 или меньше — удаляем позицию из rolling_exit
+                            # Если остаток стал 0 — удаляем из rolling_exit
                             if current_qty <= 0:
-                                self.rolling_exit.on_position_closed(ticker)
+                                self.rolling_exit.reset_ticker(ticker)
                                 logger.debug(f"[ROLL_EXIT] {ticker}: removed due to zero qty")
 
-            # ========== ШАГ 4: ПРОВЕРКА АКТИВНЫХ ПОЗИЦИЙ ==========
             active_count = self.rolling_exit.get_stats().get('active_positions', 0)
-            logger.debug(
-                f"[ROLL_EXIT] active_positions={active_count}, "
-                f"portfolio={len(self.portfolio.positions)}"
-            )
-
+            logger.debug(f"[ROLL_EXIT] active_positions={active_count}, portfolio={len(self.portfolio.positions)}")
             if active_count == 0:
                 return
 
-            # ========== ШАГ 5: ОЦЕНКА КАЖДОЙ ПОЗИЦИИ ==========
             for ticker in list(self.portfolio.positions.keys()):
                 if ticker not in prices:
                     continue
-
                 try:
                     price = prices[ticker]
 
-                    # ---- ВНУТРЕННИЕ CALLBACK-ФУНКЦИИ ----
                     def get_pred_1h(t):
-                        """Прогноз цены на 1 час через price_predictor."""
                         try:
                             pos = self.portfolio.positions.get(t)
                             if not pos:
                                 return None
-
                             entry_p = pos.get('avg_price', price)
                             hold_h = (time.time() - pos.get('buy_time', time.time())) / 3600
                             indicators = self.technical_core.calculate_indicators(t)
                             ms_data = self.microstructure.get_microstructure(t, securities)
-
                             hurst = 0.5
                             if hasattr(self, 'chaos_metrics') and t in self.chaos_metrics:
                                 hurst = self.chaos_metrics[t].get('hurst', 0.5)
-
                             base_state = self.ticker_states.get(t)
                             full_state = None
                             if base_state is not None:
-                                default_name = next(
-                                    iter(self.model.strategies)) if self.model.strategies else 'balanced'
+                                default_name = next(iter(self.model.strategies)) if self.model.strategies else 'balanced'
                                 strategy_name = pos.get('strategy', default_name)
                                 strategy_params = self.model.strategies.get(
-                                    strategy_name,
-                                    self.model.strategies.get(default_name, {})
-                                )
+                                    strategy_name, self.model.strategies.get(default_name, {}))
                                 full_state = self.model._create_strategy_state(base_state, strategy_params)
-
                             hawkes_sig = self.hawkes.get_signal(t) if self.hawkes else 0
-
-                            # 🆕 D₂ из chaos_metrics для второго вызова
+                            # 🆕 v16.2: D₂ из chaos_metrics для второго вызова
                             fractal_dim_2 = None
                             if hasattr(self, 'chaos_metrics') and t in self.chaos_metrics:
                                 fractal_dim_2 = self.chaos_metrics[t].get('fractal_dim')
-
                             pred = self.price_predictor.predict(
-                                ticker=t, entry_price=entry_p,
-                                current_price=price,
-                                hold_time_hours=hold_h,
-                                model=self.model,
-                                state=full_state,
-                                indicators=indicators,
-                                microstructure=ms_data,
-                                hawkes_signal=hawkes_sig,
-                                hurst=hurst,
+                                ticker=t, entry_price=entry_p, current_price=price,
+                                hold_time_hours=hold_h, model=self.model, state=full_state,
+                                indicators=indicators, microstructure=ms_data,
+                                hawkes_signal=hawkes_sig, hurst=hurst,
                                 fractal_dim=fractal_dim_2,
                             )
                             return pred
@@ -3298,52 +3248,38 @@ class SmartPortfolioBroker:
                             return None
 
                     def get_hawkes_sig(t):
-                        """Получение сигнала Hawkes."""
                         if not self.hawkes:
-                            return 0.0
+                            return 0
                         return self.hawkes.get_signal(t)
 
                     def get_indicators_cb(t):
-                        """Получение технических индикаторов."""
                         try:
                             ind = self.technical_core.calculate_indicators(t) or {}
                             prices_hist = self.technical_core.price_history.get(t, {}).get('prices', [])
-
                             if len(prices_hist) >= 6:
                                 local_max_6h = max(prices_hist[-6:])
                                 ind['local_max_6h'] = local_max_6h
-                                if local_max_6h > 0:
-                                    ind['distance_from_local_max_pct'] = (price - local_max_6h) / local_max_6h * 100
-                                else:
-                                    ind['distance_from_local_max_pct'] = 0.0
+                                ind['distance_from_local_max_pct'] = (price - local_max_6h) / local_max_6h * 100
                             else:
                                 ind['local_max_6h'] = price
-                                ind['distance_from_local_max_pct'] = 0.0
-
+                                ind['distance_from_local_max_pct'] = 0
                             ind['rsi_short'] = ind.get('rsi', 50)
-                            ind['momentum_1h'] = ind.get('momentum', 0.0)
-
+                            ind['momentum_1h'] = ind.get('momentum', 0)
                             if len(prices_hist) >= 4:
-                                if prices_hist[-4] > 0:
-                                    ind['momentum_4h'] = (prices_hist[-1] - prices_hist[-4]) / prices_hist[-4] * 100
-                                else:
-                                    ind['momentum_4h'] = 0.0
+                                ind['momentum_4h'] = (prices_hist[-1] - prices_hist[-4]) / prices_hist[-4] * 100
                             else:
-                                ind['momentum_4h'] = ind.get('momentum', 0.0)
-
+                                ind['momentum_4h'] = ind.get('momentum', 0)
                             return ind
                         except Exception as e:
                             logger.debug(f"indicators callback error {t}: {e}")
                             return {}
 
                     def get_ms_cb(t):
-                        """Получение микроструктурных данных."""
                         try:
                             return self.microstructure.get_microstructure(t, securities) or {}
                         except Exception:
                             return {}
 
-                    # ---- ОЦЕНКА ПОЗИЦИИ ----
                     decision = self.rolling_exit.evaluate(
                         ticker=ticker,
                         current_price=price,
@@ -3353,17 +3289,14 @@ class SmartPortfolioBroker:
                         get_indicators=get_indicators_cb,
                         get_microstructure=get_ms_cb,
                     )
-
                     if decision:
                         if decision.action != 'HOLD':
                             self._execute_rolling_exit_decision(decision, securities, prices)
                         else:
-                            logger.debug(
-                                f"[ROLL_EXIT] {ticker} HOLD | "
-                                f"score={decision.sell_score:.2f}/{decision.threshold:.2f} | "
-                                f"{decision.reason}"
-                            )
-                            # Логируем в model_log для веб-интерфейса
+                            logger.debug(f"[ROLL_EXIT] {ticker} HOLD | "
+                                        f"score={decision.sell_score:.2f}/{decision.threshold:.2f} | "
+                                        f"{decision.reason}")
+                            # 🆕 v14: Логируем в model_log
                             self.model_log.append({
                                 'time': datetime.now().strftime('%H:%M:%S'),
                                 'ticker': ticker,
@@ -3379,122 +3312,55 @@ class SmartPortfolioBroker:
                     logger.warning(f"Rolling exit error {ticker}: {e}")
                     import traceback
                     logger.debug(traceback.format_exc())
-
         except Exception as e:
             logger.error(f"_evaluate_rolling_exits critical error: {e}")
             import traceback
             logger.error(traceback.format_exc())
 
     def _execute_rolling_exit_decision(self, decision, securities: Dict, prices: Dict):
-        """
-        Исполнение решения rolling exit.
-
-        Args:
-            decision: ExitDecision от rolling_exit.evaluate()
-            securities: Словарь с информацией по бумагам (lot_size, min_step)
-            prices: Текущие цены
-        """
+        """Исполнение решения rolling exit."""
         ticker = decision.ticker
-
-        # Проверка: существует ли позиция в портфеле
         if ticker not in self.portfolio.positions:
-            logger.debug(f"[ROLL_EXIT] {ticker}: position not in portfolio, skipping")
             return
-
         pos = self.portfolio.positions[ticker]
-        current_qty = pos.get('qty', 0)
-
-        # Проверка: есть ли что продавать
-        if current_qty <= 0:
-            logger.debug(f"[ROLL_EXIT] {ticker}: current_qty={current_qty} <= 0, skipping")
-            return
-
-        # Получаем цену
         price = prices.get(ticker, pos.get('avg_price', 0))
         if price <= 0:
-            logger.warning(f"[ROLL_EXIT] {ticker}: invalid price {price}, skipping")
             return
+        lot_size = securities.get(ticker, {}).get('lot_size', 1)
+        current_qty = pos['qty']
 
-        # Получаем параметры лотности из securities (не из позиции, чтобы быть уверенным)
-        sec_info = securities.get(ticker, {})
-        lot_size = sec_info.get('lot_size', 1)
-        min_step = sec_info.get('min_step', 0.01)
-
-        # ========== ШАГ 1: БАЗОВОЕ ПРИВЕДЕНИЕ К ЦЕЛОМУ ==========
-        # Приводим qty к int (страховка от float)
+        # 🆕 v16.1: Принудительное округление qty до целого
         qty = int(decision.qty_to_sell)
 
-        # ========== ШАГ 2: ОКРУГЛЕНИЕ ДО ЛОТА ==========
-        # Если lot_size > 1, округляем до ближайшего кратного
+        # 🆕 v16.1: Округление до ближайшего кратного лоту
         if lot_size > 1:
             qty = (qty // lot_size) * lot_size
-            # Если после округления получился 0, но запрошено было больше 0 — берём 1 лот
-            if qty == 0 and decision.qty_to_sell > 0:
+            if qty == 0:
                 qty = lot_size
 
-        # ========== ШАГ 3: КОРРЕКТИРОВКА ПРИ ПРЕВЫШЕНИИ ОСТАТКА ==========
-        # Если qty больше, чем есть в позиции — продаём всё, что есть
+        # 🆕 v16.1: Если qty > current_qty — продажа всего остатка
         if qty > current_qty:
-            logger.warning(
-                f"[ROLL_EXIT] {ticker}: requested {qty}, but only {current_qty} available. "
-                f"Selling all remaining."
-            )
+            logger.info(f"[ROLL_EXIT] {ticker}: qty {qty} > current {current_qty} — продаём весь остаток")
             qty = int(current_qty)
-            # Повторно округляем до лота
-            if lot_size > 1:
-                qty_adjusted = (qty // lot_size) * lot_size
-                if qty_adjusted == 0 and current_qty > 0:
-                    # Остаток меньше лота — продаём целиком (мусорная позиция)
-                    qty = int(current_qty)
-                else:
-                    qty = qty_adjusted
 
-        # ========== ШАГ 4: ОБРАБОТКА СЛУЧАЯ QTY = 0 ==========
-        # Если после всех округлений qty = 0, но позиция не пуста — продаём весь остаток
+        # 🆕 v16.1: Если qty == 0 при непустой позиции — продаём весь остаток
         if qty == 0 and current_qty > 0:
-            logger.info(
-                f"[ROLL_EXIT] {ticker}: rounding gave 0, selling entire remainder {current_qty} "
-                f"(lot_size={lot_size})"
-            )
+            logger.info(f"[ROLL_EXIT] {ticker}: qty=0 при позиции {current_qty} — продаём весь остаток")
             qty = int(current_qty)
-            # Если остаток меньше лота — это мусор, продаём как есть
-            # (валидатор в portfolio.sell() обработает лотность)
 
-        # Финальная проверка
         if qty <= 0:
-            logger.debug(f"[ROLL_EXIT] {ticker}: final qty={qty} <= 0, skipping")
             return
 
-        # ========== ШАГ 5: ОКРУГЛЕНИЕ ЦЕНЫ ДО MIN_STEP ==========
-        if min_step > 0 and min_step < price:
-            price = round(price / min_step) * min_step
-
-        # ========== ШАГ 6: ИСПОЛНЕНИЕ ПРОДАЖИ ==========
         entry_price = pos.get('avg_price', price)
-
         if self.portfolio.sell(ticker, qty, price):
             pnl = (price - entry_price) * qty
-
-            # Обновляем риск-менеджер
             self.risk_manager.update_trade_result(
-                ticker=ticker,
-                action=decision.action,
-                quantity=qty,
-                price=price,
-                pnl=pnl
+                ticker=ticker, action=decision.action,
+                quantity=qty, price=price, pnl=pnl
             )
-
-            # Обновляем rolling_exit (уменьшаем entry_qty)
             self.rolling_exit.on_partial_fill(ticker, qty)
-
-            logger.info(
-                f"🎯 [ROLL_EXIT] {decision.action} {ticker} {qty} @ {price:.2f} "
-                f"(PnL: {pnl:+.0f}₽, remain: {current_qty - qty:.2f}) | {decision.reason}"
-            )
-        else:
-            logger.warning(
-                f"[ROLL_EXIT] {ticker}: portfolio.sell() failed for qty={qty}, price={price:.2f}"
-            )
+            logger.info(f"🎯 [ROLL_EXIT] {decision.action} {ticker} {qty} @ {price:.2f} "
+                       f"(PnL: {pnl:+.0f}₽) | {decision.reason}")
 
     # ============================================================
     # 🆕 ВАРИАНТ F: Entry Cascading Confirmer
@@ -3965,6 +3831,8 @@ class SmartPortfolioBroker:
                 'cbr_rate_normalized': macro_data.get('cbr_rate', 0.0) / norm.get('cbr_rate_divisor', 20.0),
                 'vix': macro_data.get('vix', 0.0) / norm.get('vix_divisor', 50.0),
                 'moexog_normalized': macro_data.get('moexog', 0) / norm.get('moexog_divisor', 10000.0),
+                # 🆕 v16.3 Вариант B: fractal_dim (D₂) для reserved_slots
+                'fractal_dim': self.chaos_metrics.get(ticker, {}).get('fractal_dim', 2.5) if hasattr(self, 'chaos_metrics') else 2.5,
             }
 
             state = self.model.build_state_vector(
@@ -3985,89 +3853,70 @@ class SmartPortfolioBroker:
             return torch.zeros(self.model.total_state_dim, dtype=torch.float32).to(self.model.device)
 
     def _adapt_strategies_for_profit(self):
-        """
-        Адаптация стратегий - ТОЛЬКО на основе реальных результатов.
-        Адаптируются только стратегии, присутствующие в self.model.strategies.
-        """
+        """Адаптация стратегий - ТОЛЬКО на основе реальных результатов"""
         try:
-            # Кэшируем значения для избежания повторных вычислений
-            volatility_index = getattr(self.model, 'volatility_index', 0.0)
-
             for strategy_name, perf in self.model.strategy_performance.items():
-                # 🔥 ПРОВЕРКА: существует ли стратегия в self.model.strategies
+                # 🆕 v16.1: Пропускаем не-RL стратегии (cascading_entry и др.)
                 if strategy_name not in self.model.strategies:
-                    logger.debug(
-                        f"Адаптация пропущена: стратегия '{strategy_name}' не найдена в self.model.strategies "
-                        f"(вероятно, это метка EntryCascadingConfirmer)"
-                    )
                     continue
+                if perf['total_trades'] >= 5:  # минимальная статистика
+                    win_rate = perf['win_rate']
+                    avg_pnl = perf['avg_pnl']
 
-                # Минимальная статистика для адаптации
-                if perf['total_trades'] < 5:
-                    continue
+                    strategy = self.model.strategies[strategy_name]
 
-                win_rate = perf['win_rate']
-                avg_pnl = perf['avg_pnl']
+                    # 📈 УСПЕШНАЯ СТРАТЕГИЯ - усиливаем пропорционально прибыли
+                    if avg_pnl > 0:
+                        # Сила усиления зависит от размера прибыли
+                        strength = min(avg_pnl * 10, 0.5)  # максимум +50%
 
-                strategy = self.model.strategies[strategy_name]
+                        # Увеличиваем риск, но не больше 2.0
+                        old_risk = strategy['risk_multiplier']
+                        strategy['risk_multiplier'] = min(old_risk * (1 + strength), 2.0)
 
-                # 📈 УСПЕШНАЯ СТРАТЕГИЯ - усиливаем пропорционально прибыли
-                if avg_pnl > 0:
-                    # Сила усиления зависит от размера прибыли
-                    strength = min(avg_pnl * 10, 0.5)  # максимум +50%
+                        # Уменьшаем время удержания (быстрее фиксируем прибыль)
+                        old_hold = strategy['target_hold_time_hours']
+                        strategy['target_hold_time_hours'] = max(old_hold * (1 - strength * 0.5), 0.5)
 
-                    # Увеличиваем риск, но не больше 2.0
-                    old_risk = strategy.get('risk_multiplier', 1.0)
-                    strategy['risk_multiplier'] = min(old_risk * (1 + strength), 2.0)
+                        logger.info(f"📈 Усиление {strategy_name}: "
+                                    f"risk {old_risk:.2f}→{strategy['risk_multiplier']:.2f} "
+                                    f"(+{strength:.1%}, avg_pnl={avg_pnl:.2%})")
 
-                    # Уменьшаем время удержания (быстрее фиксируем прибыль)
-                    old_hold = strategy.get('target_hold_time_hours', 6.0)
-                    strategy['target_hold_time_hours'] = max(old_hold * (1 - strength * 0.5), 0.5)
+                    # 📉 УБЫТОЧНАЯ СТРАТЕГИЯ - ослабляем пропорционально убытку
+                    elif avg_pnl < 0:
+                        # Сила ослабления зависит от размера убытка
+                        weakness = min(abs(avg_pnl) * 10, 0.5)  # максимум -50%
 
-                    logger.info(
-                        f"📈 Усиление {strategy_name}: "
-                        f"risk {old_risk:.2f}→{strategy['risk_multiplier']:.2f} "
-                        f"(+{strength:.1%}, avg_pnl={avg_pnl:.2%})"
-                    )
+                        # Уменьшаем риск, но не меньше 0.5
+                        old_risk = strategy['risk_multiplier']
+                        strategy['risk_multiplier'] = max(old_risk * (1 - weakness), 0.5)
 
-                # 📉 УБЫТОЧНАЯ СТРАТЕГИЯ - ослабляем пропорционально убытку
-                elif avg_pnl < 0:
-                    # Сила ослабления зависит от размера убытка
-                    weakness = min(abs(avg_pnl) * 10, 0.5)  # максимум -50%
+                        # Увеличиваем время удержания (даём больше времени на разворот)
+                        old_hold = strategy['target_hold_time_hours']
+                        strategy['target_hold_time_hours'] = min(old_hold * (1 + weakness), 24)
 
-                    # Уменьшаем риск, но не меньше 0.5
-                    old_risk = strategy.get('risk_multiplier', 1.0)
-                    strategy['risk_multiplier'] = max(old_risk * (1 - weakness), 0.5)
+                        logger.info(f"📉 Ослабление {strategy_name}: "
+                                    f"risk {old_risk:.2f}→{strategy['risk_multiplier']:.2f} "
+                                    f"(-{weakness:.1%}, avg_pnl={avg_pnl:.2%})")
 
-                    # Увеличиваем время удержания (даём больше времени на разворот)
-                    old_hold = strategy.get('target_hold_time_hours', 6.0)
-                    strategy['target_hold_time_hours'] = min(old_hold * (1 + weakness), 24.0)
+                    # Адаптация стоп-лосса под волатильность (объективный фактор)
+                    if hasattr(self.model, 'volatility_index'):
+                        old_stop = strategy.get('stop_loss_percent', 2.5)
+                        old_take = strategy.get('take_profit_percent', 5.0)
 
-                    logger.info(
-                        f"📉 Ослабление {strategy_name}: "
-                        f"risk {old_risk:.2f}→{strategy['risk_multiplier']:.2f} "
-                        f"(-{weakness:.1%}, avg_pnl={avg_pnl:.2%})"
-                    )
+                        # Базовая настройка: 2% на стоп, 4% на тейк при нормальной волатильности
+                        base_stop = 2.0
+                        base_take = 4.0
 
-                # Адаптация стоп-лосса под волатильность (объективный фактор)
-                old_stop = strategy.get('stop_loss_percent', 2.5)
-                old_take = strategy.get('take_profit_percent', 5.0)
+                        # Корректировка под текущую волатильность
+                        vol_factor = 1.0 + self.model.volatility_index
+                        strategy['stop_loss_percent'] = base_stop * vol_factor
+                        strategy['take_profit_percent'] = base_take * vol_factor
 
-                # Базовая настройка: 2% на стоп, 4% на тейк при нормальной волатильности
-                base_stop = 2.0
-                base_take = 4.0
-
-                # Корректировка под текущую волатильность
-                vol_factor = 1.0 + volatility_index
-                strategy['stop_loss_percent'] = base_stop * vol_factor
-                strategy['take_profit_percent'] = base_take * vol_factor
-
-                logger.debug(
-                    f"📊 Адаптация под волатильность {strategy_name}: "
-                    f"vol={volatility_index:.2f}, "
-                    f"stop {old_stop:.1f}→{strategy['stop_loss_percent']:.1f}%, "
-                    f"take {old_take:.1f}→{strategy['take_profit_percent']:.1f}%"
-                )
+                        logger.debug(f"📊 Адаптация под волатильность {strategy_name}: "
+                                     f"vol={self.model.volatility_index:.2f}, "
+                                     f"stop {old_stop:.1f}→{strategy['stop_loss_percent']:.1f}%, "
+                                     f"take {old_take:.1f}→{strategy['take_profit_percent']:.1f}%")
 
             # Сохраняем обновленные стратегии
             self.model.save_model()
@@ -4075,8 +3924,6 @@ class SmartPortfolioBroker:
 
         except Exception as e:
             logger.error(f"Ошибка адаптации стратегий: {e}")
-            import traceback
-            logger.debug(traceback.format_exc())
 
     def get_portfolio_summary(self) -> Dict:
         """Получение сводки портфеля"""

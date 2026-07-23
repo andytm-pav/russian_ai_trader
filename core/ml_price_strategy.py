@@ -76,18 +76,13 @@ class MLPriceStrategy:
         self.stats['evaluations'] += 1
 
         try:
-            # 🆕 Извлекаем hurst из chaos_metrics для передачи в price_predictor
-            hurst = 0.5
-            if chaos_metrics:
-                hurst = chaos_metrics.get('hurst', 0.5)
-
             prediction = price_predictor.predict(
                 ticker=ticker,
                 entry_price=current_price,
                 current_price=current_price,
-                hold_time_hours=self.horizon_hours,
+                hold_hours=self.horizon_hours,
+                chaos_metrics=chaos_metrics or {},
                 hawkes_signal=(hawkes_forecast or {}).get('net_signal', 0),
-                hurst=hurst,
             )
 
             predicted_price = prediction.get('predicted_price', current_price)

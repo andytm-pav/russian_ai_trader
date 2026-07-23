@@ -87,7 +87,10 @@ class PricePredictionCascade:
              cascade_cfg.get('level_5_max_hold_hours', 120)),
         ]
 
-        # 🆕 Параметры адаптации под D₂ (из конфига)
+        self._predictions_history = defaultdict(list)
+        self._cascade_level = {}
+
+        # 🆕 v16.2: Параметры адаптации под D₂ (fractal_dim)
         d2_cfg = config.get('d2_adaptation', {})
         self.d2_default = d2_cfg.get('default', 2.5)
         self.d2_high_threshold = d2_cfg.get('high_threshold', 2.5)
@@ -95,12 +98,16 @@ class PricePredictionCascade:
         self.d2_high_factor = d2_cfg.get('high_factor', 0.7)
         self.d2_low_factor = d2_cfg.get('low_factor', 1.3)
 
-        self._predictions_history = defaultdict(list)
-        self._cascade_level = {}
-        logger.info(f"PricePredictionCascade инициализирован (max_hold={self.max_hold_hours}ч, "
-                    f"D₂ адаптация: threshold_high={self.d2_high_threshold}, "
-                    f"factor_high={self.d2_high_factor}, threshold_low={self.d2_low_threshold}, "
-                    f"factor_low={self.d2_low_factor})")
+        # 🆕 v16.3: Конфигурируемые веса прогноза (вместо хардкода)
+        pw = config.get('prediction_weights', {})
+        self.pw_rl_defaults = pw.get('rl_defaults', {'down': 0.33, 'sideways': 0.34, 'up': 0.33})
+        self.pw_tech = pw.get('tech', {})
+        self.pw_ms = pw.get('microstructure', {})
+        self.pw_hawkes = pw.get('hawkes', {})
+        self.pw_hurst = pw.get('hurst', {})
+        self.pw_levels = pw.get('level_weights', {})
+
+        logger.info(f"PricePredictionCascade инициализирован (max_hold={self.max_hold_hours}ч = {self.max_hold_hours/24:.0f} дней)")
 
     def _determine_horizon(self, ticker: str, entry_price: float,
                             current_price: float, hold_time_hours: float) -> Tuple[int, float, str, float]:
@@ -139,20 +146,14 @@ class PricePredictionCascade:
         horizon_hours, name, threshold, _ = self.CASCADE[level]
         return level, horizon_hours, name, threshold
 
-    def predict(self, ticker, entry_price, current_price,
-                hold_time_hours, model=None, state=None,
-                indicators=None, microstructure=None,
-                hawkes_signal=0.0, hurst=0.5,
+    def predict(self, ticker: str, entry_price: float, current_price: float,
+                hold_time_hours: float, model=None, state=None,
+                indicators: Dict = None, microstructure: Dict = None,
+                hawkes_signal: float = 0.0, hurst: float = 0.5,
                 fractal_dim: Optional[float] = None) -> Dict:
         """
         Прогноз движения цены на адаптивном горизонте.
-
-
-    Args:
-        fractal_dim: Корреляционная размерность (D₂).
-                     Если None — используется значение из конфига (self.d2_default).
-                     > high_threshold → хаотичный рынок → укорачиваем горизонт
-                     < low_threshold → детерминированный → удлиняем горизонт
+        
         Возвращает:
             {
                 'action': 'SELL' | 'HOLD',
@@ -170,7 +171,7 @@ class PricePredictionCascade:
             ticker, entry_price, current_price, hold_time_hours
         )
 
-        # ─── АДАПТАЦИЯ ГОРИЗОНТА ПОД D₂ ───
+        # ─── 🆕 v16.2: АДАПТАЦИЯ ГОРИЗОНТА ПОД D₂ ───
         if fractal_dim is None:
             fractal_dim = self.d2_default
 
@@ -184,8 +185,7 @@ class PricePredictionCascade:
         adjusted_horizon = max(0.0167, adjusted_horizon)  # минимум 1 минута
 
         if d2_factor != 1.0:
-            logger.debug(
-                f"[D₂] {ticker}: D₂={fractal_dim:.2f} → horizon {horizon_hours:.2f}h → {adjusted_horizon:.2f}h")
+            logger.debug(f"[D₂] {ticker}: D₂={fractal_dim:.2f} → horizon {horizon_hours:.2f}h → {adjusted_horizon:.2f}h")
 
         horizon_hours = adjusted_horizon
 
@@ -194,9 +194,9 @@ class PricePredictionCascade:
         # --- ИСТОЧНИКИ ПРОГНОЗА ---
 
         # 1. RL-модель predictor (3 класса: down, sideways, up)
-        p_down_rl = 0.33
-        p_up_rl = 0.33
-        p_sideways_rl = 0.34
+        p_down_rl = self.pw_rl_defaults.get('down', 0.33)
+        p_up_rl = self.pw_rl_defaults.get('up', 0.33)
+        p_sideways_rl = self.pw_rl_defaults.get('sideways', 0.34)
         if model is not None and state is not None:
             try:
                 import torch
@@ -217,23 +217,23 @@ class PricePredictionCascade:
             bb_pos = indicators.get('bb_position', 0.5)
             momentum = indicators.get('momentum', 0)
             
-            # RSI > 70 → перекуплен → вероятность снижения
-            if rsi > 70:
-                tech_down += 0.3
-            elif rsi < 30:
-                tech_up += 0.3
+            tech_contrib = self.pw_tech.get('tech_contribution', 0.3)
+            if rsi > self.pw_tech.get('rsi_overbought', 70):
+                tech_down += tech_contrib
+            elif rsi < self.pw_tech.get('rsi_oversold', 30):
+                tech_up += tech_contrib
             
-            # BB position > 0.8 → у верхней границы → снижение
-            if bb_pos > 0.8:
-                tech_down += 0.2
-            elif bb_pos < 0.2:
-                tech_up += 0.2
+            bb_contrib = self.pw_tech.get('bb_contribution', 0.2)
+            if bb_pos > self.pw_tech.get('bb_upper', 0.8):
+                tech_down += bb_contrib
+            elif bb_pos < self.pw_tech.get('bb_lower', 0.2):
+                tech_up += bb_contrib
             
-            # Momentum < 0 → тренд вниз
-            if momentum < -2:
-                tech_down += 0.2
-            elif momentum > 2:
-                tech_up += 0.2
+            mom_contrib = self.pw_tech.get('momentum_contribution', 0.2)
+            if momentum < self.pw_tech.get('momentum_down', -2):
+                tech_down += mom_contrib
+            elif momentum > self.pw_tech.get('momentum_up', 2):
+                tech_up += mom_contrib
 
         # 3. Микроструктура (для коротких горизонтов — важнее)
         ms_down = 0.0
@@ -242,54 +242,56 @@ class PricePredictionCascade:
             imbalance = microstructure.get('imbalance', 0)
             spread_pct = microstructure.get('spread_pct', 0)
             
-            # Дисбаланс: покупатели доминируют → рост
-            if imbalance > 0.2:
-                ms_up += 0.3 * min(abs(imbalance), 1)
-            elif imbalance < -0.2:
-                ms_down += 0.3 * min(abs(imbalance), 1)
+            ms_contrib = self.pw_ms.get('imbalance_contribution', 0.3)
+            imb_thr = self.pw_ms.get('imbalance_threshold', 0.2)
+            if imbalance > imb_thr:
+                ms_up += ms_contrib * min(abs(imbalance), 1)
+            elif imbalance < -imb_thr:
+                ms_down += ms_contrib * min(abs(imbalance), 1)
             
-            # Широкий спред → нестабильность → вероятность снижения
-            if spread_pct > 0.3:
-                ms_down += 0.1
+            spread_thr = self.pw_ms.get('spread_threshold', 0.3)
+            spread_contrib = self.pw_ms.get('spread_contribution', 0.1)
+            if spread_pct > spread_thr:
+                ms_down += spread_contrib
 
         # 4. Хокс-сигнал
         hawkes_down = 0.0
         hawkes_up = 0.0
-        if hawkes_signal > 0.5:
-            hawkes_up += 0.2
-        elif hawkes_signal < -0.5:
-            hawkes_down += 0.2
+        hawkes_contrib = self.pw_hawkes.get('contribution', 0.2)
+        hawkes_bull_thr = self.pw_hawkes.get('bull_threshold', 0.5)
+        hawkes_bear_thr = self.pw_hawkes.get('bear_threshold', -0.5)
+        if hawkes_signal > hawkes_bull_thr:
+            hawkes_up += hawkes_contrib
+        elif hawkes_signal < hawkes_bear_thr:
+            hawkes_down += hawkes_contrib
 
         # 5. Херст (персистентность)
         hurst_down = 0.0
         hurst_up = 0.0
-        if hurst > 0.55:
-            # Персистентный: тренд продолжится
+        hurst_contrib = self.pw_hurst.get('contribution', 0.15)
+        hurst_pers_thr = self.pw_hurst.get('persistent_threshold', 0.55)
+        hurst_antipers_thr = self.pw_hurst.get('antipersistent_threshold', 0.45)
+        if hurst > hurst_pers_thr:
             if pnl_pct >= 0:
-                hurst_up += 0.15  # рост продолжится
+                hurst_up += hurst_contrib
             else:
-                hurst_down += 0.15  # падение продолжится
-        elif hurst < 0.45:
-            # Антиперсистентный: разворот
+                hurst_down += hurst_contrib
+        elif hurst < hurst_antipers_thr:
             if pnl_pct < 0:
-                hurst_up += 0.15  # возможен отскок
+                hurst_up += hurst_contrib
             else:
-                hurst_down += 0.15
+                hurst_down += hurst_contrib
 
         # --- ВЕСА ИСТОЧНИКОВ ПО ГОРИЗОНТУ ---
 
         if level <= 1:
-            # Длинные горизонты (5 дней, 2 дня): RL + Хокс + Херст важнее
-            weights = {'rl': 0.40, 'tech': 0.20, 'ms': 0.10, 'hawkes': 0.15, 'hurst': 0.15}
+            weights = self.pw_levels.get('long', {'rl': 0.40, 'tech': 0.20, 'ms': 0.10, 'hawkes': 0.15, 'hurst': 0.15})
         elif level <= 2:
-            # Средний горизонт (1 день): всё примерно равно
-            weights = {'rl': 0.30, 'tech': 0.30, 'ms': 0.15, 'hawkes': 0.10, 'hurst': 0.15}
+            weights = self.pw_levels.get('medium', {'rl': 0.30, 'tech': 0.30, 'ms': 0.15, 'hawkes': 0.10, 'hurst': 0.15})
         elif level <= 3:
-            # Короткий горизонт (1 час): микроструктура и техника важнее
-            weights = {'rl': 0.20, 'tech': 0.35, 'ms': 0.30, 'hawkes': 0.05, 'hurst': 0.10}
+            weights = self.pw_levels.get('short', {'rl': 0.20, 'tech': 0.35, 'ms': 0.30, 'hawkes': 0.05, 'hurst': 0.10})
         else:
-            # Очень короткий (15 мин, 1 мин): микроструктура доминирует
-            weights = {'rl': 0.10, 'tech': 0.20, 'ms': 0.55, 'hawkes': 0.05, 'hurst': 0.10}
+            weights = self.pw_levels.get('ultra_short', {'rl': 0.10, 'tech': 0.20, 'ms': 0.55, 'hawkes': 0.05, 'hurst': 0.10})
 
         # --- ИТОГОВЫЙ ПРОГНОЗ ---
 

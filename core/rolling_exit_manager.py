@@ -77,6 +77,16 @@ class RollingExitManager:
         self.min_hold_hours = config.get('minimum_hold_hours_before_sell', 2)
         self.min_pnl_for_profit_sell = config.get('min_pnl_pct_for_profit_sell', 0.5)
 
+        # 🆕 v16.3: Конфигурируемые threshold adjustments (вместо хардкода)
+        ta_cfg = config.get('threshold_adjustment', {})
+        self.hurst_persistent_thr = ta_cfg.get('hurst_persistent_threshold', 0.55)
+        self.hurst_antipersistent_thr = ta_cfg.get('hurst_antipersistent_threshold', 0.45)
+        self.hurst_adj = ta_cfg.get('hurst_adjustment', 0.05)
+        self.low_det_thr = ta_cfg.get('low_det_threshold', 0.20)
+        self.low_det_adj = ta_cfg.get('low_det_adjustment', 0.05)
+        self.threshold_min = ta_cfg.get('threshold_min', 0.20)
+        self.threshold_max = ta_cfg.get('threshold_max', 0.85)
+
         self._positions: Dict[str, PositionState] = {}
 
         logger.info(f"RollingExitManager init: enabled={self.enabled}, "
@@ -314,16 +324,16 @@ class RollingExitManager:
             t = force_t
 
         # Hurst-корректировка: персистентные тикеры — выше порог (тренд скорее продолжится)
-        if pos.hurst > 0.55:
-            t += 0.05
-        elif pos.hurst < 0.45:
-            t -= 0.05
+        if pos.hurst > self.hurst_persistent_thr:
+            t += self.hurst_adj
+        elif pos.hurst < self.hurst_antipersistent_thr:
+            t -= self.hurst_adj
 
         # Низкий DET — выше порог (шумные сигналы)
-        if pos.rqa_det < 0.20:
-            t += 0.05
+        if pos.rqa_det < self.low_det_thr:
+            t += self.low_det_adj
 
-        return max(0.20, min(0.85, t))
+        return max(self.threshold_min, min(self.threshold_max, t))
 
     def _decide(self, pos: PositionState, sell_score: float, threshold: float,
                 current_price: float, pnl_pct: float, hold_hours: float,

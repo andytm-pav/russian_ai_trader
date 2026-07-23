@@ -875,7 +875,17 @@ class AdvancedTraderModel:
         # === 14. Резервные слоты ===
         feature_config = self.rl_config.get('feature_config', {})
         reserved_slots = feature_config.get('reserved_slots', 0)
-        features.extend([0.0] * reserved_slots)
+
+        # 🆕 v16.3 Вариант B: используем первый reserved slot для fractal_dim (D₂)
+        # D₂ нормализуем: делим на 5.0 (D₂ обычно в диапазоне 0-5, нормализация → 0-1)
+        if reserved_slots > 0:
+            fractal_dim_val = market_data.get('fractal_dim', 2.5) if market_data else 2.5
+            features.append(min(1.0, fractal_dim_val / 5.0))  # нормализованный D₂
+            # Оставшиеся reserved slots — нули
+            if reserved_slots > 1:
+                features.extend([0.0] * (reserved_slots - 1))
+        else:
+            features.extend([0.0] * reserved_slots)
 
         # === 15. Market features из конфига (с нормализацией) ===
         market_feature_names = feature_config.get('market_features', [])

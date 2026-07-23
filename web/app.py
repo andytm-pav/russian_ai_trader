@@ -53,6 +53,61 @@ app = dash.Dash(
 
 app.title = "AI Trader - Российский рынок"
 
+# 🆕 v16.4: JavaScript для обработки кликов по кнопкам коррекции сентимента
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+<head>
+{%metas%}
+<title>{%title%}</title>
+{%favicon%}
+{%css%}
+</head>
+<body>
+{%app_entry%}
+<footer>
+{%config%}
+{%scripts%}
+{%renderer%}
+<script>
+// v16.4: Обработка кликов по кнопкам коррекции сентимента
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('button[data-label]');
+    if (!btn) return;
+    e.preventDefault();
+    var label = btn.getAttribute('data-label');
+    var newsData = btn.getAttribute('data-news');
+    if (!newsData) return;
+    try {
+        var news = JSON.parse(newsData);
+        fetch('/api/sentiment/correct', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                title: news.title || '',
+                summary: news.summary || '',
+                source: news.source || '',
+                original_label: news.original_label || 'NEUTRAL',
+                original_sentiment: news.original_sentiment || 0.0,
+                corrected_label: label
+            })
+        }).then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (d.status === 'ok') {
+                btn.style.opacity = '0.5';
+                btn.title = 'Сохранено: ' + label + ' (всего: ' + d.total_corrections + ')';
+            } else {
+                alert('Ошибка: ' + (d.error || 'неизвестно'));
+            }
+        }).catch(function(err) { alert('Ошибка сети: ' + err); });
+    } catch(ex) { alert('Ошибка: ' + ex); }
+});
+</script>
+</footer>
+</body>
+</html>
+'''
+
 broker_instance = None
 update_interval = 5000
 web_stop_event = threading.Event()
@@ -454,11 +509,45 @@ news_layout = dbc.Container([
                 dbc.CardBody([
                     html.Div(id="news-feed-table",
                              className="table-responsive",
-                             style={'maxHeight': '600px', 'overflowY': 'auto'})
+                             style={'maxHeight': '500px', 'overflowY': 'auto'})
                 ])
             ])
         ])
-    ])
+    ]),
+
+    # 🆕 v16.4: Блок дообучения модели сентимента
+    dbc.Row([
+        dbc.Col([
+            dbc.Card([
+                dbc.CardHeader("🎓 Дообучение модели сентимента", className="bg-primary text-white"),
+                dbc.CardBody([
+                    html.P("Нажмите 🟢/🔴/⚪ в колонке «Коррекция» у каждой новости. "
+                           "После накопления 5+ коррекций — нажмите «Дообучить».",
+                           className="text-muted small mb-3"),
+                    html.Div(id="sentiment-ft-stats", className="mb-2"),
+                    dbc.Button("🎓 Дообучить модель", id="sentiment-ft-button",
+                               color="primary", className="w-100 mb-2", disabled=True),
+                    html.Div(id="sentiment-ft-status", className="text-center small text-muted"),
+                    html.Div(id="sentiment-ft-result", className="mt-2"),
+                    html.Hr(className="my-2"),
+                    html.Details([
+                        html.Summary("📋 Список коррекций", className="small text-muted"),
+                        html.Div(id="sentiment-corrections-list",
+                                 style={'maxHeight': '200px', 'overflowY': 'auto'},
+                                 className="mt-2 small")
+                    ])
+                ])
+            ])
+        ])
+    ], className="mt-3"),
+
+    # 🆕 v16.4: Hidden store для передачи данных коррекции
+    dcc.Store(id='sentiment-correction-store'),
+    # Hidden div для приёма кликов коррекции (через clientside)
+    html.Div(id="sentiment-correction-trigger", style={'display': 'none'}),
+    # Кнопка для обновления списка коррекций
+    dbc.Button("🔄 Обновить список коррекций", id="refresh-corrections-btn",
+               color="secondary", size="sm", className="mt-2 w-100"),
 ])
 # Часть 2 из 4: settings_layout, logs_layout
 
@@ -3435,6 +3524,7 @@ def update_news_feed_table(n_intervals, ticker_filter, label_filter, min_sentime
             html.Th("Заголовок"),
             html.Th("Сентимент"),
             html.Th("Лейбл"),
+            html.Th("Коррекция"),  # 🆕 v16.4
         ]))
 
         rows = []
@@ -3508,13 +3598,42 @@ def update_news_feed_table(n_intervals, ticker_filter, label_filter, min_sentime
                                       'overflow': 'hidden', 'marginTop': '2px'})
                 ])
 
+            # 🆕 v16.4: Кнопки коррекции сентимента
+            # Используем data attributes для передачи данных новости
+            news_data_json = json.dumps({
+                'title': title[:200],
+                'summary': summary[:300] if summary else '',
+                'source': news.get('source', ''),
+                'original_label': label,
+                'original_sentiment': sentiment,
+            }, ensure_ascii=False)
+
+            correction_buttons = html.Div([
+                html.Button("🟢", id={'type': 'sent-correct', 'index': hash(title) % 100000},
+                           title="Позитивный",
+                           className="btn btn-sm btn-outline-success p-1",
+                           style={'fontSize': '10px', 'padding': '2px 4px'},
+                           **{'data-label': 'POSITIVE', 'data-news': news_data_json}),
+                html.Button("🔴", id={'type': 'sent-correct', 'index': hash(title) % 100000 + 1},
+                           title="Негативный",
+                           className="btn btn-sm btn-outline-danger p-1 ms-1",
+                           style={'fontSize': '10px', 'padding': '2px 4px'},
+                           **{'data-label': 'NEGATIVE', 'data-news': news_data_json}),
+                html.Button("⚪", id={'type': 'sent-correct', 'index': hash(title) % 100000 + 2},
+                           title="Нейтральный",
+                           className="btn btn-sm btn-outline-secondary p-1 ms-1",
+                           style={'fontSize': '10px', 'padding': '2px 4px'},
+                           **{'data-label': 'NEUTRAL', 'data-news': news_data_json}),
+            ], className="d-flex")
+
             rows.append(html.Tr([
                 html.Td(html.Small(time_str), className="text-muted"),
                 html.Td(html.Small(news.get('source', '—'))),
                 html.Td(tickers_html),
-                html.Td(title_html, style={'maxWidth': '500px'}),
+                html.Td(title_html, style={'maxWidth': '400px'}),
                 html.Td(html.Span(f"{sentiment:+.3f}", className=sent_class)),
                 html.Td(html.Div([label_badge, override_badge] if override_badge else [label_badge])),
+                html.Td(correction_buttons),  # 🆕 v16.4
             ]))
 
         table = html.Table([header, html.Tbody(rows)],
@@ -3529,6 +3648,191 @@ def update_news_feed_table(n_intervals, ticker_filter, label_filter, min_sentime
         import traceback
         logger.error(traceback.format_exc())
         return [html.P(f"Ошибка: {e}", className="text-danger p-3"), "0"]
+
+
+# ============================================================
+# 🆕 v16.4: API для дообучения новостной модели сентимента
+# ============================================================
+
+@app.server.route("/api/sentiment/correct", methods=["POST"])
+def sentiment_correct():
+    """Сохранение коррекции сентимента пользователем."""
+    try:
+        import flask
+        from core.sentiment_finetuner import save_correction, get_corrections_count
+
+        data = flask.request.json
+        title = data.get("title", "")
+        summary = data.get("summary", "")
+        source = data.get("source", "")
+        original_label = data.get("original_label", "NEUTRAL")
+        original_sentiment = data.get("original_sentiment", 0.0)
+        corrected_label = data.get("corrected_label", "NEUTRAL")
+
+        if not title:
+            return {"status": "error", "error": "title is required"}, 400
+
+        success = save_correction(
+            news_title=title,
+            news_summary=summary,
+            source=source,
+            original_label=original_label,
+            original_sentiment=original_sentiment,
+            corrected_label=corrected_label,
+        )
+
+        return {
+            "status": "ok" if success else "error",
+            "total_corrections": get_corrections_count(),
+        }
+    except Exception as e:
+        logger.error(f"API sentiment/correct error: {e}")
+        return {"status": "error", "error": str(e)}, 500
+
+
+@app.server.route("/api/sentiment/corrections", methods=["GET"])
+def sentiment_corrections_list():
+    """Получение списка всех коррекций."""
+    try:
+        from core.sentiment_finetuner import get_corrections, get_stats
+        corrections = get_corrections()
+        stats = get_stats()
+        return {"corrections": corrections, "stats": stats}
+    except Exception as e:
+        logger.error(f"API sentiment/corrections error: {e}")
+        return {"error": str(e)}, 500
+
+
+@app.server.route("/api/sentiment/finetune", methods=["POST"])
+def sentiment_finetune():
+    """Запуск дообучения модели."""
+    try:
+        import flask
+        from core.sentiment_finetuner import finetune_model, get_corrections_count
+
+        data = flask.request.json or {}
+        epochs = data.get("epochs", 3)
+        batch_size = data.get("batch_size", 8)
+        learning_rate = data.get("learning_rate", 2e-5)
+
+        result = finetune_model(
+            epochs=epochs,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+        )
+
+        return result
+    except Exception as e:
+        logger.error(f"API sentiment/finetune error: {e}")
+        return {"success": False, "message": f"Ошибка: {e}"}, 500
+
+
+@app.server.route("/api/sentiment/stats", methods=["GET"])
+def sentiment_stats():
+    """Статистика по коррекциям и модели."""
+    try:
+        from core.sentiment_finetuner import get_stats
+        return get_stats()
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+
+# ============================================================
+# 🆕 v16.4: Callback для UI дообучения в вкладке Новости
+# ============================================================
+
+@app.callback(
+    [Output("sentiment-ft-stats", "children"),
+     Output("sentiment-ft-button", "disabled"),
+     Output("sentiment-ft-button", "children"),
+     Output("sentiment-ft-status", "children"),
+     Output("sentiment-ft-result", "children"),
+     Output("sentiment-corrections-list", "children")],
+    [Input("interval-component", "n_intervals"),
+     Input("sentiment-ft-button", "n_clicks"),
+     Input("refresh-corrections-btn", "n_clicks")],
+    prevent_initial_call=False
+)
+def update_sentiment_finetune_ui(n_intervals, ft_clicks, refresh_clicks):
+    """Обновление UI блока дообучения."""
+    from core.sentiment_finetuner import get_stats, get_corrections, finetune_model
+
+    triggered = ctx.triggered_id
+
+    # Обработка нажатия "Дообучить"
+    ft_result = ""
+    if triggered == "sentiment-ft-button" and ft_clicks:
+        result = finetune_model()
+        if result['success']:
+            ft_result = html.P(f"✅ {result['message']}", className="text-success small")
+        else:
+            ft_result = html.P(f"❌ {result['message']}", className="text-danger small")
+
+    stats = get_stats()
+    total = stats['total_corrections']
+    min_needed = stats['min_for_finetune']
+    finetuned = stats['finetuned_available']
+
+    # Статистика
+    by_label = stats['by_label']
+    stats_html = html.Div([
+        html.P([
+            html.Span(f"Коррекций: {total}/{min_needed} мин. ", className="text-info"),
+            html.Span(f"| 🟢 {by_label.get('POSITIVE', 0)} ", className="text-success"),
+            html.Span(f"🔴 {by_label.get('NEGATIVE', 0)} ", className="text-danger"),
+            html.Span(f"⚪ {by_label.get('NEUTRAL', 0)}", className="text-muted"),
+        ]),
+        html.P(f"Дообученная модель: {'✅ доступна' if finetuned else '❌ нет'}",
+               className="small text-muted"),
+    ])
+
+    # Кнопка
+    button_disabled = total < min_needed
+    button_text = f"🎓 Дообучить модель ({total} коррекций)"
+
+    # Статус
+    status_text = ""
+    if button_disabled:
+        status_text = f"Соберите ещё {min_needed - total} коррекций для дообучения"
+    elif finetuned:
+        status_text = "Дообученная модель активна. Перезапустите систему после нового дообучения."
+
+    # Список коррекций
+    corrections = get_corrections()
+    if corrections:
+        corr_items = []
+        for c in corrections[-20:]:  # последние 20
+            corr_items.append(html.Div([
+                html.Span(f"🟢" if c.get('corrected_label') == 'POSITIVE' else
+                          f"🔴" if c.get('corrected_label') == 'NEGATIVE' else "⚪",
+                          className="me-1"),
+                html.Span(c.get('title', '')[:60] + ('…' if len(c.get('title', '')) > 60 else ''),
+                          className="text-muted"),
+                html.Small(f" (было: {c.get('original_label', '?')})",
+                          className="text-muted ms-1"),
+            ], className="mb-1"))
+        corr_list = html.Div(corr_items)
+    else:
+        corr_list = html.P("Нет коррекций", className="text-muted small")
+
+    return [stats_html, button_disabled, button_text, status_text, ft_result, corr_list]
+
+
+# Клиентский скрипт для коррекции сентимента
+@app.server.route("/api/sentiment/correct", methods=["GET"])
+def sentiment_correct_help():
+    """Справка по API."""
+    return {
+        "usage": "POST /api/sentiment/correct",
+        "fields": {
+            "title": "str (required)",
+            "summary": "str",
+            "source": "str",
+            "original_label": "POSITIVE|NEGATIVE|NEUTRAL",
+            "original_sentiment": "float",
+            "corrected_label": "POSITIVE|NEGATIVE|NEUTRAL",
+        }
+    }
 
 
 if __name__ == '__main__':
