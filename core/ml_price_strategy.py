@@ -34,6 +34,9 @@ class MLPriceStrategy:
         self.min_predicted_return_pct = self.config.get('min_predicted_return_pct', 0.5)
         self.max_predicted_return_pct = self.config.get('max_predicted_return_pct', 5.0)
         self.block_if_predicted_loss_pct = self.config.get('block_if_predicted_loss_pct', 1.0)
+        # 🆕 v16.5: Масштаб ожидаемого движения цены (для конвертации P(up)-P(down) в %)
+        self.expected_move_scale_pct = self.config.get('expected_move_scale_pct', 5.0)
+        self.boost_multiplier_max = self.config.get('boost_multiplier_max', 0.5)  # max +50% к confidence
 
         # Статистика
         self.stats = {
@@ -80,22 +83,28 @@ class MLPriceStrategy:
                 ticker=ticker,
                 entry_price=current_price,
                 current_price=current_price,
-                hold_hours=self.horizon_hours,
-                chaos_metrics=chaos_metrics or {},
+                hold_time_hours=self.horizon_hours,
                 hawkes_signal=(hawkes_forecast or {}).get('net_signal', 0),
             )
 
-            predicted_price = prediction.get('predicted_price', current_price)
-            if predicted_price <= 0 or current_price <= 0:
+            # predict() возвращает p_down, p_up, p_sideways — нет predicted_price
+            # Вычисляем ожидаемую доходность из вероятностей
+            p_down = prediction.get('p_down', 0.33)
+            p_up = prediction.get('p_up', 0.33)
+            p_sideways = prediction.get('p_sideways', 0.34)
+
+            # Эвристика: ожидаемая доходность = (P(up) - P(down)) × scale
+            # scale=5% — предполагаем среднее движение 5% на горизонте
+            predicted_return_pct = (p_up - p_down) * self.expected_move_scale_pct
+
+            if current_price <= 0:
                 return {
                     'action': 'NEUTRAL',
                     'confidence_multiplier': 1.0,
                     'predicted_return_pct': 0.0,
                     'predicted_price': current_price,
-                    'reason': 'invalid prediction',
+                    'reason': 'invalid price',
                 }
-
-            predicted_return_pct = ((predicted_price / current_price) - 1) * 100
 
             # Обновляем статистику
             n = self.stats['evaluations']
@@ -110,7 +119,6 @@ class MLPriceStrategy:
                     'action': 'BLOCK',
                     'confidence_multiplier': 0.0,
                     'predicted_return_pct': predicted_return_pct,
-                    'predicted_price': predicted_price,
                     'reason': f'ML block: predicted {predicted_return_pct:+.2f}% < '
                               f'-{self.block_if_predicted_loss_pct}%',
                 }
@@ -123,12 +131,11 @@ class MLPriceStrategy:
                     predicted_return_pct / self.max_predicted_return_pct,
                     1.0
                 )
-                multiplier = 1.0 + 0.5 * boost_ratio
+                multiplier = 1.0 + self.boost_multiplier_max * boost_ratio
                 return {
                     'action': 'BOOST',
                     'confidence_multiplier': multiplier,
                     'predicted_return_pct': predicted_return_pct,
-                    'predicted_price': predicted_price,
                     'reason': f'ML boost: predicted +{predicted_return_pct:.2f}% '
                               f'(multiplier {multiplier:.2f})',
                 }
@@ -138,7 +145,6 @@ class MLPriceStrategy:
                 'action': 'NEUTRAL',
                 'confidence_multiplier': 1.0,
                 'predicted_return_pct': predicted_return_pct,
-                'predicted_price': predicted_price,
                 'reason': f'ML neutral: predicted {predicted_return_pct:+.2f}%',
             }
 

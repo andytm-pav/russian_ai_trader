@@ -453,7 +453,8 @@
       "horizon_hours": 1,
       "min_predicted_return_pct": 0.5,
       "max_predicted_return_pct": 5.0,
-      "block_if_predicted_loss_pct": 1.0
+      "block_if_predicted_loss_pct": 1.0,
+      "expected_move_scale_pct": 5.0
     },
     "confidence_weights": {
       "prob_bull": 0.35,
