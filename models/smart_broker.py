@@ -226,6 +226,10 @@ class SmartPortfolioBroker:
         self.strategy_usage_counter = defaultdict(int)
         self.last_trade_time = defaultdict(float)
 
+        # 🆕 v16.12: Post-sale tracking
+        from core.post_sale_tracker import post_sale_tracker
+        self.post_sale_tracker = post_sale_tracker
+
         # 🆕 v15.3: Fresh data tracking — отслеживаем last_seen_time для каждого тикера
         # Это позволяет:
         #   1. Делать инкрементальные запросы [last_seen+1s, now]
@@ -1211,6 +1215,7 @@ class SmartPortfolioBroker:
                         ticker=ticker, action='SELL', quantity=qty, price=price, pnl=pnl
                     )
 
+                    self._register_post_sale(ticker, price)
                     self._complete_rl_experience(ticker, price, actual_pnl=pnl, pos_info=pos_info)
 
                     ticker_sentiment = self._get_ticker_sentiment(ticker)
@@ -2322,8 +2327,9 @@ class SmartPortfolioBroker:
     def on_market_open(self):
         """Действия при открытии рынка"""
         logger.info("РЫНОК ОТКРЫТ")
-        self.trading_enabled = True
-
+        # 🆕 v16.12: При force_247 trading_enabled всегда True
+        if not self.scheduler.force_247:
+            self.trading_enabled = True
         prices = self._get_current_prices()
         if prices:
             self.check_stops_and_tp(prices, None)
@@ -2331,7 +2337,9 @@ class SmartPortfolioBroker:
     def on_market_close(self):
         """Действия при закрытии рынка"""
         logger.info("РЫНОК ЗАКРЫТ")
-        self.trading_enabled = False
+        # 🆕 v16.12: При force_247 trading_enabled остаётся True
+        if not self.scheduler.force_247:
+            self.trading_enabled = False
 
         # Фиксация дневной прибыли
         self._fixate_daily_profit()
@@ -2602,6 +2610,9 @@ class SmartPortfolioBroker:
             # 🆕 ВАРИАНТ D: Rolling exit evaluation
             self._evaluate_rolling_exits(prices, securities)
 
+            # 🆕 v16.12: Post-sale tracking — проверка проданных тикеров
+            self._check_post_sale_tracking(prices)
+
             # 🆕 ВАРИАНТ F: Entry screening
             self._evaluate_entry_signals(prices, securities)
 
@@ -2721,6 +2732,12 @@ class SmartPortfolioBroker:
 
             if self.cycle_count % 20 == 0:
                 self._save_portfolio_state()
+
+            # 🆕 v16.8: Периодическое обновление хаос-метрик (каждые 360 циклов ≈ 1 час)
+            # Без этого хаос-метрики замораживаются после старта и не обновляются
+            chaos_refresh_interval = self.settings.get('history_loader', {}).get('chaos_refresh_cycles', 360)
+            if self.cycle_count % chaos_refresh_interval == 0 and self.cycle_count > 0:
+                self._refresh_chaos_metrics()
 
             cycle_time = time.time() - cycle_start
             total_value = self.portfolio.get_total_value(prices)
@@ -2930,6 +2947,7 @@ class SmartPortfolioBroker:
                                 f"🚨 [RISK_ENFORCER] STOP-LOSS executed: {ticker} {qty} @ {price:.2f} "
                                 f"(pnl={pnl:+.0f}₽, loss={sell['loss_pct']:+.1f}%)"
                             )
+                            self._register_post_sale(ticker, price)
                             self.risk_manager.update_trade_result(
                                 ticker=ticker, action='STOP_LOSS',
                                 quantity=qty, price=price, pnl=pnl
@@ -3026,6 +3044,7 @@ class SmartPortfolioBroker:
                         pnl=pnl
                     )
 
+                    self._register_post_sale(ticker, price)
                     logger.warning(f"СТОП-ЛОСС: {ticker} {qty} @ {price:.2f} "
                                    f"({change_pct:+.1f}%, PnL: {pnl:+.0f}₽)"
                                    f"{' [трейлинг]' if pos.get('trailing_activated') else ''}")
@@ -3056,6 +3075,7 @@ class SmartPortfolioBroker:
                                 pnl=pnl
                             )
 
+                            self._register_post_sale(ticker, price)
                             pos['partial_take_done'] = True
                             pos['stop_loss'] = entry_price * 1.005
 
@@ -3094,6 +3114,7 @@ class SmartPortfolioBroker:
                             pnl=pnl
                         )
 
+                        self._register_post_sale(ticker, price)
                         logger.info(f"ТЕЙК-ПРОФИТ: {ticker} {qty} @ {price:.2f} "
                                     f"({change_pct:+.1f}%, PnL: {pnl:+.0f}₽)")
                 continue  # позиция закрыта по TP
@@ -3141,6 +3162,7 @@ class SmartPortfolioBroker:
                         self.risk_manager.update_trade_result(
                             ticker=ticker, action='CASCADE_PREDICTION',
                             quantity=qty, price=price, pnl=pnl)
+                        self._register_post_sale(ticker, price)
                         logger.info(f"🎯 КАСКАД-ПРОДАЖА: {ticker} {qty} @ {price:.2f} "
                                     f"({change_pct:+.1f}%, PnL: {pnl:+.0f}₽) "
                                     f"[{prediction['horizon_name']}, P(down)={prediction['p_down']:.2f}]")
@@ -3152,6 +3174,64 @@ class SmartPortfolioBroker:
     # ============================================================
     # 🆕 ВАРИАНТ D: Rolling Exit
     # ============================================================
+    def _get_sell_action_code(self, action_name: str = 'SELL_NORMAL') -> int:
+        """🆕 v16.12: Динамический lookup кода действия по имени из конфига.
+
+        Заменяет магическое число `5` для SELL_NORMAL.
+        Возвращает 5 как fallback, если lookup не удался.
+        """
+        try:
+            for code_str, name in self.action_mapping.items():
+                if name == action_name:
+                    return int(code_str)
+        except Exception:
+            pass
+        return 5  # fallback: SELL_NORMAL по умолчанию
+
+    def _register_post_sale(self, ticker: str, price: float):
+        """🆕 v16.12: Безопасная регистрация продажи в post_sale_tracker.
+
+        Вызывается после каждого успешного `portfolio.sell()`.
+        Безопасна при disabled tracker или None.
+        """
+        try:
+            if self.post_sale_tracker and self.post_sale_tracker.enabled:
+                self.post_sale_tracker.register_sale(ticker, price)
+        except Exception as e:
+            logger.debug(f"Post-sale register error for {ticker}: {e}")
+
+    def _check_post_sale_tracking(self, prices: Dict):
+        """🆕 v16.12: Проверка post-sale tracking и запись reward в модель."""
+        if not self.post_sale_tracker or not self.post_sale_tracker.enabled:
+            return
+
+        active = self.post_sale_tracker.get_active_tracking()
+        if not active:
+            return
+
+        sell_action_code = self._get_sell_action_code('SELL_NORMAL')
+
+        for ticker in list(active.keys()):
+            current_price = prices.get(ticker)
+            if not current_price or current_price <= 0:
+                continue
+
+            result = self.post_sale_tracker.check_and_evaluate(ticker, current_price)
+            if result:
+                # Записываем experience в модель
+                try:
+                    # Создаём упрощённый state для reward
+                    import torch
+                    state = torch.zeros(self.model.total_state_dim, dtype=torch.float32).to(self.model.device)
+                    next_state = state.clone()
+                    reward = result['reward']
+                    action = sell_action_code  # SELL_NORMAL (из конфига)
+                    self.model.add_experience(state, action, reward, next_state, done=True)
+                    logger.info(f"[POST_SALE] {ticker}: reward={reward:+.2f} записан в модель "
+                               f"({result['result']}, change={result['price_change_pct']:+.2f}%)")
+                except Exception as e:
+                    logger.debug(f"Post-sale reward recording error: {e}")
+
     def _evaluate_rolling_exits(self, prices: Dict, securities: Dict):
         """Почасовая переоценка позиций через RollingExitManager."""
         if not self.rolling_exit or not self.rolling_exit.enabled:
@@ -3200,6 +3280,14 @@ class SmartPortfolioBroker:
                                 logger.debug(f"[ROLL_EXIT] {ticker}: removed due to zero qty")
 
             active_count = self.rolling_exit.get_stats().get('active_positions', 0)
+
+            # 🆕 v16.9: Cleanup фантомных позиций каждый phantom_cleanup_cycles
+            phantom_interval = getattr(self.rolling_exit, 'phantom_cleanup_cycles', 60)
+            if self.cycle_count % phantom_interval == 0 and self.cycle_count > 0:
+                portfolio_tickers = list(self.portfolio.positions.keys())
+                self.rolling_exit.cleanup_phantoms(portfolio_tickers)
+                active_count = self.rolling_exit.get_stats().get('active_positions', 0)
+
             logger.debug(f"[ROLL_EXIT] active_positions={active_count}, portfolio={len(self.portfolio.positions)}")
             if active_count == 0:
                 return
@@ -3358,6 +3446,7 @@ class SmartPortfolioBroker:
                 ticker=ticker, action=decision.action,
                 quantity=qty, price=price, pnl=pnl
             )
+            self._register_post_sale(ticker, price)
             self.rolling_exit.on_partial_fill(ticker, qty)
             logger.info(f"🎯 [ROLL_EXIT] {decision.action} {ticker} {qty} @ {price:.2f} "
                        f"(PnL: {pnl:+.0f}₽) | {decision.reason}")
@@ -3416,12 +3505,50 @@ class SmartPortfolioBroker:
         for t, p in self.portfolio.positions.items():
             sec = self.ticker_sectors.get(t, 'unknown')
             sector_weights[sec] += 1
+
+        # 🆕 v16.9: Расчёт корреляционной матрицы из history_loader
+        corr_matrix = {}
+        try:
+            ec_cfg = self.settings.get('entry_cascading', {}).get('portfolio_constraints', {})
+            corr_min_hist = ec_cfg.get('correlation_min_history', 20)
+            corr_min_ret = ec_cfg.get('correlation_min_returns', 10)
+
+            if hasattr(self, 'history_data') and self.history_data:
+                held_tickers_list = list(self.portfolio.positions.keys())
+                for ht in held_tickers_list:
+                    if ht not in self.history_data:
+                        continue
+                    ht_prices = self.history_data[ht].get('prices', [])
+                    if len(ht_prices) < corr_min_hist:
+                        continue
+                    corr_matrix[ht] = {}
+                    for candidate in prices:
+                        if candidate == ht or candidate not in self.history_data:
+                            continue
+                        cand_prices = self.history_data[candidate].get('prices', [])
+                        if len(cand_prices) < corr_min_hist:
+                            continue
+                        min_len = min(len(ht_prices), len(cand_prices))
+                        try:
+                            import numpy as np
+                            ht_returns = np.diff(np.log(ht_prices[-min_len:]))
+                            cand_returns = np.diff(np.log(cand_prices[-min_len:]))
+                            if len(ht_returns) > corr_min_ret and len(cand_returns) > corr_min_ret:
+                                corr_val = float(np.corrcoef(ht_returns, cand_returns)[0, 1])
+                                if not np.isnan(corr_val):
+                                    corr_matrix[ht][candidate] = corr_val
+                        except Exception:
+                            pass
+            self._correlation_matrix = corr_matrix
+        except Exception as e:
+            logger.debug(f"Correlation matrix calculation error: {e}")
+
         portfolio_state = {
             'available_capital': self.portfolio.cash,
             'total_capital': self.portfolio.get_total_value(prices),
             'sector_weights': dict(sector_weights),
             'ticker_sectors': self.ticker_sectors,
-            'correlation_matrix': getattr(self, '_correlation_matrix', {}),
+            'correlation_matrix': corr_matrix,
             # 🆕 v16 Фаза 3.1: Передаём price_predictor для ML-стратегии
             'price_predictor': getattr(self, 'price_predictor', None),
         }
@@ -4425,6 +4552,7 @@ class SmartPortfolioBroker:
                             'qty': qty_to_sell,
                             'price': prices[ticker]
                         })
+                        self._register_post_sale(ticker, prices[ticker])
                         logger.info(f"📉 Частично закрыта {ticker}: {qty_to_sell} @ {prices[ticker]:.2f}")
 
             result = {
@@ -4767,6 +4895,77 @@ class SmartPortfolioBroker:
         except Exception as e:
             logger.error(f"Ошибка получения истории сентимента: {e}")
             return []
+
+    def reload_news_analyzer(self) -> Dict:
+        """
+        🆕 v16.7: Перезапуск только NewsAnalyzer (без перезапуска всей системы).
+        Используется после дообучения модели сентимента.
+        """
+        try:
+            from core.news_analyzer import NewsAnalyzer
+
+            analyzer_config_path = "config/analyzer_config.json"
+            with open(analyzer_config_path, 'r', encoding='utf-8') as f:
+                analyzer_config = json.load(f)
+            with open("config/news_tickers.json", 'r', encoding='utf-8') as f:
+                analyzer_tickers = json.load(f)
+            models_dir = Path("data/models")
+
+            self.news_analyzer = NewsAnalyzer(
+                config=analyzer_config,
+                tickers_config=analyzer_tickers,
+                models_data_dir=models_dir,
+                log_enabled=True,
+                log_level="INFO"
+            )
+
+            logger.info(f"NewsAnalyzer перезапущен: ML={'Да' if self.news_analyzer.use_ml_sentiment else 'Нет'}, "
+                       f"Aho-Corasick={'Да' if self.news_analyzer.use_ahocorasick_filter else 'Нет'}")
+
+            return {
+                'success': True,
+                'message': f'NewsAnalyzer перезапущен. ML={"Да" if self.news_analyzer.use_ml_sentiment else "Нет"}.',
+                'ml_enabled': self.news_analyzer.use_ml_sentiment,
+            }
+        except Exception as e:
+            logger.error(f"Ошибка перезапуска NewsAnalyzer: {e}")
+            return {'success': False, 'message': f'Ошибка: {e}'}
+
+    def _refresh_chaos_metrics(self):
+        """🆕 v16.8: Периодическое обновление хаос-метрик из накопленной истории."""
+        try:
+            # Собираем цены из technical_core для всех тикеров
+            history_for_chaos = {}
+            for ticker, data in self.technical_core.price_history.items():
+                prices = data.get('prices', [])
+                if len(prices) < 50:
+                    continue
+                timestamps = data.get('timestamps', [])
+                # 🆕 v16.10: technical_core не хранит highs/lows — используем prices
+                # ATR будет рассчитан как rolling range of close prices (proxy)
+                history_for_chaos[ticker] = {
+                    'prices': prices,
+                    'highs': prices,  # proxy: нет separate highs в technical_core
+                    'lows': prices,   # proxy: ATR будет ~0, но RQA/Hurst/D₂/kurtosis работают
+                    'volumes': data.get('volumes', []),
+                    'timestamps': [str(t) for t in timestamps],
+                }
+
+            if not history_for_chaos:
+                return
+
+            # Пересчитываем хаос-метрики
+            self.history_loader._calculate_chaos_metrics(history_for_chaos)
+
+            # Загружаем обновлённые метрики
+            chaos_metrics = self.history_loader.get_chaos_metrics()
+            if chaos_metrics:
+                old_count = len(self.chaos_metrics) if hasattr(self, 'chaos_metrics') else 0
+                self.chaos_metrics = chaos_metrics
+                logger.info(f"🌀 Хаос-метрики обновлены: {len(chaos_metrics)} тикеров "
+                           f"(было {old_count}), цикл #{self.cycle_count}")
+        except Exception as e:
+            logger.error(f"Ошибка обновления хаос-метрик: {e}")
 
     def get_news_sentiment_feed(self, limit: int = 100,
                                 min_abs_sentiment: float = 0.0,

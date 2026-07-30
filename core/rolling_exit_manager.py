@@ -89,6 +89,9 @@ class RollingExitManager:
 
         self._positions: Dict[str, PositionState] = {}
 
+        # 🆕 v16.9: Интервал cleanup фантомных позиций
+        self.phantom_cleanup_cycles = config.get('phantom_cleanup_cycles', 60)
+
         logger.info(f"RollingExitManager init: enabled={self.enabled}, "
                     f"eval_interval={self.eval_interval}")
 
@@ -498,6 +501,27 @@ class RollingExitManager:
                 p.phase: 1 for p in self._positions.values()
             })),
         }
+
+    def cleanup_phantoms(self, active_portfolio_tickers: List[str]) -> int:
+        """
+        🆕 v16.9: Удаление фантомных позиций — тех, что есть в _positions,
+        но уже закрыты в портфеле (нет в active_portfolio_tickers).
+
+        Returns: количество удалённых фантомов.
+        """
+        if not self._positions:
+            return 0
+
+        active_set = set(active_portfolio_tickers)
+        phantoms = [t for t in self._positions if t not in active_set]
+        for t in phantoms:
+            del self._positions[t]
+            logger.debug(f"[ROLL_EXIT] {t}: фантом удалён (нет в портфеле)")
+
+        if phantoms:
+            logger.info(f"[ROLL_EXIT] Cleanup: удалено {len(phantoms)} фантомных позиций")
+
+        return len(phantoms)
 
 
 # ─── СИНГЛТОН ───

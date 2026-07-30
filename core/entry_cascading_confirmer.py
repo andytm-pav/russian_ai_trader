@@ -72,6 +72,9 @@ class EntryCascadingConfirmer:
         self.min_target_weight = config.get('min_target_weight', 0.05)
         self.target_weight_multiplier = config.get('target_weight_multiplier', 0.15)
 
+        # 🆕 v16.9: Cleanup устаревших фаз
+        self.phase_cleanup_seconds = config.get('phase_cleanup_seconds', 3600)  # 1 час
+
         # Кэш фаз: {ticker: {'phase': int, 'trigger_time': float, 'trigger_price': float,
         #                    'tech_confirm_time': float, 'last_entry_time': float}}
         self._phases = {}
@@ -115,6 +118,21 @@ class EntryCascadingConfirmer:
         """
         if not self.enabled:
             return []
+
+        # 🆕 v16.9: Cleanup устаревших фаз (trigger_time старше phase_cleanup_seconds)
+        # Фаза >= PHASE_SIGNAL_DONE означает, что сигнал уже сформирован — не cleanup
+        PHASE_SIGNAL_DONE = 4
+        now_ts = time.time()
+        stale_tickers = []
+        for t, state in self._phases.items():
+            trigger_time = state.get('trigger_time', 0)
+            if trigger_time > 0 and (now_ts - trigger_time) > self.phase_cleanup_seconds:
+                if state.get('phase', 0) < PHASE_SIGNAL_DONE:
+                    stale_tickers.append(t)
+        for t in stale_tickers:
+            del self._phases[t]
+        if stale_tickers:
+            logger.debug(f"[ENTRY_F] Cleanup: удалено {len(stale_tickers)} устаревших фаз")
 
         held_tickers = held_tickers or []
         portfolio_state = portfolio_state or {}

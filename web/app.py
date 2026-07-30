@@ -530,6 +530,11 @@ news_layout = dbc.Container([
                     html.Div(id="sentiment-ft-status", className="text-center small text-muted"),
                     html.Div(id="sentiment-ft-result", className="mt-2"),
                     html.Hr(className="my-2"),
+                    # 🆕 v16.7: Кнопка перезапуска NewsAnalyzer
+                    dbc.Button("🔄 Перезапустить анализатор новостей", id="reload-news-analyzer-btn",
+                               color="success", size="sm", className="w-100 mb-2"),
+                    html.Div(id="reload-analyzer-status", className="text-center small"),
+                    html.Hr(className="my-2"),
                     html.Details([
                         html.Summary("📋 Список коррекций", className="small text-muted"),
                         html.Div(id="sentiment-corrections-list",
@@ -3727,6 +3732,19 @@ def sentiment_finetune():
         return {"success": False, "message": f"Ошибка: {e}"}, 500
 
 
+@app.server.route("/api/sentiment/reload-analyzer", methods=["POST"])
+def sentiment_reload_analyzer():
+    """Перезапуск NewsAnalyzer без перезапуска системы."""
+    try:
+        if broker_instance is None:
+            return {"success": False, "message": "Брокер не инициализирован"}, 500
+        result = broker_instance.reload_news_analyzer()
+        return result
+    except Exception as e:
+        logger.error(f"API sentiment/reload-analyzer error: {e}")
+        return {"success": False, "message": f"Ошибка: {e}"}, 500
+
+
 @app.server.route("/api/sentiment/stats", methods=["GET"])
 def sentiment_stats():
     """Статистика по коррекциям и модели."""
@@ -3816,6 +3834,43 @@ def update_sentiment_finetune_ui(n_intervals, ft_clicks, refresh_clicks):
         corr_list = html.P("Нет коррекций", className="text-muted small")
 
     return [stats_html, button_disabled, button_text, status_text, ft_result, corr_list]
+
+
+# 🆕 v16.7: Callback для перезапуска NewsAnalyzer
+@app.callback(
+    Output("reload-analyzer-status", "children"),
+    Input("reload-news-analyzer-btn", "n_clicks"),
+    prevent_initial_call=True
+)
+def reload_news_analyzer(n_clicks):
+    """Перезапуск NewsAnalyzer через API."""
+    if not n_clicks:
+        return ""
+
+    try:
+        import requests
+        # Вызываем API напрямую (broker_instance может быть в другом потоке)
+        resp = requests.post(
+            f"http://localhost:{broker_instance.settings.get('web_port', 8050) if broker_instance else 8050}/api/sentiment/reload-analyzer",
+            timeout=30
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('success'):
+                return html.P(f"✅ {data['message']}", className="text-success small")
+            else:
+                return html.P(f"❌ {data.get('message', 'ошибка')}", className="text-danger small")
+        else:
+            return html.P(f"❌ HTTP {resp.status_code}", className="text-danger small")
+    except Exception as e:
+        # Прямой вызов через broker_instance (fallback)
+        if broker_instance:
+            result = broker_instance.reload_news_analyzer()
+            if result.get('success'):
+                return html.P(f"✅ {result['message']}", className="text-success small")
+            else:
+                return html.P(f"❌ {result.get('message', 'ошибка')}", className="text-danger small")
+        return html.P(f"❌ Ошибка: {e}", className="text-danger small")
 
 
 # Клиентский скрипт для коррекции сентимента

@@ -65,6 +65,30 @@ class HistoryLoader:
         self.rate_limit = 0.15
         self.top_tickers_limit = 50
 
+        # 🆕 v16.10: RQA параметры из конфига (вместо хардкода)
+        self._rqa_eps_mult = 0.3
+        self._rqa_min_points = 50
+        self._rqa_subsample_max = 1500
+        self._rqa_min_line_len = 2
+        self._chaos_min_prices = 100
+        self._chaos_min_returns = 30
+        self._chaos_momentum_hours = 24
+        self._chaos_atr_period = 14
+        self._chaos_atr_lookback = 50
+        # 🆕 v16.11: D₂ (correlation dimension) параметры
+        self._d2_default = 2.5
+        self._d2_min_returns = 50
+        self._d2_tau = 4
+        self._d2_embedding_dim = 3
+        self._d2_min_embedded = 30
+        self._d2_subsample_max = 2000
+        self._d2_r_num = 20
+        self._d2_c_min = 0.001
+        self._d2_c_max = 0.3
+        self._d2_min_fit_points = 4
+        self._d2_floor = 0.5
+        self._d2_ceil = 10.0
+
         try:
             with open("config/settings.json", "r", encoding="utf-8") as f:
                 settings = json.load(f)
@@ -72,6 +96,28 @@ class HistoryLoader:
             self.months_back = hl_config.get("months_back", 3)
             self.max_points = hl_config.get("max_points_per_ticker", 2000)
             self.rate_limit = hl_config.get("rate_limit_seconds", 0.15)
+            self._rqa_eps_mult = hl_config.get("rqa_eps_mult", 0.3)
+            self._rqa_min_points = hl_config.get("rqa_min_points", 50)
+            self._rqa_subsample_max = hl_config.get("rqa_subsample_max", 1500)
+            self._rqa_min_line_len = hl_config.get("rqa_min_line_len", 2)
+            self._chaos_min_prices = hl_config.get("chaos_min_prices", 100)
+            self._chaos_min_returns = hl_config.get("chaos_min_returns", 30)
+            self._chaos_momentum_hours = hl_config.get("chaos_momentum_hours", 24)
+            self._chaos_atr_period = hl_config.get("chaos_atr_period", 14)
+            self._chaos_atr_lookback = hl_config.get("chaos_atr_lookback", 50)
+            # 🆕 v16.11: D₂ параметры из конфига
+            self._d2_default = hl_config.get("d2_default", 2.5)
+            self._d2_min_returns = hl_config.get("d2_min_returns", 50)
+            self._d2_tau = hl_config.get("d2_tau", 4)
+            self._d2_embedding_dim = hl_config.get("d2_embedding_dim", 3)
+            self._d2_min_embedded = hl_config.get("d2_min_embedded", 30)
+            self._d2_subsample_max = hl_config.get("d2_subsample_max", 2000)
+            self._d2_r_num = hl_config.get("d2_r_num", 20)
+            self._d2_c_min = hl_config.get("d2_c_min", 0.001)
+            self._d2_c_max = hl_config.get("d2_c_max", 0.3)
+            self._d2_min_fit_points = hl_config.get("d2_min_fit_points", 4)
+            self._d2_floor = hl_config.get("d2_floor", 0.5)
+            self._d2_ceil = hl_config.get("d2_ceil", 10.0)
             self.top_tickers_limit = hl_config.get("top_tickers_limit", 50)
             self.history_file = hl_config.get("history_file", self.history_file)
             self.chaos_cache_file = hl_config.get("chaos_cache_file", self.chaos_cache_file)
@@ -693,50 +739,60 @@ class HistoryLoader:
         try:
             log_returns = np.diff(np.log(prices[prices > 0]))
             log_returns = log_returns - log_returns.mean()
-            if len(log_returns) < 200:
-                return 2.5  # default
+            # 🆕 v16.11: порог из конфига (был 200 — недостижимо при max_length=100)
+            d2_min_returns = self._d2_min_returns if hasattr(self, '_d2_min_returns') else 50
+            if len(log_returns) < d2_min_returns:
+                return self._d2_default if hasattr(self, '_d2_default') else 2.5
 
-            # Takens embedding: tau=4, m=3 (упрощённо)
-            tau = 4
-            m = 3
+            # Takens embedding
+            tau = self._d2_tau if hasattr(self, '_d2_tau') else 4
+            m = self._d2_embedding_dim if hasattr(self, '_d2_embedding_dim') else 3
             n = len(log_returns) - (m - 1) * tau
-            if n < 100:
-                return 2.5
+            d2_min_embedded = self._d2_min_embedded if hasattr(self, '_d2_min_embedded') else 30
+            if n < d2_min_embedded:
+                return self._d2_default if hasattr(self, '_d2_default') else 2.5
 
             embedded = np.zeros((n, m))
             for i in range(m):
                 embedded[:, i] = log_returns[i*tau : i*tau + n]
 
             # Subsample для скорости
-            if n > 2000:
-                idx = np.random.choice(n, 2000, replace=False)
+            d2_subsample_max = self._d2_subsample_max if hasattr(self, '_d2_subsample_max') else 2000
+            if n > d2_subsample_max:
+                idx = np.random.choice(n, d2_subsample_max, replace=False)
                 embedded = embedded[idx]
-                n = 2000
+                n = d2_subsample_max
 
             # Попарные расстояния
             from scipy.spatial.distance import pdist
             dists = pdist(embedded)
 
             if len(dists) == 0:
-                return 2.5
+                return self._d2_default if hasattr(self, '_d2_default') else 2.5
 
             # Корреляционный интеграл C(r)
             r_min = np.percentile(dists, 1)
             r_max = np.percentile(dists, 90)
-            rs = np.logspace(np.log10(r_min), np.log10(r_max), num=20)
+            r_num = self._d2_r_num if hasattr(self, '_d2_r_num') else 20
+            rs = np.logspace(np.log10(r_min), np.log10(r_max), num=r_num)
             c_values = np.array([np.sum(dists < r) / len(dists) for r in rs])
 
             # Наклон в log-log (линейная область)
-            mask = (c_values > 0.001) & (c_values < 0.3)
-            if mask.sum() < 4:
-                return 2.5
+            d2_c_min = self._d2_c_min if hasattr(self, '_d2_c_min') else 0.001
+            d2_c_max = self._d2_c_max if hasattr(self, '_d2_c_max') else 0.3
+            d2_min_fit_points = self._d2_min_fit_points if hasattr(self, '_d2_min_fit_points') else 4
+            mask = (c_values > d2_c_min) & (c_values < d2_c_max)
+            if mask.sum() < d2_min_fit_points:
+                return self._d2_default if hasattr(self, '_d2_default') else 2.5
 
             log_r = np.log(rs[mask])
             log_c = np.log(c_values[mask])
             slope = np.polyfit(log_r, log_c, 1)[0]
-            return float(max(0.5, min(10.0, slope)))
+            d2_floor = self._d2_floor if hasattr(self, '_d2_floor') else 0.5
+            d2_ceil = self._d2_ceil if hasattr(self, '_d2_ceil') else 10.0
+            return float(max(d2_floor, min(d2_ceil, slope)))
         except Exception:
-            return 2.5
+            return self._d2_default if hasattr(self, '_d2_default') else 2.5
 
     def _calculate_chaos_metrics(self, history: Dict):
         """
@@ -778,36 +834,37 @@ class HistoryLoader:
             prices = history[ticker].get('prices', [])
             highs = history[ticker].get('highs', [])
             lows = history[ticker].get('lows', [])
-            if len(prices) < 100:
+            if len(prices) < self._chaos_min_prices:
                 continue
 
             prices_arr = np.array(prices, dtype=float)
             prices_arr = prices_arr[prices_arr > 0]
-            if len(prices_arr) < 100:
+            if len(prices_arr) < self._chaos_min_prices:
                 continue
 
             log_returns = np.diff(np.log(prices_arr))
-            if len(log_returns) < 30:
+            if len(log_returns) < self._chaos_min_returns:
                 continue
 
             # Базовые
             vol_pct = float(np.std(log_returns) * 100)
             skew_v = float(scipy_skew(log_returns))
             kurt_v = float(scipy_kurt(log_returns, fisher=True))
-            momentum = float((prices_arr[-1] / prices_arr[-min(24, len(prices_arr))] - 1) * 100)
+            momentum = float((prices_arr[-1] / prices_arr[-min(self._chaos_momentum_hours, len(prices_arr))] - 1) * 100)
 
-            # ATR (14h)
+            # ATR
             atr_pct = 0.0
             try:
-                if highs and lows and len(highs) >= 14:
-                    h = np.array(highs[-50:], dtype=float)
-                    l = np.array(lows[-50:], dtype=float)
-                    p_prev = np.array(prices[-51:-1] if len(prices) > 50 else prices[:-1], dtype=float)
+                if highs and lows and len(highs) >= self._chaos_atr_period:
+                    atr_lookback = self._chaos_atr_lookback
+                    h = np.array(highs[-atr_lookback:], dtype=float)
+                    l = np.array(lows[-atr_lookback:], dtype=float)
+                    p_prev = np.array(prices[-(atr_lookback+1):-1] if len(prices) > atr_lookback else prices[:-1], dtype=float)
                     n = min(len(h), len(l), len(p_prev))
                     tr = np.maximum(h[-n:] - l[-n:],
                                     np.maximum(np.abs(h[-n:] - p_prev[-n:]),
                                                np.abs(l[-n:] - p_prev[-n:])))
-                    atr_pct = float(np.mean(tr[-14:]) / prices_arr[-1] * 100) if prices_arr[-1] > 0 else 0
+                    atr_pct = float(np.mean(tr[-self._chaos_atr_period:]) / prices_arr[-1] * 100) if prices_arr[-1] > 0 else 0
             except Exception:
                 atr_pct = 0.0
 
@@ -858,26 +915,36 @@ class HistoryLoader:
             logger.warning(f"Ошибка сохранения хаос-метрик: {e}")
 
     def _calculate_rqa(self, log_returns: np.ndarray, tau: int = 1, m: int = 5,
-                       eps_mult: float = 2.0) -> Dict:
-        """Recurrence Quantification Analysis: RR, DET, L_max, LAM."""
+                       eps_mult: float = None) -> Dict:
+        """Recurrence Quantification Analysis: RR, DET, L_max, LAM.
+
+        eps_mult: множитель для порога рекурренции.
+            Если None — берётся из конфига (default 0.3).
+            Меньше = больше точек рекурренции = выше RR/DET.
+        """
         try:
+            # 🆕 v16.10: eps_mult из конфига (был хардкод 2.0 — слишком жёсткий)
+            if eps_mult is None:
+                eps_mult = self._rqa_eps_mult if hasattr(self, '_rqa_eps_mult') else 0.3
+
             n_total = len(log_returns)
-            if n_total < 100:
+            rqa_min_points = self._rqa_min_points if hasattr(self, '_rqa_min_points') else 50
+            if n_total < rqa_min_points:
                 return {'RR': 0.0, 'DET': 0.0, 'L_max': 0, 'LAM': 0.0}
             # Центрируем
             lr = log_returns - log_returns.mean()
             n = n_total - (m - 1) * tau
-            if n < 100:
+            if n < rqa_min_points:
                 return {'RR': 0.0, 'DET': 0.0, 'L_max': 0, 'LAM': 0.0}
             embedded = np.zeros((n, m))
             for i in range(m):
                 embedded[:, i] = lr[i * tau:i * tau + n]
             # Subsample для скорости
-            if n > 1500:
-                idx = np.random.choice(n, 1500, replace=False)
+            if n > self._rqa_subsample_max:
+                idx = np.random.choice(n, self._rqa_subsample_max, replace=False)
                 idx = np.sort(idx)
                 embedded = embedded[idx]
-                n = 1500
+                n = self._rqa_subsample_max
             from scipy.spatial.distance import cdist
             D = cdist(embedded, embedded)
             eps = np.std(lr) * eps_mult
@@ -898,10 +965,10 @@ class HistoryLoader:
                     if v == 1:
                         cur += 1
                     else:
-                        if cur >= 2:
+                        if cur >= self._rqa_min_line_len:
                             diag_lens.append(cur)
                         cur = 0
-                if cur >= 2:
+                if cur >= self._rqa_min_line_len:
                     diag_lens.append(cur)
             # Вертикальные линии
             vert_lens = []
@@ -912,10 +979,10 @@ class HistoryLoader:
                     if v == 1:
                         cur += 1
                     else:
-                        if cur >= 2:
+                        if cur >= self._rqa_min_line_len:
                             vert_lens.append(cur)
                         cur = 0
-                if cur >= 2:
+                if cur >= self._rqa_min_line_len:
                     vert_lens.append(cur)
             det_pts = sum(l for l in diag_lens)
             lam_pts = sum(l for l in vert_lens)

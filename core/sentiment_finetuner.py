@@ -137,7 +137,10 @@ def delete_correction(text_hash: str) -> bool:
 
 
 def finetune_model(epochs: int = 3, batch_size: int = 8,
-                   learning_rate: float = 2e-5) -> Dict:
+                   learning_rate: float = 2e-5,
+                   weight_decay: float = 0.01,
+                   max_grad_norm: float = 1.0,
+                   max_seq_length: int = 512) -> Dict:
     """
     Дообучение модели на собранных коррекциях.
 
@@ -145,6 +148,9 @@ def finetune_model(epochs: int = 3, batch_size: int = 8,
         epochs: количество эпох
         batch_size: размер батча (CPU → маленький)
         learning_rate: скорость обучения
+        weight_decay: L2 регуляризация
+        max_grad_norm: обрезка градиентов
+        max_seq_length: максимальная длина последовательности
 
     Returns:
         {'success': bool, 'message': str, 'train_loss': float, 'samples': int}
@@ -210,11 +216,11 @@ def finetune_model(epochs: int = 3, batch_size: int = 8,
 
         # Датасет
         class SentimentDataset(Dataset):
-            def __init__(self, texts, labels, tokenizer, max_len=512):
+            def __init__(self, texts, labels, tokenizer, max_len=None):
                 self.texts = texts
                 self.labels = labels
                 self.tokenizer = tokenizer
-                self.max_len = max_len
+                self.max_len = max_len or max_seq_length
 
             def __len__(self):
                 return len(self.texts)
@@ -235,7 +241,6 @@ def finetune_model(epochs: int = 3, batch_size: int = 8,
 
         dataset = SentimentDataset(texts, labels, tokenizer)
 
-        # Параметры обучения (CPU-оптимизированные)
         FINETUNED_MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
         training_args = TrainingArguments(
@@ -244,12 +249,12 @@ def finetune_model(epochs: int = 3, batch_size: int = 8,
             per_device_train_batch_size=batch_size,
             learning_rate=learning_rate,
             warmup_steps=max(1, len(texts) // 10),
-            weight_decay=0.01,
-            save_strategy='no',  # не сохраняем промежуточные
+            weight_decay=weight_decay,
+            save_strategy='no',
             logging_steps=max(1, len(texts) // (batch_size * 2)),
-            report_to='none',  # отключаем wandb
+            report_to='none',
             disable_tqdm=False,
-            fp16=False,  # CPU → без fp16
+            fp16=False,
         )
 
         trainer = Trainer(
@@ -258,12 +263,10 @@ def finetune_model(epochs: int = 3, batch_size: int = 8,
             train_dataset=dataset,
         )
 
-        # Обучение
         start_time = time.time()
         train_result = trainer.train()
         elapsed = time.time() - start_time
 
-        # Сохранение дообученной модели
         model.save_pretrained(str(FINETUNED_MODEL_DIR))
         tokenizer.save_pretrained(str(FINETUNED_MODEL_DIR))
 

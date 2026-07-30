@@ -298,7 +298,29 @@
     "rate_limit_seconds": 0.15,
     "top_tickers_limit": 50,
     "history_file": "data/price_history_extended.json",
-    "chaos_cache_file": "data/chaos_metrics_cache.json"
+    "chaos_cache_file": "data/chaos_metrics_cache.json",
+    "chaos_refresh_cycles": 360,
+    "rqa_eps_mult": 0.3,
+    "rqa_min_points": 50,
+    "rqa_subsample_max": 1500,
+    "rqa_min_line_len": 2,
+    "chaos_min_prices": 100,
+    "chaos_min_returns": 30,
+    "chaos_momentum_hours": 24,
+    "chaos_atr_period": 14,
+    "chaos_atr_lookback": 50,
+    "d2_default": 2.5,
+    "d2_min_returns": 50,
+    "d2_tau": 4,
+    "d2_embedding_dim": 3,
+    "d2_min_embedded": 30,
+    "d2_subsample_max": 2000,
+    "d2_r_num": 20,
+    "d2_c_min": 0.001,
+    "d2_c_max": 0.3,
+    "d2_min_fit_points": 4,
+    "d2_floor": 0.5,
+    "d2_ceil": 10.0
   },
   "profit_optimization": {
     "extreme_pnl_threshold": 0.08,
@@ -440,7 +462,9 @@
       "max_position_weight_pct": 20,
       "max_per_sector": 2,
       "max_correlation_with_held": 0.7,
-      "min_confidence": 0.5
+      "min_confidence": 0.5,
+      "correlation_min_history": 20,
+      "correlation_min_returns": 10
     },
     "cooldown_seconds_between_entries": 60,
     "fallback": {
@@ -467,7 +491,8 @@
     "ms_imbalance_normalizer": 0.8,
     "base_stop_loss_pct": 2.5,
     "min_target_weight": 0.05,
-    "target_weight_multiplier": 0.15
+    "target_weight_multiplier": 0.15,
+    "phase_cleanup_seconds": 3600
   },
   "rolling_exit": {
     "enabled": true,
@@ -521,7 +546,8 @@
       "low_det_adjustment": 0.05,
       "threshold_min": 0.2,
       "threshold_max": 0.85
-    }
+    },
+    "phantom_cleanup_cycles": 60
   },
   "fresh_data": {
     "enabled": true,
@@ -573,5 +599,12 @@
     "confidence_factor_base": 0.5,
     "stop_loss_min_pct": 0.5,
     "stop_loss_max_pct": 10.0
+  },
+  "post_sale_tracking": {
+    "enabled": true,
+    "tracking_hours": 1.0,
+    "reward_correct_sell": 0.5,
+    "penalty_premature_sell": -0.5,
+    "min_price_change_pct": 0.1
   }
 }

@@ -656,6 +656,14 @@ class PortfolioManager:
             # 🆕 v16 Фаза 1.2: Anti-overtrading — обновляем timestamp последней сделки
             self._last_trade_timestamp = time.time()
 
+            # 🆕 v16.12: Регистрация продажи в post_sale_tracker
+            try:
+                from core.post_sale_tracker import post_sale_tracker
+                if post_sale_tracker and post_sale_tracker.enabled:
+                    post_sale_tracker.register_sale(ticker, price, self._last_trade_timestamp)
+            except Exception:
+                pass
+
             logger.info(f"ПРОДАНО: {ticker} {quantity} @ {price:.2f} = {revenue:,.0f}₽, "
                         f"комиссия покупки: {commission_buy_for_part:.2f}₽, "
                         f"комиссия продажи: {commission_sell:.2f}₽, "
